@@ -13,4 +13,4 @@ expression: render(&model).backend()
 "                                                                                "
 "  ────────────────────────────────────────────────────────────────────────────  "
 "  ⠋ Lokaler Scan ░░░░░░░░░░░░░░░░░░░░ 0 / 4                                     "
-"  r aktualisieren   tab wechseln   q beenden                                    "
+"  r aktualisieren   tab wechseln   ? Hilfe   q beenden                          "

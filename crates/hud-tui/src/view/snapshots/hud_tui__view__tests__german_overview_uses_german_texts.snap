@@ -13,4 +13,4 @@ expression: render(&german()).backend()
 "                                                                                "
 "                                                                                "
 "  ────────────────────────────────────────────────────────────────────────────  "
-"  r aktualisieren   tab wechseln   q beenden                                    "
+"  r aktualisieren   tab wechseln   ? Hilfe   q beenden                          "

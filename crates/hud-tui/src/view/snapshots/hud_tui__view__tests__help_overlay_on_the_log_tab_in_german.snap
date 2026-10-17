@@ -1,0 +1,26 @@
+---
+source: crates/hud-tui/src/view/mod.rs
+expression: render_wide(&model).backend()
+---
+"  Übersicht    Workspaces    Updates    KI    Protokoll    Einstellungen                                           "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"                                                                                                                   "
+"  Filter: alle┌ Tasten ──────────────────────────────────────────────────────────────────────────────┐             "
+"              │                                                                                      │             "
+"  Noch keine A│  Protokoll                                                                           │             "
+"              │  ↑↓                Auswahl bewegen, am Ende geht es oben weiter                      │             "
+"              │  /                 suchen, filtert beim Tippen                                       │             "
+"              │  f                 Filter wechseln: alle, automatisch, manuell, Probleme             │             "
+"              │  Esc               Suche verwerfen                                                   │             "
+"              │  r                 Protokoll neu laden                                               │             "
+"              │                                                                                      │             "
+"              │  Überall                                                                             │             "
+"              │  Tab, Shift-Tab    nächster bzw. vorheriger Tab                                      │             "
+"              │  ?                 diese Hilfe                                                       │             "
+"              │  q                 beenden, fragt bei laufender Installation nach                    │             "
+"              │  Ctrl-C            beenden, auch aus Eingaben heraus                                 │             "
+"              │                                                                                      │             "
+"              └──────────────────────────────────────────────────────────────────────────────────────┘             "
+"                                                                                                                   "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"  ↑↓ auswählen   / suchen   f filtern   r aktualisieren   tab wechseln   ? Hilfe   q beenden                       "
