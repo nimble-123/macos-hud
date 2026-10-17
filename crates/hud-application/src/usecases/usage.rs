@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use hud_domain::usage::{
     Accuracy, CostEstimate, Measured, ModelId, PRICES_AS_OF, Period, PriceTable, Provider,
-    TelemetryTotals, TokenUsage, UsageRecord,
+    TelemetryTotals, TokenUsage, UsageRecord, context_window,
 };
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
@@ -53,6 +53,8 @@ pub struct PeriodUsage {
     /// What Claude Code's telemetry reported; always partial, because it
     /// only arrives while hud runs (ADR 0011).
     pub telemetry: Measured<TelemetryTotals>,
+    /// Shares and activity within the period.
+    pub kpis: PeriodKpis,
 }
 
 /// State of one usage source after the last read.
@@ -64,6 +66,137 @@ pub struct SourceState {
     pub error: Option<UsageError>,
     /// Lines that looked like usage but could not be parsed.
     pub unreadable: u64,
+    /// Log files known after the read.
+    pub files: u64,
+    /// How long the read took, milliseconds.
+    pub read_ms: u64,
+}
+
+/// The last answer of the main conversation and how full its context was.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ContextUse {
+    /// Model.
+    pub model: ModelId,
+    /// Project.
+    pub project: Option<String>,
+    /// Tokens the model read for it.
+    pub prompt: u64,
+    /// Context window of the model.
+    pub window: u64,
+    /// When it was answered.
+    pub at: Timestamp,
+    /// Time from the answer to the report.
+    pub idle: Duration,
+}
+
+/// Shares and activity of one period. Shares are in per mille; `None`
+/// means there was nothing to divide by.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct PeriodKpis {
+    /// Cache reads among all prompt tokens.
+    pub cache_hit: Option<u16>,
+    /// Models by share of fresh tokens (all but cache reads), largest first.
+    pub models: Vec<(ModelId, u16)>,
+    /// Subagents' share of fresh tokens.
+    pub subagents: Option<u16>,
+    /// Thinking's share of output.
+    pub thinking: Option<u16>,
+    /// Responses per bucket, oldest first: hours for today, days otherwise.
+    pub activity: Vec<u64>,
+    /// Responses.
+    pub responses: u64,
+    /// Tool calls.
+    pub tool_calls: u64,
+    /// Projects by share of fresh tokens, largest first.
+    pub projects: Vec<(String, u16)>,
+}
+
+/// Computes shares and activity for the records in `[from, to)`.
+#[must_use]
+pub fn period_kpis(
+    records: &[UsageRecord],
+    (from, to): (Timestamp, Timestamp),
+    buckets: &[(Timestamp, Timestamp)],
+    tool_calls: u64,
+) -> PeriodKpis {
+    let inside: Vec<&UsageRecord> = records
+        .iter()
+        .filter(|r| r.at >= from && r.at < to)
+        .collect();
+    let mut totals = TokenUsage::default();
+    let (mut subagent, mut thinking) = (0u64, 0u64);
+    let mut models: BTreeMap<ModelId, u64> = BTreeMap::new();
+    let mut projects: BTreeMap<String, u64> = BTreeMap::new();
+    for record in &inside {
+        totals += record.tokens;
+        thinking += record.thinking;
+        let fresh = record.tokens.fresh();
+        if record.subagent {
+            subagent += fresh;
+        }
+        *models.entry(record.model.clone()).or_default() += fresh;
+        if let Some(project) = &record.project {
+            *projects.entry(project.clone()).or_default() += fresh;
+        }
+    }
+    let fresh = totals.fresh();
+    PeriodKpis {
+        cache_hit: share(totals.cache_read, totals.prompt()),
+        models: ranked(models, fresh),
+        subagents: share(subagent, fresh),
+        thinking: share(thinking, totals.output),
+        activity: buckets
+            .iter()
+            .map(|&(start, end)| {
+                count(
+                    inside
+                        .iter()
+                        .filter(|r| r.at >= start && r.at < end)
+                        .count(),
+                )
+            })
+            .collect(),
+        responses: count(inside.len()),
+        tool_calls,
+        projects: ranked(projects, fresh),
+    }
+}
+
+/// The latest answer of a main conversation before `now`.
+#[must_use]
+pub fn latest_context(records: &[UsageRecord], now: Timestamp) -> Option<ContextUse> {
+    records
+        .iter()
+        .filter(|r| !r.subagent && r.at <= now)
+        .max_by_key(|r| r.at)
+        .map(|r| ContextUse {
+            model: r.model.clone(),
+            project: r.project.clone(),
+            prompt: r.tokens.prompt(),
+            window: context_window(&r.model),
+            at: r.at,
+            idle: now.duration_since(r.at).unsigned_abs(),
+        })
+}
+
+/// `part / total` in per mille, rounded.
+fn share(part: u64, total: u64) -> Option<u16> {
+    (total > 0).then(|| {
+        let permille = (u128::from(part) * 1000 + u128::from(total) / 2) / u128::from(total);
+        u16::try_from(permille.min(1000)).unwrap_or(1000)
+    })
+}
+
+fn ranked<K>(amounts: BTreeMap<K, u64>, total: u64) -> Vec<(K, u16)> {
+    let mut ranked: Vec<(K, u64)> = amounts
+        .into_iter()
+        .filter(|(_, amount)| *amount > 0)
+        .collect();
+    ranked.sort_by_key(|entry| std::cmp::Reverse(entry.1));
+    ranked
+        .into_iter()
+        .map(|(key, amount)| (key, share(amount, total).unwrap_or(0)))
+        .collect()
 }
 
 /// Everything the AI tab shows.
@@ -73,6 +206,8 @@ pub struct UsageReport {
     pub periods: Vec<PeriodUsage>,
     /// Sources in configured order.
     pub sources: Vec<SourceState>,
+    /// Context of the latest main answer; independent of the period.
+    pub context: Option<ContextUse>,
 }
 
 /// Summarises `records` for every period. `unreadable` lines make token and
@@ -167,6 +302,7 @@ pub fn summarize(
                     value: TelemetryTotals::default(),
                     accuracy: Accuracy::Partial,
                 },
+                kpis: PeriodKpis::default(),
             }
         })
         .collect()
@@ -174,6 +310,37 @@ pub fn summarize(
 
 fn count(len: usize) -> u64 {
     u64::try_from(len).unwrap_or(u64::MAX)
+}
+
+/// Activity buckets of a period: the 24 hours of today, else its days.
+fn buckets(
+    period: Period,
+    from: Timestamp,
+    to: Timestamp,
+    zone: &TimeZone,
+) -> Vec<(Timestamp, Timestamp)> {
+    use jiff::ToSpan;
+    let step = if period == Period::Today {
+        1.hour()
+    } else {
+        1.day()
+    };
+    let start = from.to_zoned(zone.clone());
+    // Today shows the whole day, so the hours ahead stay empty but visible.
+    let end = match period {
+        Period::Today => start.checked_add(1.day()).map_or(to, |end| end.timestamp()),
+        _ => to,
+    };
+    let mut buckets = Vec::new();
+    let mut current = start;
+    while current.timestamp() < end && buckets.len() < 48 {
+        let Ok(next) = current.checked_add(step) else {
+            break;
+        };
+        buckets.push((current.timestamp(), next.timestamp().min(end)));
+        current = next;
+    }
+    buckets
 }
 
 /// Reads all sources into the store, then reports usage per period.
@@ -248,13 +415,27 @@ impl<S: UsageStore + TelemetryStore, C: Clock> UsageAgent<S, C> {
         let prices = PriceTable::new(self.settings.borrow_and_update().prices.clone());
         let unreadable = sources.iter().map(|s| s.unreadable).sum();
         let mut periods = summarize(&records, &ranges, &prices, unreadable);
-        for (usage, (_, from, to)) in periods.iter_mut().zip(&ranges) {
-            match self.store.totals(*from, *to).await {
+        for (usage, &(period, from, to)) in periods.iter_mut().zip(&ranges) {
+            match self.store.totals(from, to).await {
                 Ok(totals) => usage.telemetry.value = totals,
                 Err(error) => tracing::warn!(%error, "could not read telemetry"),
             }
+            let tool_calls = self
+                .store
+                .tool_calls(from, to)
+                .await
+                .unwrap_or_else(|error| {
+                    tracing::warn!(%error, "could not count tool calls");
+                    0
+                });
+            let buckets = buckets(period, from, to, &self.time_zone);
+            usage.kpis = period_kpis(&records, (from, to), &buckets, tool_calls);
         }
-        UsageReport { periods, sources }
+        UsageReport {
+            context: latest_context(&records, now.timestamp()),
+            periods,
+            sources,
+        }
     }
 
     async fn ingest(&self, source: &dyn UsageSource) -> SourceState {
@@ -267,13 +448,20 @@ impl<S: UsageStore + TelemetryStore, C: Clock> UsageAgent<S, C> {
                     provider,
                     error: Some(UsageError::Io(error.to_string())),
                     unreadable: 0,
+                    files: 0,
+                    read_ms: 0,
                 };
             }
         };
         let previous: u64 = cursors.values().map(|c| c.unreadable).sum();
-        match source.read(cursors).await {
+        let known = count(cursors.len());
+        let started = std::time::Instant::now();
+        let result = source.read(cursors).await;
+        let read_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+        match result {
             Ok(batch) => {
                 let unreadable = batch.cursors.values().map(|c| c.unreadable).sum();
+                let files = count(batch.cursors.len());
                 let added = batch.records.len();
                 if let Err(error) = self.store.save(provider, batch).await {
                     tracing::warn!(%error, "could not store usage");
@@ -281,6 +469,8 @@ impl<S: UsageStore + TelemetryStore, C: Clock> UsageAgent<S, C> {
                         provider,
                         error: Some(UsageError::Io(error.to_string())),
                         unreadable: previous,
+                        files: known,
+                        read_ms,
                     };
                 }
                 tracing::debug!(?provider, added, unreadable, "usage read");
@@ -288,12 +478,16 @@ impl<S: UsageStore + TelemetryStore, C: Clock> UsageAgent<S, C> {
                     provider,
                     error: None,
                     unreadable,
+                    files,
+                    read_ms,
                 }
             }
             Err(error) => SourceState {
                 provider,
                 error: Some(error),
                 unreadable: previous,
+                files: known,
+                read_ms,
             },
         }
     }
@@ -328,6 +522,9 @@ mod tests {
             },
             speed: Speed::Standard,
             geo: Geo::Global,
+            project: Some("hud".into()),
+            subagent: false,
+            thinking: 0,
         }
     }
 
@@ -381,6 +578,81 @@ mod tests {
         assert_eq!(summary.models[0].sessions, 1);
     }
 
+    fn hours() -> Vec<(Timestamp, Timestamp)> {
+        vec![
+            (at("2026-10-17T00:00:00Z"), at("2026-10-17T09:00:00Z")),
+            (at("2026-10-17T09:00:00Z"), at("2026-10-17T12:00:00Z")),
+        ]
+    }
+
+    #[test]
+    fn period_kpis_split_fresh_tokens_by_model_project_and_subagent() {
+        let mut opus = record("a", "s1", "claude-opus-5-5", "2026-10-17T08:00:00Z", 600);
+        opus.tokens.cache_read = 9_000;
+        opus.tokens.input = 400;
+        opus.thinking = 300;
+        let mut haiku = record("b", "s1", "claude-haiku-4-5", "2026-10-17T10:00:00Z", 1_000);
+        haiku.subagent = true;
+        haiku.project = Some("wiki".into());
+        let outside = record("c", "s9", "claude-opus-5-5", "2026-10-16T10:00:00Z", 5_000);
+        let range = (at("2026-10-17T00:00:00Z"), at("2026-10-17T12:00:00Z"));
+        let kpis = period_kpis(&[opus, haiku, outside], range, &hours(), 3);
+        assert_eq!(
+            kpis.models[0].1, 500,
+            "both models have 1 000 of 2 000 fresh tokens"
+        );
+        assert_eq!(kpis.subagents, Some(500));
+        assert_eq!(kpis.thinking, Some(188), "300 of 1 600 output");
+        assert_eq!(kpis.cache_hit, Some(957), "9 000 of 9 400 prompt tokens");
+        assert_eq!(kpis.activity, vec![1, 1]);
+        assert_eq!(kpis.responses, 2);
+        assert_eq!(kpis.tool_calls, 3);
+        assert_eq!(kpis.projects.len(), 2);
+    }
+
+    #[test]
+    fn period_kpis_without_records_have_no_shares() {
+        let range = (at("2026-10-17T00:00:00Z"), at("2026-10-17T12:00:00Z"));
+        let kpis = period_kpis(&[], range, &hours(), 0);
+        assert_eq!(kpis.cache_hit, None);
+        assert_eq!(kpis.activity, vec![0, 0]);
+    }
+
+    #[test]
+    fn the_context_is_the_latest_main_answer() {
+        let mut main = record("a", "s1", "claude-opus-5-5", "2026-10-17T08:00:00Z", 1);
+        main.tokens.cache_read = 121_000;
+        let mut sub = record("b", "s1", "claude-haiku-4-5", "2026-10-17T09:00:00Z", 1);
+        sub.subagent = true;
+        let context = latest_context(&[main, sub], at("2026-10-17T08:06:00Z")).expect("BUG");
+        assert_eq!(context.prompt, 121_000);
+        assert_eq!(context.window, 1_000_000);
+        assert_eq!(context.idle.as_secs(), 360);
+    }
+
+    #[test]
+    fn today_has_24_hourly_buckets_and_other_periods_daily_ones() {
+        let today = buckets(
+            Period::Today,
+            at("2026-10-17T00:00:00Z"),
+            at("2026-10-17T12:00:00Z"),
+            &TimeZone::UTC,
+        );
+        assert_eq!(today.len(), 24);
+        let week = buckets(
+            Period::Last7Days,
+            at("2026-10-11T00:00:00Z"),
+            at("2026-10-17T12:00:00Z"),
+            &TimeZone::UTC,
+        );
+        assert_eq!(week.len(), 7);
+        assert_eq!(
+            week[6].1,
+            at("2026-10-17T12:00:00Z"),
+            "the last day ends now"
+        );
+    }
+
     #[test]
     fn an_unpriced_model_makes_the_cost_partial() {
         let records = [record("a", "s", "mystery-1", "2026-10-17T08:00:00Z", 10)];
@@ -423,6 +695,7 @@ mod tests {
                         "2026-10-17T11:00:00Z",
                         1_000_000,
                     )],
+                    tool_calls: Vec::new(),
                     cursors,
                 })
             })
@@ -448,6 +721,10 @@ mod tests {
             self.records.lock().expect("BUG").extend(batch.records);
             *self.cursors.lock().expect("BUG") = batch.cursors;
             Ok(())
+        }
+
+        async fn tool_calls(&self, _from: Timestamp, _to: Timestamp) -> Result<u64, StoreError> {
+            Ok(7)
         }
 
         async fn records(
@@ -513,6 +790,9 @@ mod tests {
         assert_eq!(report.periods[0].tokens.accuracy, Accuracy::Partial);
         assert_eq!(store.cursors.lock().expect("BUG")["log.jsonl"].offset, 10);
         assert_eq!(report.periods[0].telemetry.value.commits, 2);
+        assert_eq!(report.periods[0].kpis.tool_calls, 7);
+        assert_eq!(report.periods[0].kpis.activity.len(), 24);
+        assert_eq!(report.sources[0].files, 1);
         assert_eq!(report.periods[0].telemetry.accuracy, Accuracy::Partial);
         cancel.cancel();
         task.await.expect("BUG");

@@ -135,6 +135,53 @@ pub struct UsageRecord {
     pub speed: Speed,
     /// Inference geography.
     pub geo: Geo,
+    /// Project the session ran in, e.g. the repository folder name.
+    pub project: Option<String>,
+    /// Answered by a subagent rather than the main conversation.
+    pub subagent: bool,
+    /// Part of the output spent on thinking.
+    pub thinking: u64,
+}
+
+/// One tool call, counted once by its id however often a log repeats it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ToolCall {
+    /// Provider.
+    pub provider: Provider,
+    /// The call's id, e.g. `toolu_…`.
+    pub id: String,
+    /// When the answer that made it was written.
+    pub at: Timestamp,
+}
+
+impl TokenUsage {
+    /// Tokens that cost full price or more: everything except cache reads.
+    #[must_use]
+    pub fn fresh(&self) -> u64 {
+        self.input
+            + self.cache_write_5m
+            + self.cache_write_1h
+            + self.output
+            + self.reasoning.unwrap_or(0)
+    }
+}
+
+/// Context window of `model` in tokens: 1 M from Claude 4.6 on, 200 k
+/// before; unknown models are assumed to be current.
+#[must_use]
+pub fn context_window(model: &ModelId) -> u64 {
+    const WINDOWS: [(&str, u64); 9] = [
+        ("claude-opus-4", 200_000),
+        ("claude-opus-4-1", 200_000),
+        ("claude-opus-4-5", 200_000),
+        ("claude-opus-4-6", 1_000_000),
+        ("claude-opus-4-7", 1_000_000),
+        ("claude-opus-4-8", 1_000_000),
+        ("claude-sonnet-4", 200_000),
+        ("claude-sonnet-4-5", 200_000),
+        ("claude-haiku-4-5", 200_000),
+    ];
+    longest_match(WINDOWS.iter().copied(), model.as_str()).unwrap_or(1_000_000)
 }
 
 /// How far a value can be trusted.
@@ -560,6 +607,9 @@ mod tests {
             tokens,
             speed: Speed::Standard,
             geo: Geo::Global,
+            project: None,
+            subagent: false,
+            thinking: 0,
         }
     }
 
@@ -599,6 +649,15 @@ mod tests {
         assert_eq!(pricing("claude-opus-4-1-20250805"), usd(15, 0));
         assert_eq!(pricing("claude-opus-4-5-20251101"), usd(5, 0));
         assert_eq!(pricing("claude-sonnet-4-5-20250929"), usd(3, 0));
+    }
+
+    #[test]
+    fn context_windows_follow_the_model_generation() {
+        let window = |id: &str| context_window(&ModelId::try_from(id.to_owned()).expect("BUG"));
+        assert_eq!(window("claude-opus-4-20250514"), 200_000);
+        assert_eq!(window("claude-opus-4-6"), 1_000_000);
+        assert_eq!(window("claude-haiku-4-5-20251001"), 200_000);
+        assert_eq!(window("claude-sonnet-5-5"), 1_000_000);
     }
 
     #[test]

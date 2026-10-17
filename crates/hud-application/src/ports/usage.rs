@@ -5,7 +5,7 @@ use std::future::Future;
 use std::sync::Arc;
 
 use futures::future::BoxFuture;
-use hud_domain::usage::{Provider, UsageRecord};
+use hud_domain::usage::{Provider, ToolCall, UsageRecord};
 use jiff::Timestamp;
 
 use crate::ports::store::StoreError;
@@ -29,6 +29,8 @@ pub type Cursors = BTreeMap<String, FileCursor>;
 pub struct UsageBatch {
     /// New or updated responses; the same key may appear more than once.
     pub records: Vec<UsageRecord>,
+    /// Tool calls in the new lines.
+    pub tool_calls: Vec<ToolCall>,
     /// Cursors of every file after reading.
     pub cursors: Cursors,
 }
@@ -78,6 +80,13 @@ pub trait UsageStore: Send + Sync {
         from: Timestamp,
         to: Timestamp,
     ) -> impl Future<Output = Result<Vec<UsageRecord>, StoreError>> + Send;
+
+    /// Distinct tool calls in `[from, to)`.
+    fn tool_calls(
+        &self,
+        from: Timestamp,
+        to: Timestamp,
+    ) -> impl Future<Output = Result<u64, StoreError>> + Send;
 }
 
 impl<T: UsageStore> UsageStore for Arc<T> {
@@ -102,5 +111,13 @@ impl<T: UsageStore> UsageStore for Arc<T> {
         to: Timestamp,
     ) -> impl Future<Output = Result<Vec<UsageRecord>, StoreError>> + Send {
         (**self).records(from, to)
+    }
+
+    fn tool_calls(
+        &self,
+        from: Timestamp,
+        to: Timestamp,
+    ) -> impl Future<Output = Result<u64, StoreError>> + Send {
+        (**self).tool_calls(from, to)
     }
 }

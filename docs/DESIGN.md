@@ -189,25 +189,48 @@ Automatische Installation
 ### 5.5 KI-Tab
 
 ```
-Heute   7 Tage   30 Tage   Dieser Monat   Letzter Monat         aktiver Zeitraum in focus
-Claude Code   Preise Stand 2026-10-17
-Sessions        5
-Antworten       1.751
-Token           192,9 M   Input 99,1 k   Output 230,7 k   Cache schr. 12,4 M   Cache lesen 180,2 M
-Kosten          ≈ 137,67 $   API-Äquivalent
-Aktive Zeit     ~ 2 h 14 min   Eingabe 34 min   Claude 1 h 40 min   (Telemetrie, nur solange hud läuft)
-Code            ~ +1.240 / −310 Zeilen   3 Commits   1 PR
-Kosten laut Claude  ~ 131,92 $
+Heute   7 Tage   30 Tage   Dieser Monat   Letzter Monat     gilt für den ganzen Tab
+
+Claude Code   474 Logdateien in 239 ms   Preise Stand 2026-10-17
+Telemetrie    ● empfängt auf 127.0.0.1:4318, Claude Code sendet
+
+Verbrauch
+  Token               192,9 M   Input 99,1 k   Output 230,7 k   Cache schr. 12,4 M   Cache lesen 180,2 M
+  Kosten              ≈ 137,67 $      API-Äquivalent
+  Cache-Hit           97 %
+
+Modelle
+  ████████████████████████████████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░        Balken 60 Zellen
+  ■ Opus 5.5 71 %      ■ Sonnet 5.5 28 %      ■ Haiku 4.5 <1 %
   Modell                     Antworten   Input   Output   Cache schr.   Cache lesen      Kosten
-  claude-opus-5-5                1.537   3,1 k  212,4 k        12,4 M       180,2 M  ≈ 137,48 $
+
+Aufwand
+  Subagenten          31 % der neuen Token      Thinking 37 % vom Output
+
+Aktivität
+  ▁▁▂▂▃▃▅▅▂▂ …                                                       Stunden (heute) oder Tage
+  0 Uhr                                      24 Uhr
+  Gesamt              5 Sessions, 1.751 Antworten, 837 Tool-Calls
+
+Kontext   aktuell
+  ███████░░░░░░░░░░░░░░░░░░░░░░░░░░░░   12 %   121,0 k / 1,0 M
+  opus-5-5, macos-hud, vor 6 min
+
+Projekte
+  macos-hud 34 %      takt 14 %      skills-hub 7 %
+
+Telemetrie   nur solange hud läuft
+  Aktive Zeit, Code, Kosten laut Claude
 ```
 
-- Kennzeichnung nach Genauigkeit: `≈` geschätzt, `~` unvollständig (mit Hinweis, z. B. „3 Zeilen nicht lesbar“), `—` nicht verfügbar (Modell ohne Preis).
-- Kosten tragen immer „API-Äquivalent“ (Abo, `billing = "subscription"`) oder „Schätzung“ (`billing = "api"`) und das Stand-Datum der Preistabelle.
-- Zahlen kompakt mit einer Nachkommastelle (`192,9 M`, englisch `192.9M`), Beträge auf Cent gerundet (`137,67 $`, englisch `$137.67`), Tausender gruppiert.
-- Modelle nach Kosten sortiert, teuerstes zuerst. Ohne Logs steht dort „Keine Logs unter …“ in neutral.
-- Werte aus der Telemetrie (aktive Zeit, Codezeilen, Commits, PRs, Kosten laut Claude) erscheinen, sobald Claude Code sendet oder Daten vorliegen, und tragen immer `~`: sie kommen nur an, solange hud läuft.
-- Unter dem Quellkopf steht die Zeile „Telemetrie“: `ok` „empfängt auf 127.0.0.1:4318, Claude Code sendet“, `advisory` „Claude Code sendet noch nicht“ mit `t einschalten`, `caution` bei eigenen OTel-Einstellungen, `warning` bei belegtem Port. `t` öffnet einen zentrierten Dialog mit den genauen Einträgen für `settings.json`; nach `Enter` erinnert eine Zeile daran, laufende Sitzungen neu zu starten.
+- Die Zeitraumauswahl steht ganz oben und gilt für alle Abschnitte; jede Kennzahl zeigt genau einen Wert. Nur „Kontext“ zeigt den aktuellen Stand und trägt den Hinweis „aktuell“.
+- Abschnitte haben eine fette Überschrift und eine Leerzeile davor; der Tab nutzt die Höhe. Token und Kosten stehen nur unter „Verbrauch“ und in der Modelltabelle, nie doppelt.
+- „Neue Token“ sind alle außer Cache-Lesen. Modell- und Projektanteile beziehen sich darauf, Thinking auf den Output, Cache-Hit auf alle Prompt-Token.
+- Balken nutzen `█` und `░`; die drei größten Modelle bekommen `advisory`, `focus` und `caution`, der Rest `muted`. Ab 80 % Kontext wird der Kontextbalken `caution`.
+- Die Aktivität zeigt bei „Heute“ die 24 Stunden, sonst die Tage des Zeitraums, mit Beschriftung von Anfang und Ende.
+- Kennzeichnung nach Genauigkeit: `≈` geschätzt, `~` unvollständig, `—` nicht verfügbar. Kosten tragen „API-Äquivalent“ oder „Schätzung“ und das Stand-Datum der Preistabelle.
+- Zahlen kompakt mit einer Nachkommastelle (`192,9 M`, englisch `192.9M`), Beträge auf Cent gerundet, Tausender gruppiert.
+- Werte aus der Telemetrie erscheinen, sobald Claude Code sendet oder Daten vorliegen, und tragen immer `~`. `t` schaltet die Telemetrie in Claude Code ein (Dialog mit den genauen Einträgen für `settings.json`).
 
 ### 5.4 Protokoll-Tab
 

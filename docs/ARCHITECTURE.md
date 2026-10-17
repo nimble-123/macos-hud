@@ -338,6 +338,8 @@ Alle drei `select!`-Zweige sind cancel-safe. Die Schleife macht kein I/O außer 
 4. Ein Vorfilter überspringt Zeilen ohne `"assistant"` und `"usage"`. Der Parser liest nur Usage-Metadaten (Serde ohne `deny_unknown_fields`); Inhalte werden nie übernommen. Platzhalter-Antworten mit Modell `<synthetic>` zählen nicht. Kaputte Zeilen werden gezählt und machen Token und Kosten zu `Accuracy::Partial`.
 5. Claude: Schlüssel `message.id:requestId`. Mehrere Zeilen derselben Antwort werden beim Speichern zusammengeführt, je Token-Art zählt der höchste Wert. Der Cache-Schreibanteil wird nach 5 Minuten und 1 Stunde getrennt; ältere Logs ohne Aufteilung zählen als 5 Minuten. `speed` und `inference_geo` bestimmen den Tarif.
 6. `summarize` berechnet je Zeitraum Sessions, Token und `CostEstimate` aus der Preistabelle und den Overrides der Config, gesamt und je Modell (teuerstes zuerst).
+7. `period_kpis` berechnet je Zeitraum Cache-Hit, Anteile von Modellen, Projekten und Subagenten an den neuen Token (alle außer Cache-Lesen), Thinking-Anteil am Output, Antworten je Stunde (heute) bzw. je Tag, Antworten und Tool-Calls. `latest_context` liefert unabhängig vom Zeitraum den Kontextstand der letzten Antwort einer Hauptunterhaltung (Prompt-Token je Kontextfenster: 1 M ab Claude 4.6, sonst 200 k).
+8. Zusätzlich liest `ClaudeLogs` je Zeile `cwd` (Projekt: der Vorfahr von `cwd`, aus dem Claude Code den Projektordner gebildet hat, sonst der Ordner von `cwd`), `isSidechain` bzw. den Ordner `subagents/`, `output_tokens_details.thinking_tokens` und die IDs der `tool_use`-Blöcke; von Inhaltsblöcken werden nur Typ und ID gelesen. Tool-Calls landen dedupliziert in `ai_tool_call`.
 
 **Telemetrie von Claude Code (ADR 0011).** Ist `[ai.telemetry]` aktiv (Standard), öffnet das Binary beim Start den `OtlpReceiver` auf `127.0.0.1:4318`. Ein belegter Port wird als `ReceiverState::Unavailable` geführt, hud startet trotzdem. Ausgewertet werden die Delta-Summen von `claude_code.cost.usage` (USD → Mikro-USD), `token.usage`, `active_time.total` (s → ms, `type` = `user`/`cli`), `lines_of_code.count` (`added`/`removed`), `commit.count`, `pull_request.count` und `session.count`; kumulative Reihen und andere Metriken werden übersprungen. Der `TelemetryAgent` speichert die Punkte in `otel_metric`.
 
@@ -463,6 +465,7 @@ Alle Fremdwerkzeuge laufen über den internen `ProcessRunner`:
 | `install_history` | Installationsergebnis je Paket und Version (`installed`, `needs_interaction`, `failed`) | `id`, Index auf `source`, `name` |
 | `ingest_offset` | Lesefortschritt je JSONL-Datei | `file` |
 | `ai_usage` | Nutzung je Antwort bzw. Token-Ereignis | `provider`, `message_key` |
+| `ai_tool_call` | Tool-Calls aus den Logs, einmal je ID | `provider`, `call_id` |
 | `otel_metric` | Telemetrie-Datenpunkte von Claude Code (Delta je Exportintervall) | `id`, Index auf `at_ms` |
 
 - `rusqlite` (`bundled`), WAL-Modus, `foreign_keys=ON`.

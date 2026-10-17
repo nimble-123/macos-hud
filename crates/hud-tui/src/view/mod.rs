@@ -7,6 +7,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 
 mod ai;
+mod ai_kpis;
 mod log;
 mod overview;
 mod settings;
@@ -416,6 +417,43 @@ mod tests {
         model
     }
 
+    fn sample_kpis() -> hud_application::usecases::usage::PeriodKpis {
+        use hud_domain::usage::ModelId;
+        let id = |text: &str| ModelId::try_from(text.to_owned()).expect("BUG: model id");
+        hud_application::usecases::usage::PeriodKpis {
+            cache_hit: Some(968),
+            models: vec![
+                (id("claude-opus-5-5"), 712),
+                (id("claude-sonnet-5-5"), 284),
+                (id("claude-haiku-4-5-20251001"), 4),
+            ],
+            subagents: Some(312),
+            thinking: Some(371),
+            activity: vec![
+                0, 0, 0, 0, 0, 0, 0, 40, 120, 210, 260, 180, 90, 150, 240, 310, 280, 0, 0, 0, 0, 0,
+                0, 0,
+            ],
+            responses: 1_751,
+            tool_calls: 837,
+            projects: vec![
+                ("macos-hud".into(), 341),
+                ("takt".into(), 142),
+                ("skills-hub".into(), 71),
+            ],
+        }
+    }
+
+    fn sample_context() -> hud_application::usecases::usage::ContextUse {
+        hud_application::usecases::usage::ContextUse {
+            model: hud_domain::usage::ModelId::try_from("claude-opus-5-5".to_owned()).expect("BUG"),
+            project: Some("macos-hud".into()),
+            prompt: 121_000,
+            window: 1_000_000,
+            at: jiff::Timestamp::UNIX_EPOCH,
+            idle: std::time::Duration::from_secs(360),
+        }
+    }
+
     fn sample_usage() -> hud_application::usecases::usage::UsageReport {
         use hud_application::usecases::usage::{ModelUsage, PeriodUsage, SourceState, UsageReport};
         use hud_domain::usage::{
@@ -473,6 +511,7 @@ mod tests {
                     value: cost(137_667_500),
                     accuracy: Accuracy::Estimated,
                 },
+                kpis: sample_kpis(),
                 telemetry: Measured {
                     value: hud_domain::usage::TelemetryTotals {
                         cost_micro_usd: 131_920_000,
@@ -494,7 +533,10 @@ mod tests {
                 provider: Provider::Claude,
                 error: None,
                 unreadable: 0,
+                files: 474,
+                read_ms: 239,
             }],
+            context: Some(sample_context()),
         }
     }
 
