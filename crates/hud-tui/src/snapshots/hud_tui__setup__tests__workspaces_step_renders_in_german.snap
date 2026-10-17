@@ -1,0 +1,20 @@
+---
+source: crates/hud-tui/src/setup.rs
+expression: terminal.backend()
+---
+"  Willkommen bei hud                                                                      "
+"  ──────────────────────────────────────────────────────────────────────────────────────  "
+"                                                                                          "
+"  Schritt 1 von 2: Workspaces                                                             "
+"  Ordner, in denen hud nach Git-Repositories sucht. Leertaste wählt einen Vorschlag;      "
+"  eigene Pfade unten eintippen.                                                           "
+"                                                                                          "
+"  ▌ [x] ~/workspace                                                                       "
+"                                                                                          "
+"    Pfad hinzufügen:                                                                      "
+"                                                                                          "
+"                                                                                          "
+"                                                                                          "
+"                                                                                          "
+"  ──────────────────────────────────────────────────────────────────────────────────────  "
+"  ↑↓ bewegen   Leertaste auswählen   Enter weiter   Esc abbrechen                         "

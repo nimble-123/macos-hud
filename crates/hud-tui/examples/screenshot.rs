@@ -21,7 +21,10 @@ use hud_domain::WorkspacePath;
 use hud_domain::git::{
     BranchName, CommitId, GitOperation, Head, RepoPath, RepoStatus, SkipReason, Upstream,
 };
-use hud_tui::{Appearance, Language, Model, Msg, Tab, UiSettings, update, view};
+use hud_tui::{
+    Appearance, Language, Model, Msg, SetupModel, Tab, UiSettings, update, update_setup, view,
+    view_setup,
+};
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::buffer::Buffer;
@@ -46,6 +49,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cols: u16 = args.next().map_or(Ok(115), |v| v.parse())?;
     let rows: u16 = args.next().map_or(Ok(50), |v| v.parse())?;
     std::fs::create_dir_all(&out)?;
+
+    // First-run setup, both steps, German on dark.
+    let settings = UiSettings {
+        language: Language::De,
+        ..UiSettings::default()
+    };
+    let mut setup = SetupModel::new(
+        settings,
+        vec![
+            "~/workspace".into(),
+            "~/workspace/projects".into(),
+            "~/Developer".into(),
+        ],
+    );
+    let press = |code| Msg::Key(KeyEvent::new(code, KeyModifiers::NONE));
+    update_setup(&mut setup, &press(KeyCode::Down));
+    update_setup(&mut setup, &press(KeyCode::Char(' ')));
+    for (name, advance) in [
+        ("00-setup-1-de-dark.svg", true),
+        ("00-setup-2-de-dark.svg", false),
+    ] {
+        let mut terminal = Terminal::new(TestBackend::new(cols, rows))?;
+        terminal.draw(|frame| view_setup(&setup, frame))?;
+        std::fs::write(
+            out.join(name),
+            to_svg(terminal.backend().buffer(), Appearance::Dark),
+        )?;
+        println!("{}", out.join(name).display());
+        if advance {
+            update_setup(&mut setup, &press(KeyCode::Enter));
+        }
+    }
 
     // Every tab in English on dark, plus the overview in the other variants.
     let variants = [

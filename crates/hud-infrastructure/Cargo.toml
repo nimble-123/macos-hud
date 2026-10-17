@@ -21,6 +21,7 @@ serde.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["process", "fs", "io-util", "rt"] }
 toml.workspace = true
+toml_edit.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]

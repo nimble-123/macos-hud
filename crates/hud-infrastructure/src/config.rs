@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use hud_application::settings::{
-    AutoInstallSettings, Billing, IconPreference, LanguagePreference, PriceOverride,
+    AutoInstallSettings, Billing, IconPreference, InitialSetup, LanguagePreference, PriceOverride,
     ProviderSettings, ScanSettings, Settings, SettingsError, SettingsStore, SkillsSettings,
     ThemePreference, ToolPaths, WorkspaceSettings,
 };
@@ -61,6 +61,96 @@ impl SettingsStore for TomlSettings {
             message,
         })
     }
+
+    async fn apply_setup(&self, setup: &InitialSetup) -> Result<Settings, SettingsError> {
+        let invalid = |message| SettingsError::Invalid {
+            path: self.path.display().to_string(),
+            message,
+        };
+        let existing = self.read_text().await?;
+        let text = with_setup(existing.as_deref(), setup).map_err(invalid)?;
+        // Validate before writing: a setup that produces an invalid file is rejected.
+        let settings = parse(&text, &self.home).map_err(invalid)?;
+        self.write_atomically(&text).await?;
+        Ok(settings)
+    }
+}
+
+impl TomlSettings {
+    async fn read_text(&self) -> Result<Option<String>, SettingsError> {
+        match tokio::fs::read_to_string(&self.path).await {
+            Ok(text) => Ok(Some(text)),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(source) => Err(SettingsError::Read {
+                path: self.path.display().to_string(),
+                source,
+            }),
+        }
+    }
+
+    /// Writes next to the target and renames, so a crash never leaves a half-written file.
+    async fn write_atomically(&self, text: &str) -> Result<(), SettingsError> {
+        let io_error = |source| SettingsError::Read {
+            path: self.path.display().to_string(),
+            source,
+        };
+        if let Some(dir) = self.path.parent() {
+            tokio::fs::create_dir_all(dir).await.map_err(io_error)?;
+        }
+        let temporary = self.path.with_extension("toml.tmp");
+        tokio::fs::write(&temporary, text).await.map_err(io_error)?;
+        tokio::fs::rename(&temporary, &self.path)
+            .await
+            .map_err(io_error)
+    }
+}
+
+const NEW_FILE_HEADER: &str = "\
+# hud configuration. Every key is optional; see docs/ARCHITECTURE.md §8.7.
+# Changes made in hud's settings tab are written back here and keep your comments.
+
+";
+
+/// Adds setup choices to `existing` (or a new file), keeping comments and other keys.
+fn with_setup(existing: Option<&str>, setup: &InitialSetup) -> Result<String, String> {
+    let mut document: toml_edit::DocumentMut = existing
+        .unwrap_or_default()
+        .parse()
+        .map_err(|error: toml_edit::TomlError| error.to_string())?;
+    document["icons"] = toml_edit::value(match setup.icons {
+        IconPreference::Unicode => "unicode",
+        IconPreference::Nerd => "nerd",
+        IconPreference::Ascii => "ascii",
+    });
+    let workspaces = document
+        .entry("workspaces")
+        .or_insert_with(|| toml_edit::Item::ArrayOfTables(toml_edit::ArrayOfTables::new()))
+        .as_array_of_tables_mut()
+        .ok_or_else(|| "workspaces must be an array of tables ([[workspaces]])".to_owned())?;
+    let known: Vec<String> = workspaces
+        .iter()
+        .filter_map(|table| {
+            table
+                .get("path")
+                .and_then(toml_edit::Item::as_str)
+                .map(str::to_owned)
+        })
+        .collect();
+    for path in &setup.workspaces {
+        if known.contains(path) {
+            continue;
+        }
+        let mut table = toml_edit::Table::new();
+        table["path"] = toml_edit::value(path.as_str());
+        table["auto_fast_forward"] = toml_edit::value(true);
+        workspaces.push(table);
+    }
+    // toml_edit attaches comments of an empty document to its end, so the
+    // header of a new file is prepended to the rendered text instead.
+    Ok(match existing {
+        Some(_) => document.to_string(),
+        None => format!("{NEW_FILE_HEADER}{document}"),
+    })
 }
 
 /// Parses and validates the file content.
@@ -500,6 +590,69 @@ npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
     fn default_path_ignores_relative_xdg_config_home() {
         let path = TomlSettings::default_path(Path::new(HOME), Some(Path::new("rel")));
         assert_eq!(path, Path::new("/Users/test/.config/hud/config.toml"));
+    }
+
+    fn setup(paths: &[&str], icons: IconPreference) -> InitialSetup {
+        InitialSetup {
+            workspaces: paths.iter().map(ToString::to_string).collect(),
+            icons,
+        }
+    }
+
+    #[tokio::test]
+    async fn setup_creates_a_commented_file_that_loads_again() {
+        let dir = tempfile::tempdir().expect("BUG");
+        let store = TomlSettings::new(dir.path().join("hud/config.toml"), PathBuf::from(HOME));
+        let applied = store
+            .apply_setup(&setup(&["~/workspace/projects"], IconPreference::Nerd))
+            .await
+            .expect("BUG");
+        let loaded = store.load().await.expect("BUG");
+        assert_eq!(applied, loaded);
+        assert_eq!(loaded.icons, IconPreference::Nerd);
+        assert_eq!(
+            loaded.workspaces[0].path.as_path(),
+            Path::new("/Users/test/workspace/projects")
+        );
+        assert!(loaded.workspaces[0].auto_fast_forward);
+        let text = std::fs::read_to_string(store.path()).expect("BUG");
+        assert!(text.starts_with("# hud configuration"), "{text}");
+        assert_eq!(text.matches("# hud configuration").count(), 1, "{text}");
+    }
+
+    #[test]
+    fn setup_keeps_existing_keys_comments_and_workspaces() {
+        let existing = "# my comment\nlanguage = \"de\"\n\n[[workspaces]]\npath = \"/a\"\nauto_fast_forward = false\n";
+        let text = with_setup(
+            Some(existing),
+            &setup(&["/a", "/b"], IconPreference::Unicode),
+        )
+        .expect("BUG");
+        assert!(text.contains("# my comment"), "{text}");
+        assert!(text.contains("language = \"de\""), "{text}");
+        let settings = parse(&text, Path::new(HOME)).expect("BUG");
+        let paths: Vec<_> = settings
+            .workspaces
+            .iter()
+            .map(|w| w.path.to_string())
+            .collect();
+        assert_eq!(paths, vec!["/a", "/b"]);
+        assert!(
+            !settings.workspaces[0].auto_fast_forward,
+            "existing opt-out must survive"
+        );
+    }
+
+    #[tokio::test]
+    async fn setup_with_a_relative_path_is_rejected_and_writes_nothing() {
+        let dir = tempfile::tempdir().expect("BUG");
+        let store = TomlSettings::new(dir.path().join("config.toml"), PathBuf::from(HOME));
+        let error = store
+            .apply_setup(&setup(&["projects"], IconPreference::Unicode))
+            .await
+            .unwrap_err();
+        assert!(matches!(error, SettingsError::Invalid { .. }), "{error}");
+        assert!(!store.path().exists());
     }
 
     #[tokio::test]
