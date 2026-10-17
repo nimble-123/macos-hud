@@ -1,0 +1,57 @@
+[
+  {
+    "name": "brag",
+    "path": "/Users/test/.agents/skills/brag",
+    "scope": "global",
+    "agents": [
+      "Antigravity",
+      "Claude Code",
+      "Codex",
+      "Cursor",
+      "Gemini CLI",
+      "GitHub Copilot",
+      "OpenCode",
+      "Warp"
+    ],
+    "source": "latent-spaces/brag",
+    "sourceUrl": "https://github.com/latent-spaces/brag.git",
+    "sourceType": "github"
+  },
+  {
+    "name": "canvas-design",
+    "path": "/Users/test/.agents/skills/canvas-design",
+    "scope": "global",
+    "agents": [
+      "Antigravity",
+      "Claude Code",
+      "Codex",
+      "Cursor",
+      "Gemini CLI",
+      "GitHub Copilot",
+      "OpenCode",
+      "Warp"
+    ],
+    "source": "anthropics/skills",
+    "sourceUrl": "https://github.com/anthropics/skills.git",
+    "sourceType": "github"
+  },
+  {
+    "name": "diagram-design",
+    "path": "/Users/test/.agents/skills/diagram-design",
+    "scope": "global",
+    "agents": [
+      "Antigravity",
+      "Claude Code",
+      "OpenClaw",
+      "Codex",
+      "Cursor",
+      "Gemini CLI",
+      "GitHub Copilot",
+      "OpenCode",
+      "Warp"
+    ],
+    "source": "cathrynlavery/diagram-design",
+    "sourceUrl": "https://github.com/cathrynlavery/diagram-design.git",
+    "sourceType": "github"
+  }
+]

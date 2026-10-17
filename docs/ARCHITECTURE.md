@@ -92,7 +92,7 @@ Rust-Konventionen nach Rust API Guidelines und den Projekt-Regeln in [AGENTS.md]
 | Git | `git -C <repo> status --porcelain=v2 --branch`, `fetch`, `rev-parse`, `merge --ff-only <oid>` | Abschnitt 8.5 |
 | Homebrew | `brew update`, `brew outdated --json=v2`, `brew upgrade [--cask] <name>` | Exit-Code und JSON |
 | npm | `npm outdated -g --json` (Exit 1 = Updates vorhanden), `npm install -g <name>@<version>` | PATH aus Login-Shell |
-| Skills-CLI | `npx --yes skills@<version> …` | Version in der Config gepinnt |
+| Skills-CLI | `npx --yes skills@<version> ls -g --json` (Liste als JSON), `… update -g -y` (Aktualisieren) | Version in der Config gepinnt; keine Prüfung ohne Installation, siehe §8.5 |
 | Claude Code | JSONL-Dateien, inkrementell gelesen | Abschnitt 8.8 |
 | Codex | JSONL-Dateien, inkrementell gelesen | Abschnitt 8.8 |
 | Dateisystem | Config, SQLite, Logs | Abschnitt 7 |
@@ -421,6 +421,7 @@ Alle Fremdwerkzeuge laufen über den internen `ProcessRunner`:
 | git | `GIT_TERMINAL_PROMPT=0`, `GIT_SSH_COMMAND="ssh -o BatchMode=yes"`, `GIT_OPTIONAL_LOCKS=0` (nur für `status`) |
 | brew | `HOMEBREW_NO_AUTO_UPDATE=1`, `HOMEBREW_NO_ENV_HINTS=1`, `NONINTERACTIVE=1`, `HOMEBREW_NO_COLOR=1` |
 | npm/npx | `NO_COLOR=1`, `npm_config_fund=false`, `npm_config_update_notifier=false` |
+| skills (über npx) | zusätzlich `DISABLE_TELEMETRY=1`, `DO_NOT_TRACK=1`: die Skills-CLI sendet sonst Telemetrie |
 
 - Timeouts: Status 10 s, Fetch 60 s, Outdated 120 s, Upgrade/Install 15 min.
 - Bei Abbruch: SIGTERM, nach 5 s SIGKILL.
@@ -539,7 +540,8 @@ Jeder angezeigte Wert ist ein `Measured<T>`:
 
 - Keine eigenen Netzwerkzugriffe, keine Telemetrie.
 - Fremdwerkzeuge laufen ohne Shell-Interpolation (Argumente als Liste, nie als String an `sh -c`; einzige Ausnahme: das einmalige Auslesen des Login-PATH).
-- `npx skills` läuft mit gepinnter Version, damit kein ungeprüfter neuer Code ausgeführt wird.
+- `npx skills` läuft mit gepinnter Version, damit kein ungeprüfter neuer Code ausgeführt wird, und mit abgeschalteter Telemetrie (`DISABLE_TELEMETRY`, `DO_NOT_TRACK`).
+- Die Skills-CLI kennt keinen reinen Prüfmodus: `update` vergleicht den Hash aus `~/.agents/.skill-lock.json` mit dem aktuellen Git-Stand der Quelle und installiert sofort.
 - Gelesene KI-Logs: nur Nutzungsfelder werden geparst und gespeichert.
 - `~/.codex/auth.json` und ähnliche Dateien werden nie geöffnet.
 

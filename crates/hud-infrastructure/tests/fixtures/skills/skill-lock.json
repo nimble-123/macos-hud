@@ -1,0 +1,34 @@
+{
+  "version": 3,
+  "skills": {
+    "sap-abap": {
+      "source": "secondsky/sap-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/secondsky/sap-skills.git",
+      "skillPath": "plugins/sap-abap/skills/sap-abap/SKILL.md",
+      "skillFolderHash": "4e44a944d3398e1fd65f14da325cb3b036e54c0e",
+      "installedAt": "2026-03-18T23:01:33.261Z",
+      "updatedAt": "2026-10-09T11:24:08.674Z"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/vercel-labs/skills.git",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "skillFolderHash": "76a98a285cb0434f3d39e1a873823556330e398b",
+      "installedAt": "2026-03-18T23:01:54.910Z",
+      "updatedAt": "2026-10-17T10:24:11.728Z"
+    },
+    "sap-abap-cds": {
+      "source": "secondsky/sap-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/secondsky/sap-skills.git",
+      "skillPath": "plugins/sap-abap-cds/skills/sap-abap-cds/SKILL.md",
+      "skillFolderHash": "b953e2ca42757ca656d526b356066757d4bf597a",
+      "installedAt": "2026-03-18T23:08:58.481Z",
+      "updatedAt": "2026-10-09T11:24:11.242Z"
+    }
+  },
+  "dismissed": {},
+  "lastSelectedAgents": []
+}
