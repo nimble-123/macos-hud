@@ -1,6 +1,6 @@
 # Product Design — hud
 
-**Version:** 0.1.0 · **Status:** zur Prüfung · **Stand:** 2026-10-17
+**Version:** 0.7.0 · **Status:** zur Prüfung · **Stand:** 2026-10-18
 
 Dieses Dokument legt die Produktidentität von `hud` fest. TUI-Theme, README, Diagramme und künftige Grafiken leiten sich davon ab.
 
@@ -35,6 +35,7 @@ Alle Textfarben sind gegen ihren Hintergrund auf WCAG ≥ 4.5:1 geprüft (2026-1
 | `muted` | `#47505C` | `#AEB5BD` | Sekundärtext, Rahmen, normale Zustände |
 | `soft` | `#5A6470` | `#8F98A3` | Hinweise, Tastenkürzel, Einheiten |
 | `focus` | `#B02A8A` | `#E870C6` | Marke, Auswahl, aktiver Tab, Fokusrahmen |
+| `rule` | `#C4C8C2` | `#3A424D` | Trennlinien, leere Balkenzellen, Kalenderstufe 0 |
 
 ### 3.2 Status (EICAS)
 
@@ -49,8 +50,8 @@ Alle Textfarben sind gegen ihren Hintergrund auf WCAG ≥ 4.5:1 geprüft (2026-1
 **Regeln**
 
 - Status wird **immer** über Symbol + Text + Farbe vermittelt, nie über Farbe allein (Farbsehschwäche, `NO_COLOR`).
-- Pro Zeile höchstens ein Statussymbol.
-- `warning` hat Vorrang vor `caution` vor `advisory`. Ein Repo zeigt immer nur den höchsten Status.
+- Pro Listenzeile höchstens ein Statussymbol; Sammelzeilen der Übersicht zeigen je Kategorie ein Symbol.
+- Ein Repo zeigt genau einen Status: den ersten zutreffenden Grund in der festen Regelreihenfolge (laufende Git-Operation, detached HEAD, keine Commits, kein Upstream, lokale Änderungen, ahead/divergiert). Ein divergiertes Repo mit lokalen Änderungen zeigt deshalb ▲ „lokale Änderungen“.
 
 ### 3.3 Terminal-Abbildung
 
@@ -58,10 +59,10 @@ Alle Textfarben sind gegen ihren Hintergrund auf WCAG ≥ 4.5:1 geprüft (2026-1
 |---|---|---|
 | Truecolor | `COLORTERM=truecolor\|24bit` | Hex-Werte aus 3.1/3.2, hell oder dunkel nach Theme |
 | 256 Farben | `TERM` enthält `256color` | nächstliegende xterm-256-Farbe (beim Start berechnet) |
-| 16 Farben | sonst | `focus`→Magenta, `advisory`→Cyan, `caution`→Yellow, `warning`→Red, `ok`→Green, `muted`→BrightBlack |
+| 16 Farben | sonst | `focus`→Magenta, `advisory`→Cyan, `caution`→Yellow, `warning`→Red, `ok`→Green, `ink`→Standardvordergrund, `muted`/`soft`/`rule`→BrightBlack; Kalenderstufen: KI BrightBlack→Blue→Cyan→LightCyan, Git BrightBlack→Green→LightGreen |
 | Keine Farbe | `NO_COLOR` gesetzt | nur Symbole, Fett und Unterstreichung |
 
-**Theme-Erkennung:** `theme = "auto" | "dark" | "light"` in der Config, Default `auto`. Bei `auto` fragt hud beim Start den Terminal-Hintergrund per OSC 11 ab (Timeout 100 ms, Fallback `dark`). hud malt **keinen** eigenen Hintergrund: Es nutzt den Hintergrund des Terminals und färbt nur Vordergrund und Rahmen.
+**Theme-Erkennung:** `theme = "auto" | "dark" | "light"` in der Config, Default `auto`. hud fragt beim Start den Terminal-Hintergrund per OSC 11 ab (nur wenn die Ausgabe ein Terminal ist, Timeout 100 ms, Fallback `dark`); verwendet wird er bei `auto`. hud malt **keinen** eigenen Hintergrund: Es nutzt den Hintergrund des Terminals und färbt nur Vordergrund und Rahmen.
 
 ### 3.4 Symbolsätze
 
@@ -79,10 +80,10 @@ hud kennt die Terminal-Schrift nicht und kann sie nicht zuverlässig erkennen. D
 | npm | — | `nf-dev-npm` | — |
 | Skills | — | `nf-fa-puzzle_piece` | — |
 | KI-Anbieter | — | `nf-md-robot` | — |
-| CPU / Speicher | — | `nf-oct-cpu` / `nf-md-memory` | — |
+| CPU / Speicher | — | `nf-oct-cpu` / `nf-md-memory` (definiert, derzeit nicht angezeigt) | — |
 
 - Quell-Icons (Git, Homebrew, npm, Skills, KI) erscheinen nur im Satz `nerd`; in `unicode` und `ascii` steht dort der Name der Quelle.
-- Der Einrichtungsdialog zeigt eine Vorschau beider Sätze und fragt, ob die Nerd-Icons korrekt dargestellt werden; die Antwort setzt `icons`.
+- Der Einrichtungsdialog (Schritt 2) zeigt alle drei Sätze untereinander und fragt, in welcher Zeile alle Symbole korrekt erscheinen; die gewählte Zeile setzt `icons`.
 - Ligaturen rendert das Terminal; hud gibt dafür nichts vor. Texte vermeiden Zeichenfolgen, deren Ligatur die Bedeutung verfälschen könnte (z. B. `->` als Pfeil, stattdessen `→`).
 - Die Glyphen-Namen folgen dem Nerd-Fonts-Cheat-Sheet; die Abbildung auf Codepoints liegt in `hud-tui`.
 
@@ -101,31 +102,33 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 ## 5. TUI-Layout
 
 ```
-┌ hud ───────────────────────────────────────────────────────────────┐
-│ Übersicht  Workspaces  Updates  KI  Protokoll  Einstellungen       │  Tabs, aktiver in focus
-├────────────────────────────────────────────────────────────────────┤
-│ CPU        23 %   ▁▂▂▃▅▃▂▁▁▂… (60 Werte = 2 min)                    │  Summen + Sparklines
-│ Speicher   65 %   ▅▅▅▆▆▆▅▅▅▅…   10,5 GB / 16,0 GB                   │
-│ Prozesse  612                                                      │
-│                                                                    │
-│ ◆ 3 Repos zurück   ▲ 2 übersprungen   ✖ 1 divergiert               │  nur Abweichungen
-│ ◆ 11 Updates (Homebrew 1, npm (global) 10)                         │
-│                                                                    │
-│ KI heute   1,2 M Token   ≈ 4,10 $   API-Äquivalent                 │
-│                                                                    │
-├────────────────────────────────────────────────────────────────────┤
-│ ⠋ npm install -g wrangler@4.151.1                    seit 00:12    │  laufende Aktion
-│ ? Hilfe  Tab Wechseln  ↵ Aktion  r Aktualisieren  q Beenden        │  klickbare Fußzeile
-└────────────────────────────────────────────────────────────────────┘
+  Übersicht    Workspaces    Updates    KI    Protokoll    Einstellungen         Tabs, aktiver in focus, fett, unterstrichen
+  ─────────────────────────────────────────────────────────────────────          Trennlinie in rule
+
+  CPU          26 %     ▁▁▂▂▃▃▄▄▅▁▁▂▂▃▃▄▄▅…(60 Werte = 2 min)                       Summen + Sparklines
+  Speicher     67 %     ▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅…   10,7 GB / 16,0 GB
+  Prozesse    512
+
+  ◆ 3 Repos zurück   ▲ 2 übersprungen   ✖ 1 divergiert                             nur Abweichungen
+  ◆ 11 Updates (Homebrew 1, npm (global) 10)
+
+  KI heute    192,9 M Token   ≈ 137,67 $   API-Äquivalent
+
+  KI-Aktivität   letzte 53 Wochen                                                  Kalender, darunter Git-Aktivität
+  ─────────────────────────────────────────────────────────────────────
+  ⠋ 1 Installation läuft   npm install --global wrangler@4.151.1                   laufende Aktion
+  r aktualisieren   tab wechseln   ? Hilfe   q beenden                             klickbare Fußzeile
 ```
 
+- Kein äußerer Rahmen, links und rechts zwei Spalten Rand. Trennlinien in `rule` unter den Tabs und über der Fußzeile.
 - **Linksbündig**, eine Spalte für Text, Zahlen rechtsbündig in eigenen Spalten.
-- **Rahmen** in `muted`, nur der aktive Bereich in `focus`.
+- **Rahmen** nur für Dialoge und die Hilfe, in `focus`; Bereiche haben keine Rahmen.
 - **Fußzeile** zeigt kontextabhängige Aktionen; jede Aktion hat ein Tastenkürzel und ist per Maus klickbar. Hinweise, die nur Tasten erklären (z. B. ↑↓), reagieren nicht auf Klicks.
-- **Maus**: Tab-Beschriftungen, Zeitraumauswahl und Listenzeilen sind klickbar; ein zweiter Klick auf die gewählte Zeile öffnet sie wie Enter. Das Mausrad bewegt die Auswahl.
+- **Maus**: Tab-Beschriftungen, Zeitraumauswahl und Listenzeilen sind klickbar; ein zweiter Klick auf die gewählte Zeile wirkt wie Enter (Updates: Bestätigungsdialog, Einstellungen: Wert ändern; in Workspaces und Protokoll ohne Wirkung). Das Mausrad bewegt die Auswahl. Solange ein Dialog offen ist, werden Klicks ignoriert; ein Klick schließt die Hilfe.
+- **Scrollen**: Workspaces und Protokoll halten die Auswahl im sichtbaren Bereich. Übersicht, Updates, KI und Einstellungen scrollen nicht; was nicht ins Fenster passt, wird abgeschnitten.
 - **Übersicht zeigt nur Abweichungen** (Dark Cockpit). Ist alles normal, steht dort ein einziger neutraler Satz, z. B. „Alles aktuell. Letzte Prüfung vor 4 min.“ Repos zählen als „zurück“ (auch bei Opt-out), „übersprungen“ (Regel blockiert), „divergiert“ oder „Fehler“; nicht verfügbare Workspaces erscheinen eigens. Updates zählen ohne gepinnte Pakete.
 - Die Sparklines sind rechtsbündig: der neueste Wert steht immer an derselben Stelle. CPU oder Speicher ab 90 % erscheinen in `caution`.
-- Darunter die **KI-Aktivität** im Stil des GitHub-Contribution-Graphs: eine Spalte je Woche (so viele, wie in die Breite passen, höchstens 53), Zeilen Mo bis So, Monatskürzel über der Woche, in der ein Monat beginnt. Fünf Stufen von `rule` bis `advisory` (0 und die Quartile der aktiven Tage), Legende „weniger … mehr“; ohne Farben (`NO_COLOR`) zeigen `·░▒▓█` die Stufe. Darunter Antworten, aktive Tage und längste Serie. Ohne jede Aktivität entfällt der Kalender.
+- Darunter die **KI-Aktivität** im Stil des GitHub-Contribution-Graphs: Kopf „KI-Aktivität   letzte N Wochen“, eine Spalte je Woche (so viele, wie in die Breite passen, höchstens 53), sieben Zeilen Mo bis So, beschriftet Mo, Mi, Fr; Monatskürzel über der Woche, in der ein Monat beginnt. Mit Farbe besteht eine Zelle aus `■` und Leerzeichen, fünf Stufen von `rule` bis `advisory` (0 und die Quartile der aktiven Tage); ohne Farben (`NO_COLOR`) zeigen `·░▒▓█` die Stufe. In der letzten Zeile Antworten, aktive Tage und längste Serie, rechts daneben die Legende „weniger ■■■■■ mehr“. Ohne jede Aktivität entfällt der Kalender.
 - Darunter im selben Aufbau die **Git-Aktivität**: eigene Commits über alle getrackten Repositories, Farbverlauf von `rule` zu `ok`, damit beide Kalender auf einen Blick unterscheidbar sind.
 
 ### 5.1 Tastenbelegung
@@ -133,21 +136,37 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 | Taste | Aktion |
 |---|---|
 | `Tab` / `Shift-Tab` | nächster / vorheriger Tab |
-| `↑` `↓` | Auswahl bewegen; am Listenende geht es oben weiter und umgekehrt |
-| `Enter` | ausgewählte Aktion ausführen |
-| `f` | Fast-Forward für das ausgewählte Repo (Workspaces) |
-| `u` | ausgewähltes Paket aktualisieren |
-| `←` `→`, `1`–`5` | im KI-Tab: Zeitraum wechseln |
-| `t` | im KI-Tab: Telemetrie in Claude Code einschalten (mit Rückfrage) |
-| `/` | im Protokoll suchen |
-| `f` | im Protokoll: Filter wechseln (sonst Fast-Forward) |
-| `a` | Workspace hinzufügen (Einstellungen) |
-| `d` | ausgewählten Workspace entfernen (Einstellungen, mit Rückfrage) |
-| `r` | jetzt aktualisieren; im Einstellungen-Tab: Config neu laden |
+| `↑` `↓`, `k` `j` | Auswahl bewegen; am Listenende geht es oben weiter und umgekehrt |
+| `Enter` | Updates: Bestätigungsdialog öffnen; Einstellungen: Wert ändern; in Dialogen: bestätigen |
+| `f` | Workspaces: Fast-Forward für das ausgewählte Repo; Protokoll: Filter wechseln |
+| `u` | Updates: ausgewähltes Paket aktualisieren |
+| `←` `→`, `h` `l`, `1`–`5` | KI: Zeitraum wechseln (läuft am Ende um) |
+| `t` | KI: Telemetrie in Claude Code einschalten (mit Rückfrage) |
+| `/` / `Esc` | Protokoll: Suche öffnen / Suche verwerfen |
+| `Enter`, Leertaste, `←` `→` | Einstellungen: Wert ändern bzw. Schalter kippen |
+| `a` | Einstellungen: Workspace hinzufügen |
+| `d`, `Entf` | Einstellungen: ausgewählten Workspace entfernen (mit Rückfrage) |
+| `r` | Übersicht, Workspaces, KI: Fetch und Sync starten; Updates: Quellen prüfen; Protokoll: neu laden; Einstellungen: Config neu laden |
 | `?` | Hilfe-Overlay mit den Tasten des aktuellen Tabs und den globalen Tasten; jede Taste schließt es |
-| `q`, `Ctrl-C` | beenden; läuft eine Installation, fragt ein Dialog: warten (`Enter`, Default), abbrechen (`a`) oder zurück (`Esc`) |
+| `n`, `Esc` | in Dialogen: abbrechen bzw. zurück |
+| `q`, `Ctrl-C` | beenden; läuft eine Installation, fragt ein Dialog: warten (`Enter` oder `w`, Default), abbrechen (`a`) oder zurück (`Esc` oder `n`). Ein zweites `q`/`Ctrl-C` beendet sofort, die Fußzeile zeigt dann „q sofort beenden“. `Ctrl-C` wirkt auch aus Eingaben heraus |
 
-### 5.2 Updates-Tab
+### 5.2 Workspaces-Tab
+
+```
+/Users/nimble/workspace/projects
+▌ ◆ hud                          main              ↓3       3 Commits zurück, Fast-Forward möglich
+  ▲ takt                         feature/x         ↑1 ↓2    divergiert
+  ○ skills-hub                   main                       aktuell
+/Volumes/extern   ✖ nicht verfügbar
+```
+
+- Je Workspace ein Kopf mit dem Pfad in `ink`, fett; dahinter „✖ nicht verfügbar“ in `warning` oder „automatischer Fast-Forward aus“ in `soft`.
+- Je Repo: Auswahlmarker `▌` in `focus`, Statussymbol, Name relativ zum Workspace (ausgewählt in `focus`, fett), Branch (oder „(detached)“), `↑a ↓b` und Zustandstext in der Statusfarbe; aktuelle Repos mit Namen in `muted` und Details in `soft`.
+- Zurückliegende Repos zeigen „N Commits zurück, Fast-Forward möglich“ (◆), bei Opt-out „zurück, automatischer Fast-Forward aus (f)“ (▲); ein erledigter Fast-Forward „Fast-Forward: N Commits“ (●, 30 s).
+- Die Liste scrollt so, dass die Auswahl sichtbar bleibt; leere Workspaces zeigen während eines Scans „Suche Repositories …“.
+
+### 5.3 Updates-Tab
 
 ```
 Homebrew   7.0.9                                                       Quelle und Werkzeugversion
@@ -155,18 +174,105 @@ Homebrew   7.0.9                                                       Quelle un
   ▲ firefox               118.0 → 119.0          Major-Update
   ○ node@20               20.11.0 → 20.18.1      gepinnt
   ⠋ wrangler              4.81.0 → 4.151.1       läuft                 Spinner statt Statussymbol
+
 Skills   1.7.2
   72 Skills installiert, Updates unbekannt
   ◆ Alle Skills aktualisieren
 ```
 
-- Je Quelle ein Kopf mit Werkzeugversion; fehlt das Werkzeug oder ist es defekt, steht das an dieser Stelle statt der Pakete.
+- Je Quelle ein Kopf mit Werkzeugversion; fehlt das Werkzeug, steht dort „✖ nicht gefunden“, ist es defekt, „✖ Fehler: …“. Scheitert die Prüfung, steht darunter eine Zeile „✖ Fehler: …“. Ohne Updates zeigt die Quelle „○ alles aktuell“. Zwischen den Quellen steht eine Leerzeile.
 - Je Paket Statussymbol, Name, `aktuell → neu` und eine Notiz: Zustand der Installation, „Major-Update“ oder „gepinnt“. Gepinnte Pakete sind nicht installierbar.
+- Installationszustände: „wartet“, „läuft“, „installiert“ (●), „braucht ein Passwort, im Terminal ausführen“ (▲), „abgebrochen“ (▲), „nicht erlaubt“, „fehlgeschlagen: …“, „Zeitüberschreitung“ (✖). „installiert“ bleibt bis zur nächsten Prüfung stehen.
 - Skills meldet keine einzelnen Updates; der Tab zeigt die Zahl installierter Skills und eine Zeile „Alle Skills aktualisieren“.
-- `u` oder `Enter` öffnet einen zentrierten Bestätigungsdialog in `focus` mit dem genauen Befehl. Bei einem Major-Update warnt eine Zeile in `advisory`. `Enter` installiert, `Esc` oder `n` bricht ab; solange der Dialog offen ist, gehen alle Tasten an ihn.
+- `u` oder `Enter` öffnet einen zentrierten Bestätigungsdialog in `focus` mit dem genauen Befehl. Bei einem Major-Update warnt eine Zeile in `caution` (▲ Major-Update: kann inkompatible Änderungen enthalten.). `Enter` installiert, `Esc` oder `n` bricht ab; solange der Dialog offen ist, gehen alle Tasten an ihn.
+- `r` prüft die Quellen sofort.
 - Laufende Installationen erscheinen auf allen Tabs in der Fortschrittszeile der Fußzeile, vor Scan und Sync.
 
-### 5.3 Einstellungen-Tab
+### 5.4 KI-Tab
+
+```
+Heute   7 Tage   30 Tage   Dieser Monat   Letzter Monat     gilt für den ganzen Tab
+
+Claude Code   474 Logdateien in 239 ms   Preise Stand 2026-10-17
+Telemetrie    ● empfängt auf 127.0.0.1:4318, Claude Code sendet
+
+Verbrauch
+  Token               192,9 M   Input 99,1 k   Output 230,7 k   Cache schr. 12,4 M   Cache lesen 180,2 M
+  Kosten              ≈ 137,67 $      API-Äquivalent
+  Cache-Hit           97 %
+
+Modelle
+  ████████████████████████████████████████████████████████████        Balken 60 Zellen, je Modell eine Farbe
+  ■ Opus 5.5 71 %      ■ Sonnet 5.5 28 %      ■ Haiku 4.5 <1 %
+  Modell                          Antworten        Input       Output  Cache schr.  Cache lesen         Kosten
+
+Aufwand
+  Subagenten          31 % der neuen Token      Thinking 37 % vom Output
+
+Aktivität
+  ▁▁▂▂▃▃▅▅▂▂ …                                                       Stunden (heute) oder Tage
+  0 Uhr                                      24 Uhr
+  Gesamt              5 Sessions, 1.751 Antworten, 837 Tool-Calls
+
+Kontext   aktuell
+  ██████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   12 %   121,0 k / 1,0 M
+  opus-5-5, macos-hud, vor 6 min
+
+Projekte
+  macos-hud 34 %      takt 14 %      skills-hub 7 %
+
+Telemetrie   nur solange hud läuft
+  Aktive Zeit, Code, Kosten laut Claude
+
+
+Codex   165 Logdateien in 84 ms   Preise Stand 2026-10-17
+
+Verbrauch
+  Token               10,0 M   Input 1,2 M   Output 40,0 k   Cache lesen 8,8 M   Reasoning 25,0 k
+  …                                                                   Modelle und Aktivität wie oben
+Aufwand
+  Reasoning           39 % vom Output
+
+Abo-Auslastung   Plan Plus, Stand vor 3 min
+  5 Stunden           ███████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   13 %   neu ab 14:14
+  7 Tage              █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   3 %   neu ab 21.10. 12:00
+
+Kontext   aktuell
+  ██████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   25 %   64,0 k / 258,4 k
+```
+
+- Die Zeitraumauswahl steht ganz oben und gilt für alle Abschnitte; jede Kennzahl zeigt genau einen Wert. Nur „Kontext“ und „Abo-Auslastung“ zeigen den aktuellen Stand.
+- Reihenfolge der Abschnitte: Verbrauch, Modelle, Aufwand, Aktivität, Abo-Auslastung (Codex), Kontext, Projekte, Telemetrie (Claude Code).
+- Jede Quelle hat einen eigenen Block mit eigener Überschrift; zwischen den Blöcken stehen zwei Leerzeilen. Telemetrie gibt es nur bei Claude Code.
+- Codex: Statt „Cache schr.“ steht „Reasoning“ in Verbrauch und Modelltabelle; „Aufwand“ zeigt nur den Reasoning-Anteil. „Abo-Auslastung“ zeigt je Limit-Fenster einen Balken mit Prozent und lokalem Rücksetzzeitpunkt (mit Datum, wenn nicht heute), ab 90 % in `caution`. Ist ein Fenster schon zurückgesetzt, steht dort nur, seit wann, bis Codex den neuen Stand meldet.
+- Abschnitte haben eine fette Überschrift und eine Leerzeile davor. Token und Kosten stehen nur unter „Verbrauch“ und in der Modelltabelle, nie doppelt.
+- „Neue Token“ sind alle außer Cache-Lesen. Modell- und Projektanteile beziehen sich darauf, Thinking und Reasoning auf den gesamten Output, Cache-Hit auf alle Prompt-Token.
+- Alle Balken sind 60 Zellen breit und nutzen `█` und `░` (in `rule`); die drei größten Modelle bekommen `advisory`, `focus` und `caution`, der Rest `muted`. Die Legende zeigt höchstens 4 Modelle, „Projekte“ höchstens 5. Ab 80 % Kontext wird der Kontextbalken `caution`.
+- Die Aktivität zeigt bei „Heute“ die 24 Stunden („0 Uhr … 24 Uhr“), sonst die Tage des Zeitraums („vor N T … heute“, beim letzten Monat „Monatsanfang … Monatsende“).
+- Telemetrie-Zeile: „aus (Config)“, „✖ Port N nicht verfügbar: …“, „● empfängt auf 127.0.0.1:N, Claude Code sendet“, „◆ Claude Code sendet noch nicht“ mit Hinweis `t einschalten`, „▲ eigene OTel-Einstellungen in Claude Code (…), hud ändert nichts“ oder „✖ settings.json nicht lesbar: …“; nach dem Einschalten der Hinweis, laufende Claude-Code-Sitzungen neu zu starten.
+- Unlesbare Logzeilen erscheinen am Ende der Quelle als „~ unvollständig: N Zeilen nicht lesbar“ in `caution`.
+- Kennzeichnung nach Genauigkeit: `≈` geschätzt, `~` unvollständig, `—` nicht verfügbar. Kosten tragen in „Verbrauch“ „API-Äquivalent“ oder „Schätzung“ und das Stand-Datum der Preistabelle; Tabellenzellen nur `≈`.
+- Zahlen kompakt mit einer Nachkommastelle (`192,9 M`, englisch `192.9M`; Milliarden `Mrd` bzw. `B`), Beträge auf Cent gerundet, Tausender gruppiert.
+- Werte aus der Telemetrie erscheinen, sobald Claude Code sendet oder Daten vorliegen, und tragen immer `~`. `t` schaltet die Telemetrie in Claude Code ein (Dialog mit den genauen Einträgen für `settings.json`). Die KI-Daten werden alle 60 s neu gelesen.
+
+### 5.5 Protokoll-Tab
+
+```
+Filter: alle    Suche: wget█
+  Zeit              Aktion        Auslöser  Ergebnis           Ziel
+▌ 2026-10-17 12:41  Installation  manuell   ✖ fehlgeschlagen   Npm wrangler 4.81.0 → 4.151.1
+  2026-10-17 12:15  Fast-Forward  auto      ● erledigt         /Users/nimble/workspace/projects/hud
+────────────────────────────────────────────────────────────────
+Ziel            Npm wrangler 4.81.0 → 4.151.1
+Ergebnis        fehlgeschlagen   Dauer 14 s
+Ausgabe-Ende    npm error code EACCES …
+```
+
+- Neueste Aktion oben, Zeiten in der lokalen Zeitzone. Die Ergebnisspalte zeigt Statussymbol und Ergebnis in der UI-Sprache.
+- Der Detailbereich unten (Trennlinie in `rule`) zeigt die ausgewählte Aktion: vollständiges Ziel, Ergebnis mit Dauer, die technische Zusammenfassung und das Ende der Ausgabe (so viele letzte Zeilen, wie Platz haben).
+- `f` wechselt den Filter: alle, automatisch, manuell, Probleme (alles außer „erledigt“). `/` öffnet die Suche, die beim Tippen filtert und Ziel, Zusammenfassung und Ausgabe durchsucht; `Enter` behält den Suchtext, `Esc` verwirft ihn.
+
+### 5.6 Einstellungen-Tab
 
 ```
 Darstellung
@@ -186,107 +292,77 @@ Automatische Installation
 - Drei Abschnitte, je ein fetter Kopf in `ink`; Werte in einer eigenen Spalte.
 - `Enter`, Leertaste oder `→` ändern die Zeile: Auswahlen wechseln zum nächsten Wert, `←` zum vorherigen; Schalter kippen. Die Anzeige zeigt immer den gespeicherten Stand, nicht eine lokale Vorschau.
 - `a` oder `Enter` auf „Workspace hinzufügen“ öffnet eine Eingabezeile in `focus` mit Cursor `█`; Pfade beginnen mit `/` oder `~/`. Solange die Eingabe offen ist, gehen alle Tasten an sie.
-- `d` öffnet einen zentrierten Dialog „Workspace entfernen?“ mit dem Hinweis, dass nur die Config geändert wird.
+- `d` oder `Entf` öffnet einen zentrierten Dialog „Workspace entfernen?“ mit dem Hinweis, dass nur die Config geändert wird.
 - Sprache, Theme und Symbolsatz gelten sofort. Ein abgelehnter Schreibversuch erscheint unter den Einstellungen in `warning`, ein ungültiger Pfad in `caution`.
 
-### 5.5 KI-Tab
+### 5.7 Hilfe und Dialoge
 
 ```
-Heute   7 Tage   30 Tage   Dieser Monat   Letzter Monat     gilt für den ganzen Tab
+┌ Tasten ──────────────────────────────────────────────────┐   Hilfe (?), Titel in focus
+│  Protokoll                                               │
+│  ↑↓                Auswahl bewegen, am Ende geht es …    │
+│  /                 suchen, filtert beim Tippen           │
+│  Überall                                                 │
+│  Tab, Shift-Tab    nächster bzw. vorheriger Tab          │
+│  q                 beenden, fragt bei laufender …        │
+└──────────────────────────────────────────────────────────┘
 
-Claude Code   474 Logdateien in 239 ms   Preise Stand 2026-10-17
-Telemetrie    ● empfängt auf 127.0.0.1:4318, Claude Code sendet
+┌ hud beenden? ────────────────────────────────────────────┐   Beenden während einer Installation
+│  1 Installation läuft noch.                              │
+│  ▲ Abbrechen kann ein Paket halb installiert …           │
+│  Enter warten, dann beenden   a abbrechen und beenden   Esc zurück
+└──────────────────────────────────────────────────────────┘
 
-Verbrauch
-  Token               192,9 M   Input 99,1 k   Output 230,7 k   Cache schr. 12,4 M   Cache lesen 180,2 M
-  Kosten              ≈ 137,67 $      API-Äquivalent
-  Cache-Hit           97 %
-
-Modelle
-  ████████████████████████████████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░        Balken 60 Zellen
-  ■ Opus 5.5 71 %      ■ Sonnet 5.5 28 %      ■ Haiku 4.5 <1 %
-  Modell                     Antworten   Input   Output   Cache schr.   Cache lesen      Kosten
-
-Aufwand
-  Subagenten          31 % der neuen Token      Thinking 37 % vom Output
-
-Aktivität
-  ▁▁▂▂▃▃▅▅▂▂ …                                                       Stunden (heute) oder Tage
-  0 Uhr                                      24 Uhr
-  Gesamt              5 Sessions, 1.751 Antworten, 837 Tool-Calls
-
-Kontext   aktuell
-  ███████░░░░░░░░░░░░░░░░░░░░░░░░░░░░   12 %   121,0 k / 1,0 M
-  opus-5-5, macos-hud, vor 6 min
-
-Projekte
-  macos-hud 34 %      takt 14 %      skills-hub 7 %
-
-Telemetrie   nur solange hud läuft
-  Aktive Zeit, Code, Kosten laut Claude
-
-
-Codex   165 Logdateien in 84 ms   Preise Stand 2026-10-17
-
-Verbrauch
-  Token               10,0 M   Input 1,2 M   Output 40,0 k   Cache lesen 8,8 M   Reasoning 25,0 k
-  …                                                                   Modelle, Aufwand, Aktivität wie oben
-Aufwand
-  Reasoning           39 % vom Output
-
-Abo-Auslastung   Plan Plus, Stand vor 3 min
-  5 Stunden           ███████░░░░░░░░░░░░░░░░░░░░░░░   13 %   neu ab 14:14
-  7 Tage              █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    3 %   neu ab 21.10. 12:00
+┌ Telemetrie in Claude Code einschalten? ──────────────────┐   t im KI-Tab
+│  hud ergänzt in ~/.claude/settings.json unter "env":     │
+│    "CLAUDE_CODE_ENABLE_TELEMETRY": "1"  …                │
+│  Nur Metriken, keine Prompts oder Antworten. …           │
+│  Enter eintragen   Esc abbrechen                         │
+└──────────────────────────────────────────────────────────┘
 ```
 
-- Die Zeitraumauswahl steht ganz oben und gilt für alle Abschnitte; jede Kennzahl zeigt genau einen Wert. Nur „Kontext“ und „Abo-Auslastung“ zeigen den aktuellen Stand.
-- Jede Quelle hat einen eigenen Block mit eigener Überschrift; zwischen den Blöcken stehen zwei Leerzeilen. Telemetrie gibt es nur bei Claude Code.
-- Codex: Statt „Cache schr.“ steht „Reasoning“ in Verbrauch und Modelltabelle; „Aufwand“ zeigt nur den Reasoning-Anteil. „Abo-Auslastung“ zeigt je Limit-Fenster einen Balken mit Prozent und lokalem Rücksetzzeitpunkt (mit Datum, wenn nicht heute), ab 90 % in `caution`. Ist ein Fenster schon zurückgesetzt, steht dort nur, seit wann, bis Codex den neuen Stand meldet.
-- Abschnitte haben eine fette Überschrift und eine Leerzeile davor; der Tab nutzt die Höhe. Token und Kosten stehen nur unter „Verbrauch“ und in der Modelltabelle, nie doppelt.
-- „Neue Token“ sind alle außer Cache-Lesen. Modell- und Projektanteile beziehen sich darauf, Thinking und Reasoning auf den gesamten Output, Cache-Hit auf alle Prompt-Token.
-- Balken nutzen `█` und `░`; die drei größten Modelle bekommen `advisory`, `focus` und `caution`, der Rest `muted`. Ab 80 % Kontext wird der Kontextbalken `caution`.
-- Die Aktivität zeigt bei „Heute“ die 24 Stunden, sonst die Tage des Zeitraums, mit Beschriftung von Anfang und Ende.
-- Kennzeichnung nach Genauigkeit: `≈` geschätzt, `~` unvollständig, `—` nicht verfügbar. Kosten tragen „API-Äquivalent“ oder „Schätzung“ und das Stand-Datum der Preistabelle.
-- Zahlen kompakt mit einer Nachkommastelle (`192,9 M`, englisch `192.9M`), Beträge auf Cent gerundet, Tausender gruppiert.
-- Werte aus der Telemetrie erscheinen, sobald Claude Code sendet oder Daten vorliegen, und tragen immer `~`. `t` schaltet die Telemetrie in Claude Code ein (Dialog mit den genauen Einträgen für `settings.json`).
+- Dialoge sind zentriert, mit Rahmen und Titel in `focus`; solange einer offen ist, gehen alle Tasten an ihn, Klicks werden ignoriert.
+- Die Hilfe zeigt zuerst die Tasten des aktuellen Tabs, dann „Überall“; unten „Beliebige Taste schließt die Hilfe.“
 
-### 5.4 Protokoll-Tab
+### 5.8 Einrichtungsdialog
 
 ```
-Filter: alle    Suche: wget█
-  Zeit              Aktion        Auslöser  Ergebnis           Ziel
-▌ 2026-10-17 12:41  Installation  manuell   ✖ fehlgeschlagen   Npm wrangler 4.81.0 → 4.151.1
-  2026-10-17 12:15  Fast-Forward  auto      ● erledigt         /Users/nimble/workspace/projects/hud
-────────────────────────────────────────────────────────────────
-Ziel            Npm wrangler 4.81.0 → 4.151.1
-Ergebnis        fehlgeschlagen   Dauer 14 s
-Ausgabe-Ende    npm error code EACCES …
+  Willkommen bei hud
+  ──────────────────────────────────────────────────
+  Schritt 1 von 2: Workspaces
+  Ordner, in denen hud nach Git-Repositories sucht. Leertaste wählt einen Vorschlag;
+  eigene Pfade unten eintippen.
+
+  ▌ [x] ~/workspace
+    Pfad hinzufügen:
+  ──────────────────────────────────────────────────
+  ↑↓ bewegen   Leertaste auswählen   Enter weiter   Esc abbrechen
 ```
 
-- Neueste Aktion oben, Zeiten in der lokalen Zeitzone. Die Ergebnisspalte zeigt Statussymbol und Ergebnis in der UI-Sprache.
-- Der Detailbereich unten zeigt die ausgewählte Aktion: vollständiges Ziel, Ergebnis mit Dauer, die technische Zusammenfassung und das Ende der Ausgabe (so viele letzte Zeilen, wie Platz haben).
-- `f` wechselt den Filter: alle, automatisch, manuell, Probleme (alles außer „erledigt“). `/` öffnet die Suche, die beim Tippen filtert und Ziel, Zusammenfassung und Ausgabe durchsucht; `Enter` behält den Suchtext, `Esc` verwirft ihn.
+- Schritt 1: Vorschläge aus dem Home-Verzeichnis als `[x]`/`[ ]`, eigene Pfade in der Eingabezeile; mindestens ein Workspace ist nötig.
+- Schritt 2 „Symbole“: drei Zeilen (Unicode, Nerd Font, ASCII) mit Statussymbolen und Quell-Icons; `↑↓` oder `1`–`3` wählt, `Enter` beendet, `←`/Backspace geht zurück.
+- `Esc` oder `Ctrl-C` brechen ab, ohne etwas zu schreiben. Der Dialog wird nur per Tastatur bedient.
 
 ## 6. Bewegung
 
 - Einzige Dauerbewegung: Braille-Spinner `⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏` für laufende Aktionen (ein Frame pro Render-Tick, 250 ms).
 - Läuft ein Scan, zeigt die Fußzeile auf allen Tabs eine zusätzliche Zeile: Spinner, Art des Laufs („Lokaler Scan“ oder „Fetch und Sync“), Balken aus `█`/`░` (20 Zellen) und `erledigt / gesamt`. Repos erscheinen einzeln, sobald ihr Status gelesen ist; leere Workspaces zeigen währenddessen „Suche Repositories …“.
 - Sparklines rollen pro Messintervall (2 s) um einen Wert weiter, ohne Übergang.
-- Kein Blinken, keine Farbanimation. Ein erledigter Status bleibt 30 s grün und kehrt dann in den Normalzustand zurück.
+- Kein Blinken, keine Farbanimation. Ein Fast-Forward bleibt 30 s grün und kehrt dann in den Normalzustand zurück; eine Installation zeigt „installiert“ bis zur nächsten Prüfung.
 
 ## 7. Sprache und Ton
 
 - UI zweisprachig **Deutsch/Englisch**, umschaltbar über `language = "auto" | "de" | "en"`. `auto` folgt der bevorzugten Systemsprache von macOS, Fallback Englisch.
 - Satzanfang groß, sonst Kleinschreibung, keine Großbuchstaben-Labels.
-- Aktionen heißen nach dem, was passiert: „Fast-Forward ausführen“, „Aktualisieren“. Die Bestätigung verwendet dasselbe Verb: „Fast-Forward ausgeführt“.
-- Fehler nennen Ursache und nächsten Schritt, ohne Entschuldigung: „npm nicht gefunden. PATH der Login-Shell prüfen oder `npm_path` in der Config setzen.“
-- Geschätzte Werte tragen immer `≈` und das Wort „Schätzung“ oder „API-Äquivalent“.
+- Aktionen heißen nach dem, was passiert: „Fast-Forward“, „Aktualisieren“. Die Bestätigung verwendet dasselbe Wort: „Fast-Forward: 3 Commits“.
+- Fehler nennen Ursache und nächsten Schritt, ohne Entschuldigung: „npm nicht gefunden. PATH der Login-Shell prüfen oder `[tools] npm` in der Config setzen.“
+- Geschätzte Werte tragen immer `≈`; in Zusammenfassungen zusätzlich das Wort „Schätzung“ oder „API-Äquivalent“, in Tabellenzellen nur `≈`.
 
 ## 8. Wortmarke und README
 
-- Wortmarke: `hud` in Kleinbuchstaben, Chakra Petch 600, mit einer magentafarbenen Kurslinie als Unterstrich. Datei: `docs/assets/wordmark.svg`.
+- Wortmarke: `hud` in Kleinbuchstaben, Chakra Petch 600, mit einer magentafarbenen Kurslinie als Unterstrich. Dateien: `docs/assets/wordmark.svg` (hell) und `docs/assets/wordmark-dark.svg` (dunkel).
 - Logo: Flight-Path-Vector-Symbol (Kreis mit Flügeln) in `focus` auf `panel` dunkel, mit Horizontlinie in `soft`. Datei: `docs/assets/logo.svg`.
-- README (Englisch): zentrierter Kopf mit Logo, Wortmarke, Claim, Badges und Navigation → Showcase der Übersicht hell/dunkel (`docs/assets/showcase-{light,dark}.png`) → Why hud → Features → Statussymbole → Safety → Install → First run → Keys → Configuration → Data and privacy → Architecture → Documentation.
+- README (Englisch): zentrierter Kopf mit Logo, Wortmarke, Claim, Badges und Navigation → Showcase der Übersicht hell/dunkel (`docs/assets/showcase-{light,dark}.png`) → Why hud → Features → Statussymbole → Safety → Install → First run → Keys → Configuration → Data and privacy → Architecture → Documentation → Contributing → License.
 - Logo und Wortmarke enthalten Text als Pfade (Chakra Petch), damit GitHub sie ohne Webfonts korrekt darstellt. Erzeugt werden sie mit `uv run scripts/gen-readme-assets.py`.
 - Der Showcase ist ein Rendering der echten `view` mit Beispieldaten (115 × 38 Zellen, Hack Nerd Font Mono, PNG). Erzeugt wird er mit `scripts/gen-showcase.sh`.
 

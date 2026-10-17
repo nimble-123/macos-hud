@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Release-Pipeline · hud</title>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Serif:ital@0;1&amp;display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f2f3f1;
+      --color-ink:     #1c2128;
+      --color-muted:   #47505c;
+      --color-accent:  #b02a8a;
+      --font-sans:     'Chakra Petch', system-ui, sans-serif;
+      --font-title:    'Chakra Petch', system-ui, sans-serif;
+      --font-mono:     'IBM Plex Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+      -webkit-font-smoothing: antialiased;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-title);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 1.75rem);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Verteilungssicht · Release</p>
+    <h1>Release-Pipeline</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="release-title release-desc">
+<title id="release-title">Release-Pipeline</title>
+<desc id="release-desc">Release-Pipeline: release-please erzeugt Release-PR und GitHub-Release; Release-Build baut auf macOS ein Universal-Binary (aarch64 und x86_64 per lipo) und prüft --version; Publish hängt Archiv, Prüfsumme und Build-Attestation an das Release; der Tap-Job schreibt Formula/hud.rb in nimble-123/homebrew-tap, von wo brew installiert. Release-PRs werden nur gebaut.</desc>
+<defs>
+  <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker>
+  <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker>
+  <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker>
+</defs>
+<rect width="100%" height="100%" fill="#f2f3f1"/>
+<path d="M 160,144 H 212" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 356,144 H 408" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 552,144 H 604" fill="none" stroke="#13738a" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+<path d="M 748,144 H 800" fill="none" stroke="#13738a" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+<path d="M 88,208 V 232 Q 88,240 96,240 H 276 Q 284,240 284,232 V 208" fill="none" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+<rect x="163.5" y="126" width="45.0" height="12" rx="2" fill="#f2f3f1"/>
+<text x="186" y="135" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">RELEASE</text>
+<rect x="362.2" y="126" width="39.7" height="12" rx="2" fill="#f2f3f1"/>
+<text x="382" y="135" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ARCHIV</text>
+<rect x="558.2" y="126" width="39.7" height="12" rx="2" fill="#f2f3f1"/>
+<text x="578" y="135" fill="#13738a" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">FORMEL</text>
+<rect x="759.4" y="126" width="29.1" height="12" rx="2" fill="#f2f3f1"/>
+<text x="774" y="135" fill="#13738a" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">BREW</text>
+<rect x="147.7" y="246" width="76.6" height="12" rx="2" fill="#f2f3f1"/>
+<text x="186" y="255" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PR: NUR BAUEN</text>
+<rect x="16" y="96" width="144" height="112" rx="6" fill="#f2f3f1"/>
+<rect x="16" y="96" width="144" height="112" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="24" y="102" width="46.1" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
+<text x="47.0" y="111" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">WORKFLOW</text>
+<text x="88.0" y="147.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">release-please</text>
+<text x="88.0" y="159.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Release-PR mit</text>
+<text x="88.0" y="171.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Version · CHANGELOG</text>
+<text x="88.0" y="183.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Merge → Release</text>
+<rect x="212" y="96" width="144" height="112" rx="6" fill="#f2f3f1"/>
+<rect x="212" y="96" width="144" height="112" rx="6" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+<rect x="220" y="102" width="31.8" height="12" rx="2" fill="transparent" stroke="rgba(176,42,138,0.5)" stroke-width="0.8"/>
+<text x="235.9" y="111" fill="#b02a8a" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">MACOS</text>
+<text x="284.0" y="147.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Release-Build</text>
+<text x="284.0" y="159.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">aarch64 + x86_64</text>
+<text x="284.0" y="171.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">lipo → universal</text>
+<text x="284.0" y="183.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">--version-Prüfung</text>
+<rect x="408" y="96" width="144" height="112" rx="6" fill="#f2f3f1"/>
+<rect x="408" y="96" width="144" height="112" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="416" y="102" width="41.3" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
+<text x="436.7" y="111" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">RELEASE</text>
+<text x="480.0" y="147.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Publish</text>
+<text x="480.0" y="159.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">tar.gz + sha256</text>
+<text x="480.0" y="171.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Build-Attestation</text>
+<text x="480.0" y="183.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">am GitHub-Release</text>
+<rect x="604" y="96" width="144" height="112" rx="6" fill="#f2f3f1"/>
+<rect x="604" y="96" width="144" height="112" rx="6" fill="rgba(28,33,40,0.03)" stroke="rgba(28,33,40,0.3)" stroke-width="1"/>
+<rect x="612" y="102" width="22.3" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.22)" stroke-width="0.8"/>
+<text x="623.1" y="111" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">TAP</text>
+<text x="676.0" y="147.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Homebrew-Tap</text>
+<text x="676.0" y="159.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">nimble-123/</text>
+<text x="676.0" y="171.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">homebrew-tap</text>
+<text x="676.0" y="183.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Formula/hud.rb</text>
+<rect x="800" y="96" width="144" height="112" rx="6" fill="#f2f3f1"/>
+<rect x="800" y="96" width="144" height="112" rx="6" fill="rgba(71,80,92,0.1)" stroke="#5a6470" stroke-width="1"/>
+<rect x="808" y="102" width="27.0" height="12" rx="2" fill="transparent" stroke="rgba(90,100,112,0.4)" stroke-width="0.8"/>
+<text x="821.5" y="111" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">USER</text>
+<text x="872.0" y="153.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Mac</text>
+<text x="872.0" y="165.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">brew install</text>
+<text x="872.0" y="177.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">nimble-123/tap/hud</text>
+<text x="16" y="300" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" font-style="italic">release-please läuft mit RELEASE_PLEASE_TOKEN;</text>
+<text x="16" y="318" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" font-style="italic">nur so löst das Release den Build aus.</text>
+<text x="504" y="300" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" font-style="italic">Ohne HOMEBREW_TAP_TOKEN bleibt die Formel</text>
+<text x="504" y="318" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" font-style="italic">unverändert, der Lauf warnt nur.</text>
+<line x1="40" y1="356" x2="920" y2="356" stroke="rgba(28,33,40,0.1)" stroke-width="0.8"/>
+<text x="40" y="372" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.18em">LEGENDE</text>
+<rect x="40.0" y="383" width="14" height="10" rx="2" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+<text x="60.0" y="391" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">baut das Binary</text>
+<line x1="150.5" y1="388" x2="178.5" y2="388" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<text x="186.5" y="391" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">Release-Ereignis</text>
+<line x1="281.7" y1="388" x2="309.7" y2="388" stroke="#13738a" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+<text x="317.7" y="391" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">Push an anderes Repo · Download</text>
+<line x1="483.4" y1="388" x2="511.4" y2="388" stroke="#47505c" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+<text x="519.4" y="391" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">Release-PR: nur Prüfung</text>
+</svg>
+    </div>
+  </div>
+</body>
+</html>

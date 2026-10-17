@@ -10,8 +10,10 @@ Die verbindlichen Regeln stehen in [AGENTS.md](AGENTS.md). Diese Datei beschreib
 
 ```sh
 cargo install --locked cargo-nextest cargo-deny cargo-insta
-brew install gitleaks
+brew install gitleaks uv
 ```
+
+`uv` braucht es nur für die Skripte unter `scripts/` (Screenshots, README-Grafiken).
 
 ## Bauen und starten
 
@@ -41,8 +43,11 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo nextest run --workspace --locked
 cargo deny check
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked
 gitleaks git --redact
 ```
+
+Die CI führt dieselben Schritte aus (`gitleaks` als eigener Job) und prüft zusätzlich, dass der PR-Titel Conventional Commits folgt (`pr-title.yml`).
 
 Snapshot-Tests prüfen und annehmen: `cargo insta review`.
 
@@ -59,11 +64,12 @@ Snapshot-Tests prüfen und annehmen: `cargo insta review`.
 
 ## Releases
 
-release-please pflegt auf `main` einen Release-PR mit Versionssprung und `CHANGELOG.md`. Auf diesem PR baut der Workflow `release-build.yml` das Universal Binary bereits zur Probe. Wird der PR gemergt, entstehen Tag und GitHub-Release, und derselbe Workflow
+release-please pflegt auf `main` einen Release-PR mit Versionssprung und `CHANGELOG.md`. Es läuft mit dem Secret `RELEASE_PLEASE_TOKEN`; nur deshalb löst das Release den Build-Workflow aus. Auf diesem PR und auf jedem PR, der `release-build.yml` selbst ändert, baut der Workflow das Universal Binary zur Probe. Wird der PR gemergt, entstehen Tag und GitHub-Release, und derselbe Workflow
 
 1. baut `hud` für Apple Silicon und Intel und führt beide per `lipo` zusammen,
 2. hängt `hud-<version>-universal-apple-darwin.tar.gz` mit `.sha256` und Build-Provenance an das Release,
-3. schreibt `Formula/hud.rb` in `nimble-123/homebrew-tap` neu (Secret `HOMEBREW_TAP_TOKEN`).
+3. prüft `hud --version` und ergänzt den Release-Text um einen Installationshinweis,
+4. schreibt `Formula/hud.rb` in `nimble-123/homebrew-tap` neu (Secret `HOMEBREW_TAP_TOKEN`; fehlt es, warnt der Workflow nur, und die Formel zeigt weiter auf das vorige Release).
 
 Für ein bestehendes Tag lässt sich der Workflow manuell mit `workflow_dispatch` neu starten.
 
@@ -78,10 +84,11 @@ scripts/tui-screenshots.sh 160 60     # eigene Größe
 
 ## README-Grafiken
 
-Logo, Wortmarke und Showcase in `docs/assets/` werden erzeugt, nicht von Hand bearbeitet:
+Die Grafiken in `docs/assets/` werden erzeugt, nicht von Hand bearbeitet:
 
 ```sh
-uv run scripts/gen-readme-assets.py
+uv run scripts/gen-readme-assets.py   # Logo und Wortmarke (hell, dunkel)
+scripts/gen-showcase.sh               # Showcase: echte Übersicht mit Beispieldaten, hell und dunkel
 ```
 
 ## UI-Texte

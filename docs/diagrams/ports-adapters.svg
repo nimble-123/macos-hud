@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg viewBox="0 0 960 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ports-adapters-title ports-adapters-desc" id="ports-adapters-root">
-        <title id="ports-adapters-title">Ports und Adapter</title>
-        <desc id="ports-adapters-desc">Ports-und-Adapter-Sicht: hud-tui schickt Commands an die Use Cases in hud-application und erhält AppEvents zurück; die Use Cases nutzen die Regeln aus hud-domain und sprechen über Ports, die Adapter in hud-infrastructure für Git, Update-Quellen, KI-Logs, Persistenz und System implementieren.</desc>
-        <defs>
+<svg viewBox="0 0 960 676" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ports-adapters-title ports-adapters-desc" id="ports-adapters-root">
+<title id="ports-adapters-title">Ports und Adapter</title>
+<desc id="ports-adapters-desc">Ports und Adapter: hud-tui schickt Commands an die Agents in hud-application und erhält AppEvents zurück; der OtlpReceiver speist Telemetrie über einen Kanal ein; die Agents nutzen die Regeln aus hud-domain und rufen Ports, die die Adapter in hud-infrastructure implementieren: Git, Update-Quellen, KI-Logs, Claude-Einstellungen, SQLite und Config sowie System.</desc>
+<defs>
       <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
       #ports-adapters-root { --color-paper:   #f2f3f1;
       --color-ink:     #1c2128;
@@ -14,117 +14,139 @@
       #ports-adapters-root { font-family: var(--font-sans); color: var(--color-ink); }
       #ports-adapters-root .diagram-container { width: 100%; overflow-x: auto; }
       #ports-adapters-root .diagram-container { overflow-x: visible; }</style>
-          <marker id="ports-adapters-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker>
-          <marker id="ports-adapters-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker>
-          <marker id="ports-adapters-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker>
-          <marker id="ports-adapters-arrow-warn" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b42f25"/></marker>
-        </defs>
-        <rect width="100%" height="100%" fill="#f2f3f1"/>
-<rect x="24" y="240" width="192" height="144" rx="8" fill="#1c2128" stroke="#1c2128" stroke-width="0.8" fill-opacity="0.02" stroke-opacity="0.1"/>
-<rect x="36" y="244" width="52" height="12" rx="2" fill="#f2f3f1"/>
-<text x="62.0" y="253" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">HUD-TUI</text>
-<rect x="248" y="72" width="400" height="464" rx="8" fill="#1c2128" stroke="#1c2128" stroke-width="0.8" fill-opacity="0.02" stroke-opacity="0.1"/>
-<rect x="260" y="76" width="92" height="12" rx="2" fill="#f2f3f1"/>
-<text x="306.0" y="85" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">KERN · OHNE I/O</text>
-<rect x="704" y="72" width="232" height="464" rx="8" fill="#1c2128" stroke="#1c2128" stroke-width="0.8" fill-opacity="0.02" stroke-opacity="0.1"/>
-<rect x="716" y="76" width="108" height="12" rx="2" fill="#f2f3f1"/>
-<text x="770.0" y="85" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">HUD-INFRASTRUCTURE</text>
-<path d="M 200,300 H 280" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
-<path d="M 280,324 H 200" fill="none" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#ports-adapters-arrow)"/>
-<path d="M 424,312 H 472" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
-<path d="M 352,352 V 416" fill="none" stroke="#b02a8a" stroke-width="1.4" marker-end="url(#ports-adapters-arrow-accent)"/>
-<path d="M 720,152 H 632" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
-<path d="M 720,232 H 632" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
-<path d="M 720,312 H 632" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
-<path d="M 720,392 H 632" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
-<path d="M 720,472 H 632" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
-<rect x="216.0" y="280" width="48" height="12" rx="2" fill="#f2f3f1"/>
-<text x="240" y="289" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">COMMAND</text>
-<rect x="214.0" y="332" width="52" height="12" rx="2" fill="#f2f3f1"/>
-<text x="240" y="341" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">APPEVENT</text>
-<rect x="432.0" y="292" width="32" height="12" rx="2" fill="#f2f3f1"/>
-<text x="448" y="301" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">RUFT</text>
-<rect x="360" y="378" width="76" height="12" rx="2" fill="#f2f3f1"/>
-<text x="398.0" y="387" fill="#b02a8a" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NUTZT REGELN</text>
-<rect x="636.0" y="132" width="80" height="12" rx="2" fill="#f2f3f1"/>
-<text x="676" y="141" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">IMPLEMENTIERT</text>
-<rect x="40" y="272" width="160" height="80" rx="6" fill="#f2f3f1"/>
-<rect x="40" y="272" width="160" height="80" rx="6" fill="#47505c" stroke="#5a6470" stroke-width="1" fill-opacity="0.1"/>
-<rect x="48" y="278" width="52" height="12" rx="2" fill="none" stroke="#5a6470" stroke-width="0.8" stroke-opacity="0.4"/>
-<text x="74.0" y="287" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">TREIBEND</text>
-<text x="120.0" y="314.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">hud-tui</text>
-<text x="120.0" y="330.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Elm: update · view</text>
-<rect x="280" y="272" width="144" height="80" rx="6" fill="#f2f3f1"/>
-<rect x="280" y="272" width="144" height="80" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-<rect x="288" y="278" width="28" height="12" rx="2" fill="none" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.4"/>
-<text x="302.0" y="287" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">APP</text>
-<text x="352.0" y="306.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Use Cases</text>
-<text x="352.0" y="322.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">SyncRepositories</text>
-<text x="352.0" y="334.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">CheckUpdates …</text>
-<rect x="280" y="416" width="144" height="80" rx="6" fill="#f2f3f1"/>
-<rect x="280" y="416" width="144" height="80" rx="6" fill="#b02a8a" stroke="#b02a8a" stroke-width="1" fill-opacity="0.08"/>
-<rect x="288" y="422" width="40" height="12" rx="2" fill="none" stroke="#b02a8a" stroke-width="0.8" stroke-opacity="0.5"/>
-<text x="308.0" y="431" fill="#b02a8a" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">DOMAIN</text>
-<text x="352.0" y="458.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">hud-domain</text>
-<text x="352.0" y="474.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Regeln · Permits</text>
-<rect x="472" y="104" width="160" height="400" rx="6" fill="#f2f3f1"/>
-<rect x="472" y="104" width="160" height="400" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-<rect x="480" y="110" width="36" height="12" rx="2" fill="none" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.4"/>
-<text x="498" y="119" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">PORTS</text>
-<text x="524" y="120" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">Ports</text>
-<text x="552" y="148" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">GitPort</text>
-<text x="552" y="162" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">RepoDiscovery</text>
-<line x1="480" y1="192" x2="624" y2="192" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.12"/>
-<text x="552" y="228" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">UpdateSource</text>
-<text x="552" y="242" fill="#5a6470" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">dyn</text>
-<line x1="480" y1="272" x2="624" y2="272" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.12"/>
-<text x="552" y="308" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">UsageSource</text>
-<text x="552" y="322" fill="#5a6470" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">dyn</text>
-<line x1="480" y1="352" x2="624" y2="352" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.12"/>
-<text x="552" y="388" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">UsageStore · ActionLog</text>
-<text x="552" y="402" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">ScanCache · SettingsStore</text>
-<line x1="480" y1="432" x2="624" y2="432" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.12"/>
-<text x="552" y="475" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">SystemProbe · Clock</text>
-<rect x="720" y="124" width="200" height="56" rx="6" fill="#f2f3f1"/>
-<rect x="720" y="124" width="200" height="56" rx="6" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.03" stroke-opacity="0.3"/>
-<rect x="728" y="130" width="28" height="12" rx="2" fill="none" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.22"/>
-<text x="742.0" y="139" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">GIT</text>
-<text x="820.0" y="154.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Git</text>
-<text x="820.0" y="170.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">GitCli · FsDiscovery</text>
-<rect x="720" y="204" width="200" height="56" rx="6" fill="#f2f3f1"/>
-<rect x="720" y="204" width="200" height="56" rx="6" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.03" stroke-opacity="0.3"/>
-<rect x="728" y="210" width="48" height="12" rx="2" fill="none" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.22"/>
-<text x="752.0" y="219" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">UPDATES</text>
-<text x="820.0" y="234.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Update-Quellen</text>
-<text x="820.0" y="250.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Brew · NpmGlobal · Skills</text>
-<rect x="720" y="284" width="200" height="56" rx="6" fill="#f2f3f1"/>
-<rect x="720" y="284" width="200" height="56" rx="6" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.03" stroke-opacity="0.3"/>
-<rect x="728" y="290" width="20" height="12" rx="2" fill="none" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.22"/>
-<text x="738.0" y="299" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">KI</text>
-<text x="820.0" y="314.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">KI-Logs</text>
-<text x="820.0" y="330.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">ClaudeLogs · CodexLogs</text>
-<rect x="720" y="364" width="200" height="56" rx="6" fill="#f2f3f1"/>
-<rect x="720" y="364" width="200" height="56" rx="6" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.03" stroke-opacity="0.3"/>
-<rect x="728" y="370" width="36" height="12" rx="2" fill="none" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.22"/>
-<text x="746.0" y="379" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">STORE</text>
-<text x="820.0" y="394.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Persistenz</text>
-<text x="820.0" y="410.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">SqliteStore · TomlSettings</text>
-<rect x="720" y="444" width="200" height="56" rx="6" fill="#f2f3f1"/>
-<rect x="720" y="444" width="200" height="56" rx="6" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.03" stroke-opacity="0.3"/>
-<rect x="728" y="450" width="40" height="12" rx="2" fill="none" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.22"/>
-<text x="748.0" y="459" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">SYSTEM</text>
-<text x="820.0" y="474.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">System</text>
-<text x="820.0" y="490.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">SysinfoProbe · SystemClock</text>
-<line x1="40" y1="552" x2="920" y2="552" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.1"/>
-<text x="40" y="568" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.18em">LEGENDE</text>
-<rect x="40" y="584" width="14" height="10" rx="2" fill="#b02a8a" stroke="#b02a8a" stroke-width="1" fill-opacity="0.08"/>
-<text x="60" y="592" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">Domain</text>
-<rect x="116.56" y="584" width="14" height="10" rx="2" fill="#47505c" stroke="#5a6470" stroke-width="1" fill-opacity="0.1"/>
-<text x="136.56" y="592" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">treibende Seite</text>
-<rect x="235.96" y="584" width="14" height="10" rx="2" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.03" stroke-opacity="0.3"/>
-<text x="255.96" y="592" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">Adapter</text>
-<line x1="317.28000000000003" y1="589" x2="345.28000000000003" y2="589" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
-<text x="353.28000000000003" y="592" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">ruft / implementiert</text>
-<line x1="476.48" y1="589" x2="504.48" y2="589" stroke="#47505c" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#ports-adapters-arrow)"/>
-<text x="512.48" y="592" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">Event zurück</text>
-      </svg>
+  <marker id="ports-adapters-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker>
+  <marker id="ports-adapters-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker>
+  <marker id="ports-adapters-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker>
+</defs>
+<rect width="100%" height="100%" fill="#f2f3f1"/>
+<rect x="200" y="56" width="512" height="440" rx="8" fill="#1c2128" stroke="#1c2128" stroke-width="0.8" fill-opacity="0.02" stroke-opacity="0.1"/>
+<rect x="212" y="60" width="79.3" height="12" rx="2" fill="#f2f3f1"/>
+<text x="251.7" y="69" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">HUD-APPLICATION</text>
+<rect x="456" y="72" width="240" height="408" rx="8" fill="#1c2128" stroke="#1c2128" stroke-width="0.8" stroke-dasharray="4,4" fill-opacity="0.02" stroke-opacity="0.2"/>
+<rect x="468" y="76" width="74.7" height="12" rx="2" fill="#f2f3f1"/>
+<text x="505.3" y="85" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">PORTS · TRAITS</text>
+<rect x="744" y="56" width="200" height="440" rx="8" fill="#1c2128" stroke="#1c2128" stroke-width="0.8" fill-opacity="0.02" stroke-opacity="0.1"/>
+<rect x="756" y="60" width="93.2" height="12" rx="2" fill="#f2f3f1"/>
+<text x="802.6" y="69" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">HUD-INFRASTRUCTURE</text>
+<path d="M 760,118 H 680" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
+<path d="M 760,178 H 680" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
+<path d="M 760,238 H 680" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
+<path d="M 760,298 H 680" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
+<path d="M 760,370 H 680" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
+<path d="M 760,442 H 680" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
+<path d="M 168,112 H 224" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
+<path d="M 224,160 H 168" fill="none" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#ports-adapters-arrow)"/>
+<path d="M 168,432 H 224" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
+<path d="M 324,464 V 520" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
+<path d="M 424,276 H 456" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
+<rect x="173.5" y="94" width="45.0" height="12" rx="2" fill="#f2f3f1"/>
+<text x="196" y="103" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">COMMAND</text>
+<rect x="170.9" y="166" width="50.2" height="12" rx="2" fill="#f2f3f1"/>
+<text x="196" y="175" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">APPEVENT</text>
+<rect x="173.5" y="414" width="45.0" height="12" rx="2" fill="#f2f3f1"/>
+<text x="196" y="423" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">MPSC 64</text>
+<rect x="331.8" y="486" width="71.4" height="12" rx="2" fill="#f2f3f1"/>
+<text x="367.5" y="495" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NUTZT REGELN</text>
+<rect x="425.4" y="258" width="29.1" height="12" rx="2" fill="#f2f3f1"/>
+<text x="440" y="267" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">RUFT</text>
+<rect x="472" y="96" width="208" height="44" rx="4" fill="#f2f3f1"/>
+<rect x="472" y="96" width="208" height="44" rx="4" fill="#f2f3f1" stroke="#47505c" stroke-width="0.8" stroke-dasharray="3,2"/>
+<text x="482" y="116.0" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">Git</text>
+<text x="482" y="128.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">GitPort · RepoDiscovery</text>
+<rect x="760" y="96" width="168" height="44" rx="4" fill="#f2f3f1"/>
+<rect x="760" y="96" width="168" height="44" rx="4" fill="#ffffff" stroke="#1c2128" stroke-width="0.8"/>
+<text x="770" y="116.0" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">GitCli · FsDiscovery</text>
+<text x="770" y="128.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">git</text>
+<rect x="472" y="156" width="208" height="44" rx="4" fill="#f2f3f1"/>
+<rect x="472" y="156" width="208" height="44" rx="4" fill="#f2f3f1" stroke="#47505c" stroke-width="0.8" stroke-dasharray="3,2"/>
+<text x="482" y="176.0" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">Updates</text>
+<text x="482" y="188.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">UpdateSource (dyn)</text>
+<rect x="760" y="156" width="168" height="44" rx="4" fill="#f2f3f1"/>
+<rect x="760" y="156" width="168" height="44" rx="4" fill="#ffffff" stroke="#1c2128" stroke-width="0.8"/>
+<text x="770" y="176.0" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">Brew · NpmGlobal · Skills</text>
+<text x="770" y="188.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">über TokioProcessRunner</text>
+<rect x="472" y="216" width="208" height="44" rx="4" fill="#f2f3f1"/>
+<rect x="472" y="216" width="208" height="44" rx="4" fill="#f2f3f1" stroke="#47505c" stroke-width="0.8" stroke-dasharray="3,2"/>
+<text x="482" y="236.0" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">KI-Nutzung</text>
+<text x="482" y="248.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">UsageSource (dyn)</text>
+<rect x="760" y="216" width="168" height="44" rx="4" fill="#f2f3f1"/>
+<rect x="760" y="216" width="168" height="44" rx="4" fill="#ffffff" stroke="#1c2128" stroke-width="0.8"/>
+<text x="770" y="236.0" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">ClaudeLogs · CodexLogs</text>
+<text x="770" y="248.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">*.jsonl · *.jsonl.zst</text>
+<rect x="472" y="276" width="208" height="44" rx="4" fill="#f2f3f1"/>
+<rect x="472" y="276" width="208" height="44" rx="4" fill="#f2f3f1" stroke="#47505c" stroke-width="0.8" stroke-dasharray="3,2"/>
+<text x="482" y="296.0" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">Telemetrie</text>
+<text x="482" y="308.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">ClaudeSettings</text>
+<rect x="760" y="276" width="168" height="44" rx="4" fill="#f2f3f1"/>
+<rect x="760" y="276" width="168" height="44" rx="4" fill="#ffffff" stroke="#1c2128" stroke-width="0.8"/>
+<text x="770" y="296.0" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">ClaudeSettingsFile</text>
+<text x="770" y="308.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">~/.claude/settings.json</text>
+<rect x="472" y="336" width="208" height="68" rx="4" fill="#f2f3f1"/>
+<rect x="472" y="336" width="208" height="68" rx="4" fill="#f2f3f1" stroke="#47505c" stroke-width="0.8" stroke-dasharray="3,2"/>
+<text x="482" y="356.0" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">Speicher</text>
+<text x="482" y="368.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">UsageStore · TelemetryStore</text>
+<text x="482" y="380.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">ActionLog · ScanCache</text>
+<text x="482" y="392.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">InstallHistory · SettingsStore</text>
+<rect x="760" y="336" width="168" height="68" rx="4" fill="#f2f3f1"/>
+<rect x="760" y="336" width="168" height="68" rx="4" fill="#ffffff" stroke="#1c2128" stroke-width="0.8"/>
+<text x="770" y="368.0" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">SqliteStore · TomlSettings</text>
+<text x="770" y="380.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">hud.db · config.toml</text>
+<rect x="472" y="420" width="208" height="44" rx="4" fill="#f2f3f1"/>
+<rect x="472" y="420" width="208" height="44" rx="4" fill="#f2f3f1" stroke="#47505c" stroke-width="0.8" stroke-dasharray="3,2"/>
+<text x="482" y="440.0" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">System</text>
+<text x="482" y="452.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">SystemProbe · Clock</text>
+<rect x="760" y="420" width="168" height="44" rx="4" fill="#f2f3f1"/>
+<rect x="760" y="420" width="168" height="44" rx="4" fill="#ffffff" stroke="#1c2128" stroke-width="0.8"/>
+<text x="770" y="440.0" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">SysinfoProbe</text>
+<text x="770" y="452.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">SystemClock · sysinfo</text>
+<rect x="24" y="88" width="144" height="96" rx="6" fill="#f2f3f1"/>
+<rect x="24" y="88" width="144" height="96" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="32" y="94" width="41.3" height="12" rx="2" fill="none" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.4"/>
+<text x="52.7" y="103" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">HUD-TUI</text>
+<text x="96.0" y="143.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">hud-tui</text>
+<text x="96.0" y="155.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Elm: update · view</text>
+<rect x="24" y="400" width="144" height="64" rx="6" fill="#f2f3f1"/>
+<rect x="24" y="400" width="144" height="64" rx="6" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.03" stroke-opacity="0.3"/>
+<rect x="32" y="406" width="84.2" height="12" rx="2" fill="none" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.22"/>
+<text x="74.1" y="415" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">INFRA · TREIBEND</text>
+<text x="96.0" y="439.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">OtlpReceiver</text>
+<text x="96.0" y="451.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">127.0.0.1:4318</text>
+<rect x="224" y="88" width="200" height="376" rx="6" fill="#f2f3f1"/>
+<rect x="224" y="88" width="200" height="376" rx="6" fill="#b02a8a" stroke="#b02a8a" stroke-width="1" fill-opacity="0.08"/>
+<rect x="232" y="94" width="36.6" height="12" rx="2" fill="none" stroke="#b02a8a" stroke-width="0.8" stroke-opacity="0.5"/>
+<text x="250.3" y="103" fill="#b02a8a" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">AGENTS</text>
+<text x="324.0" y="211.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Agents</text>
+<text x="324.0" y="223.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">WorkspaceAgent</text>
+<text x="324.0" y="235.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">UpdatesAgent</text>
+<text x="324.0" y="247.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">UsageAgent</text>
+<text x="324.0" y="259.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">SystemAgent</text>
+<text x="324.0" y="271.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">SettingsAgent</text>
+<text x="324.0" y="283.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">LogAgent</text>
+<text x="324.0" y="295.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">TelemetryAgent</text>
+<text x="324.0" y="307.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">TelemetrySetupAgent</text>
+<text x="324.0" y="319.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle"></text>
+<text x="324.0" y="331.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Use Cases</text>
+<text x="324.0" y="343.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">LoadCachedRepos</text>
+<text x="324.0" y="355.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">SyncRepositories</text>
+<text x="324.0" y="367.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">FastForwardRepo</text>
+<rect x="224" y="520" width="200" height="64" rx="6" fill="#f2f3f1"/>
+<rect x="224" y="520" width="200" height="64" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="232" y="526" width="36.6" height="12" rx="2" fill="none" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.4"/>
+<text x="250.3" y="535" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">DOMAIN</text>
+<text x="324.0" y="559.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">hud-domain</text>
+<text x="324.0" y="571.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Regeln · Permits · Typen</text>
+<line x1="40" y1="616" x2="920" y2="616" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.1"/>
+<text x="40" y="632" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.18em">LEGENDE</text>
+<rect x="40.0" y="643" width="14" height="10" rx="2" fill="#b02a8a" stroke="#b02a8a" stroke-width="1" fill-opacity="0.08"/>
+<text x="60.0" y="651" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">Agents · Use Cases</text>
+<rect x="164.60000000000002" y="643" width="14" height="10" rx="2" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="184.60000000000002" y="651" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">Crate</text>
+<rect x="228.10000000000002" y="643" width="14" height="10" rx="2" fill="#f2f3f1" stroke="#47505c" stroke-width="0.8" stroke-dasharray="3,2"/>
+<text x="248.10000000000002" y="651" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">Port</text>
+<rect x="286.90000000000003" y="643" width="14" height="10" rx="2" fill="#ffffff" stroke="#1c2128" stroke-width="0.8"/>
+<text x="306.90000000000003" y="651" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">Adapter</text>
+<line x1="359.8" y1="648" x2="387.8" y2="648" stroke="#47505c" stroke-width="1.2" marker-end="url(#ports-adapters-arrow)"/>
+<text x="395.8" y="651" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">ruft · implementiert · Kanal</text>
+<line x1="547.4" y1="648" x2="575.4" y2="648" stroke="#47505c" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#ports-adapters-arrow)"/>
+<text x="583.4" y="651" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">AppEvent zurück</text>
+</svg>

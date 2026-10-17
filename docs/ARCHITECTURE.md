@@ -2,8 +2,7 @@
 
 | | |
 |---|---|
-| **Version** | 0.1.0 |
-| **Status** | zur Prüfung |
+| **Version** | 0.7.0 |
 | **Stand** | 2026-10-17 |
 | **Vorlage** | angelehnt an arc42 (Abschnitte 1–12) |
 | **Verwandte Dokumente** | [PRD.md](PRD.md) · [DESIGN.md](DESIGN.md) · Planung: GitHub Issues |
@@ -23,7 +22,7 @@ Alle Diagramme liegen als Quelle in `docs/diagrams/*.html` und eingebettet als `
 | Prio | Qualitätsziel | Bedeutung für hud |
 |---|---|---|
 | 1 | **Sicherheit der Daten (Safety)** | Keine automatische Aktion verändert lokale Arbeit. Ein Fast-Forward oder Auto-Update ohne gültige Regel-Entscheidung ist nicht kompilierbar. |
-| 2 | **Nachvollziehbarkeit** | Jede automatische Aktion ist mit Auslöser, Ziel und Ergebnis protokolliert. |
+| 2 | **Nachvollziehbarkeit** | Jeder Fast-Forward, jede Installation und jeder fehlgeschlagene Fetch ist mit Auslöser, Ziel und Ergebnis protokolliert. |
 | 3 | **Korrektheit der Anzeige** | Zustände und Zahlen stimmen mit Git/CLI-Ausgaben überein; geschätzte Werte sind als solche gekennzeichnet. |
 | 4 | **Reaktionsfähigkeit** | Die Oberfläche reagiert in < 50 ms auf Eingaben, unabhängig von laufenden Prozessen. |
 | 5 | **Wartbarkeit und Testbarkeit** | Geschäftsregeln sind ohne I/O testbar; Adapter sind austauschbar; neue Update-Quellen kosten einen Adapter, keine Änderung am Kern. |
@@ -59,7 +58,7 @@ Alle Diagramme liegen als Quelle in `docs/diagrams/*.html` und eingebettet als `
 | Repository | `nimble-123/macos-hud`, öffentlich, proprietäre Lizenz, `publish = false` für alle Crates |
 | Versionierung | Conventional Commits, release-please, SemVer, eine Produktversion für den ganzen Workspace |
 | Merges | Squash-Merge; PR-Titel muss Conventional-Commit-Format haben |
-| Qualitäts-Gates | `fmt`, `clippy -D warnings`, `nextest`, `deny`, `gitleaks` (Secret-Scan der gesamten Historie), lokal und in CI (GitHub Actions; Gates auf macOS-, Secret-Scan auf Ubuntu-Runner) |
+| Qualitäts-Gates | `fmt`, `clippy -D warnings`, `nextest`, `deny`, `cargo doc` mit `RUSTDOCFLAGS=-D warnings` (nur CI), `gitleaks` (Secret-Scan der gesamten Historie), PR-Titel nach Conventional Commits; lokal und in CI (GitHub Actions; Gates auf macOS-, Secret-Scan auf Ubuntu-Runner) |
 
 ### 2.3 Konventionen
 
@@ -76,12 +75,12 @@ Rust-Konventionen nach Rust API Guidelines und den Projekt-Regeln in [AGENTS.md]
 | Partner | Eingabe an hud | Ausgabe von hud |
 |---|---|---|
 | Nutzer:in | Tasten, Mausereignisse | gerenderte Oberfläche |
-| Git-Repositories | Status, Ahead/Behind, Upstream | Fetch, Fast-Forward |
+| Git-Repositories | Status, Ahead/Behind, Upstream, eigene Commits | Fetch, Fast-Forward |
 | Homebrew | veraltete Formeln/Casks | Upgrade-Befehle |
 | npm (global, via nvm) | veraltete globale Pakete | Install-Befehle |
 | Skills-CLI (`npx skills`) | installierte Skills, Updates | Update-Befehle |
-| Claude Code | Session-Logs (`~/.claude/projects`) | — (nur lesend) |
-| Codex | Session-Logs (`~/.codex/sessions`) | — (nur lesend) |
+| Claude Code | Session-Logs (`~/.claude/projects` bzw. `$CLAUDE_CONFIG_DIR/projects`), OTLP-Metriken an `127.0.0.1:4318`, Block `env` aus `~/.claude/settings.json` | nach Bestätigung (`t`) fehlende `env`-Einträge in `~/.claude/settings.json` (ADR 0011) |
+| Codex | Session-Logs in `sessions` und `archived_sessions` unter `~/.codex` bzw. `$CODEX_HOME` (`*.jsonl`, `*.jsonl.zst`) | — (nur lesend) |
 | macOS | CPU, Speicher, Prozessanzahl | — |
 
 ### 3.2 Technischer Kontext
@@ -89,12 +88,12 @@ Rust-Konventionen nach Rust API Guidelines und den Projekt-Regeln in [AGENTS.md]
 | Schnittstelle | Technik | Details |
 |---|---|---|
 | Terminal | Crossterm, Alternate Screen, Raw Mode, Mouse Capture, OSC 11 | Abschnitt 8.10 |
-| Git | `git -C <repo> status --porcelain=v2 --branch`, `fetch`, `rev-parse`, `merge --ff-only <oid>` | Abschnitt 8.5 |
+| Git | `git -C <repo> status --porcelain=v2 --branch --untracked-files=normal`, `rev-parse --absolute-git-dir @{upstream}`, `fetch --quiet --prune`, `rev-parse HEAD`, `merge --ff-only --quiet <oid>`, `config user.email`, `log --all --author=… --since=… --format="%H %at"` | Abschnitt 8.5 |
 | Homebrew | `brew update`, `brew outdated --json=v2`, `brew upgrade [--cask] <name>` | Exit-Code und JSON |
 | npm | `npm outdated -g --json` (Exit 1 = Updates vorhanden), `npm install -g <name>@<version>` | PATH aus Login-Shell |
 | Skills-CLI | `npx --yes skills@<version> ls -g --json` (Liste als JSON), `… update -g -y` (Aktualisieren) | Version in der Config gepinnt; keine Prüfung ohne Installation, siehe §8.5 |
-| Claude Code | JSONL-Dateien, inkrementell gelesen | Abschnitt 8.8 |
-| Codex | JSONL-Dateien, inkrementell gelesen | Abschnitt 8.8 |
+| Claude Code | JSONL-Dateien, inkrementell gelesen; OTLP/HTTP+JSON `POST /v1/metrics`; `settings.json` lesen und nach Bestätigung schreiben | Abschnitte 6.5, 8.12 |
+| Codex | JSONL-Dateien und zstd-Archive, inkrementell gelesen | Abschnitt 6.5 |
 | Dateisystem | Config, SQLite, Logs | Abschnitt 7 |
 
 ---
@@ -104,8 +103,8 @@ Rust-Konventionen nach Rust API Guidelines und den Projekt-Regeln in [AGENTS.md]
 | Ziel | Strategie |
 |---|---|
 | Safety (1) | Regeln als reine Domain-Funktionen; **typisierte Berechtigungen** (`FastForwardPermit`, `InstallPermit`) sind die einzige Möglichkeit, gefährliche Port-Methoden aufzurufen. Fast-Forward auf eine fest gepinnte Commit-ID; Git selbst verweigert das Überschreiben lokaler Änderungen. |
-| Nachvollziehbarkeit (2) | Jeder Use Case, der etwas verändert, schreibt vorher und nachher in das `ActionLog`. |
-| Korrektheit (3) | Maschinenlesbare Ausgaben (`--porcelain=v2`, `--json`); tolerante Parser mit Fixture-Tests; `Measured<T>` mit Genauigkeit an jedem Wert. |
+| Nachvollziehbarkeit (2) | Fast-Forwards und Installationen schreiben vorher und nachher in das `ActionLog`, fehlgeschlagene Fetches nachher. Änderungen an `config.toml` und `~/.claude/settings.json` (beide nur auf ausdrückliche Aktion) werden nicht protokolliert. |
+| Korrektheit (3) | Maschinenlesbare Ausgaben (`--porcelain=v2`, `--json`); tolerante Parser mit Fixture-Tests; `Measured<T>` mit Genauigkeit an den Summen der KI-Nutzung. |
 | Reaktionsfähigkeit (4) | Elm-Architektur: die UI-Schleife macht nie I/O. Alle Arbeit läuft in Tokio-Tasks, Ergebnisse kommen als Events zurück. |
 | Wartbarkeit (5) | **Clean Architecture / Ports & Adapters** mit Crate-Grenzen, die der Compiler durchsetzt. Composition Root nur im Binary. |
 
@@ -123,19 +122,19 @@ rust-toolchain.toml        1.99, Komponenten rustfmt + clippy
 deny.toml                  cargo-deny: Advisories, Lizenzen der Abhängigkeiten, Duplikate, Quellen
 crates/
   hud-domain/              Entities, Value Objects, Regeln (reine Funktionen)
-  hud-application/         Use Cases, Ports (Traits), Job-Runner, Scheduler, Events/Commands
-  hud-infrastructure/      Adapter: git, brew, npm, skills, claude, codex, sqlite, config, sysinfo, process
-  hud-tui/                 Ratatui-Präsentation (Elm-Architektur), i18n, Theme
-  hud/                     Binary: Composition Root, Terminal-Lebenszyklus, Logging, Panic-Hook
+  hud-application/         Use Cases, Agents (je ein Task mit eigenem Timer/Befehlskanal), Ports (Traits), Settings-Modell, Events/Commands
+  hud-infrastructure/      Adapter: git, discovery, brew, npm, skills, claude, codex, otlp, claude_settings, sqlite, config, system (sysinfo), clock, process
+  hud-tui/                 Ratatui-Präsentation (Elm-Architektur), Einrichtungsdialog, Maus, i18n, Theme, Symbolsätze
+  hud/                     Binary: CLI (--help, --version, --reset-*), Composition Root, Umgebungserkennung, Terminal-Lebenszyklus, Logging, Panic-Hook
 ```
 
 | Crate | Darf abhängen von | Darf nicht |
 |---|---|---|
 | `hud-domain` | `std`, `semver`, `jiff`, `thiserror` | Tokio, I/O, Serde-Formate, Ratatui |
-| `hud-application` | `hud-domain`, `tokio` (`sync`, `time`, `macros`, `rt`), `tokio-util`, `futures`, `tracing`, `thiserror` | Prozesse, Dateisystem, SQLite, Ratatui |
-| `hud-infrastructure` | `hud-application`, `hud-domain`, `tokio` (`process`, `fs`, `io-util`), `rusqlite`, `rusqlite_migration`, `serde`, `serde_json`, `toml`, `toml_edit`, `sysinfo`, `tracing` | Ratatui, Crossterm |
-| `hud-tui` | `hud-application`, `hud-domain`, `ratatui`, `crossterm`, `fluent-templates`, `tracing` | `hud-infrastructure` |
-| `hud` | alle obigen, `anyhow`, `tracing-subscriber`, `tracing-appender`, `terminal-colorsaurus`, `sys-locale` | — |
+| `hud-application` | `hud-domain`, `tokio` (`rt-multi-thread`, `macros`, `sync`, `time`), `tokio-util`, `futures`, `jiff`, `tracing`, `thiserror` | Prozesse, Dateisystem, SQLite, Ratatui |
+| `hud-infrastructure` | `hud-application`, `hud-domain`, `tokio` (zusätzlich `process`, `fs`, `io-util`, `rt`, `net`), `tokio-util`, `futures`, `jiff`, `nix` (Signale), `rusqlite`, `rusqlite_migration`, `serde`, `serde_json`, `toml`, `toml_edit`, `sysinfo`, `hyper`, `hyper-util`, `http-body-util` (OTLP), `ruzstd`, `thiserror`, `tracing` | Ratatui, Crossterm |
+| `hud-tui` | `hud-application`, `hud-domain`, `ratatui`, `crossterm`, `fluent-templates`, `jiff`, `tracing` | `hud-infrastructure` |
+| `hud` | alle obigen, `anyhow`, `crossterm`, `ratatui`, `futures`, `jiff`, `tokio`, `tokio-util`, `tracing`, `tracing-subscriber`, `tracing-appender`, `terminal-colorsaurus`, `sys-locale` | — |
 
 Abhängigkeitsversionen stehen zentral in `[workspace.dependencies]`; Crates erben mit `dep.workspace = true`.
 
@@ -145,20 +144,23 @@ Abhängigkeitsversionen stehen zentral in `[workspace.dependencies]`; Crates erb
 
 | Port (in `hud-application`) | Zweck | Adapter (in `hud-infrastructure`) | Dispatch |
 |---|---|---|---|
-| `GitPort` | Status, Fetch, Upstream-OID, Fast-Forward mit Permit | `GitCli` | statisch (Generic) |
+| `GitPort` | Status (inkl. Upstream-OID und laufender Operation), Fetch, eigene Commits (`own_commits`), Fast-Forward mit Permit | `GitCli` | statisch (Generic) |
 | `RepoDiscovery` | Repos unter Workspace-Pfaden finden | `FsDiscovery` | statisch |
 | `UpdateSource` | Verfügbarkeit, Kandidaten, Installation mit Permit | `Brew`, `NpmGlobal`, `Skills` | **dynamisch** (`Vec<Arc<dyn UpdateSource>>`) |
 | `UsageSource` | inkrementeller Ingest von KI-Nutzung | `ClaudeLogs`, `CodexLogs` | **dynamisch** |
-| `UsageStore` | Nutzung speichern und abfragen | `SqliteStore` | statisch |
+| `UsageStore` | Nutzung, Lesefortschritt, Antwortzeiten, Tool-Calls und Abo-Auslastung speichern und abfragen | `SqliteStore` | statisch |
 | `TelemetryStore` | Telemetrie-Datenpunkte speichern und summieren | `SqliteStore` | statisch |
 | `SystemProbe` | CPU-Last, Speicher, Prozessanzahl | `SysinfoProbe` (`sysinfo`, in `spawn_blocking`) | statisch |
 | `ActionLog` | Aktionen protokollieren und lesen | `SqliteStore` | statisch |
 | `ScanCache` | letzte Scan-Ergebnisse für schnellen Start | `SqliteStore` | statisch |
-| `SettingsStore` | Config lesen und kommentarerhaltend schreiben | `TomlSettings` | statisch |
-| `SystemProbe` | CPU, RAM, Prozessanzahl | `SysinfoProbe` | statisch |
-| `Clock` | aktuelle Zeit | `SystemClock` (Test: `FakeClock`) | statisch |
+| `InstallHistory` | letztes Installationsergebnis je Quelle und Paket | `SqliteStore` | statisch |
+| `ClaudeSettings` | Block `env` aus `~/.claude/settings.json` lesen und ergänzen | `ClaudeSettingsFile` | statisch |
+| `SettingsStore` (in `hud_application::settings`) | Config lesen und kommentarerhaltend schreiben | `TomlSettings` | statisch |
+| `Clock` (in `ports/store.rs`) | aktuelle Zeit | `SystemClock` (Test: `FakeClock`) | statisch |
 
-`ProcessRunner` ist **kein** Application-Port. Er ist ein internes Detail von `hud-infrastructure`, aber ebenfalls ein Trait, damit Adapter gegen einen `FakeProcessRunner` getestet werden können.
+`OtlpReceiver` implementiert keinen Port. Er ist ein eingehender Adapter: Das Binary bindet ihn beim Start und verbindet ihn über einen Kanal (64) mit dem `TelemetryAgent`, dem er `Vec<TelemetryPoint>` liefert.
+
+`ProcessRunner` ist **kein** Application-Port. Er ist ein internes Detail von `hud-infrastructure` (`TokioProcessRunner`), aber ebenfalls ein Trait, damit die Update-Adapter gegen den `FakeRunner` (`updates/fake_runner.rs`) getestet werden können; `GitCli` wird gegen echte temporäre Repositories getestet.
 
 ### 5.3 Ebene 3: Domain-Modell
 
@@ -167,7 +169,7 @@ Abhängigkeitsversionen stehen zentral in `[workspace.dependencies]`; Crates erb
 **Workspaces und Git**
 
 ```rust
-pub struct Workspace { path: WorkspacePath, auto_fast_forward: bool }
+pub struct WorkspacePath(PathBuf);  // absolut; Existenz nicht verlangt
 
 pub struct RepoStatus {
     head: Head,                       // Branch(BranchName) | Detached
@@ -189,6 +191,8 @@ pub enum SkipReason {
 }
 ```
 
+Die Kombination aus Pfad und `auto_fast_forward` ist `WorkspaceSettings` in `hud-application`, kein Domain-Typ.
+
 Regel: `pub fn sync_decision(repo: &RepoPath, status: &RepoStatus, mode: SyncMode) -> SyncDecision` mit `SyncMode::{Auto { opted_out: bool }, Manual}` (PRD, Abbildung 2, und Abschnitt 6.2). Im Modus `Manual` entfällt nur die Opt-out-Prüfung; alle Sicherheitsregeln gelten weiter. Ein Branch ohne Commits (`NoCommits`) hat keine `head_oid` und kann daher keinen Permit erhalten. Liefert `Auto` den Grund `OptedOut`, bietet die UI den manuellen Fast-Forward an.
 
 **Updates**
@@ -202,61 +206,108 @@ pub enum InstallRequest { Manual { confirmed: bool }, Auto }
 #[must_use]
 pub enum InstallDecision { Allowed(InstallPermit), Denied(DenyReason) }
 pub enum DenyReason { Pinned, NotConfirmed, SourceHasNoAuto, NotOptedIn, MajorBump, UnknownVersion, NeedsInteractionPreviously }
+pub struct InstallPermit { target: InstallTarget, trigger: Trigger }   // Felder privat
+pub struct AutoInstallPolicy { brew_formulae: bool, brew_casks: bool, npm: bool }
+pub enum SourceId { Homebrew, Npm, Skills }
 ```
 
 Regel: `pub fn install_decision(target: InstallTarget, request: InstallRequest, policy: AutoInstallPolicy, needed_interaction_before: bool) -> InstallDecision`. Gepinnte Pakete werden nie installiert (Homebrew verweigert es ohnehin). Manuell genügt die Bestätigung, auch über eine Major-Version. Automatisch gilt: Skills nie, sonst nur mit dem Opt-in der Paketart; npm nie über eine Major-Version und nie bei nicht vergleichbaren Versionen; ein Cask, der schon einmal ein Passwort verlangte, nicht erneut.
 
 **KI-Nutzung**
 
+![KI-Nutzung im Domänenmodell](diagrams/domain-usage.svg)
+
 ```rust
+pub enum Provider { Claude, Codex }
 pub struct TokenUsage { input: u64, output: u64, cache_write_5m: u64, cache_write_1h: u64, cache_read: u64, reasoning: Option<u64> }
-pub struct UsageRecord { provider: Provider, key: String, session: String, model: ModelId, at: Timestamp, tokens: TokenUsage, speed: Speed, geo: Geo }
+pub struct UsageRecord {
+    provider: Provider, key: String, session: String, model: ModelId, at: Timestamp, tokens: TokenUsage,
+    speed: Speed, geo: Geo,                 // Standard | Fast, Global | Us
+    project: Option<String>, subagent: bool, thinking: u64, context_window: Option<u64>,
+}
+pub struct ToolCall { provider: Provider, id: String, at: Timestamp }
+pub struct PlanUsage { at: Timestamp, plan: Option<String>, primary: Option<PlanWindow>, secondary: Option<PlanWindow> }
+pub struct PlanWindow { minutes: Option<u32>, used_permille: u16, resets_at: Timestamp }
 pub struct Measured<T> { value: T, accuracy: Accuracy }
 pub enum Accuracy { Exact, Estimated, Partial, Unavailable }
 pub struct Price { input: u64, output: u64, cache_write_5m: u64, cache_write_1h: u64, cache_read: u64 } // Mikro-USD je Million Token
+pub struct ModelPricing { standard: Price, fast: Option<Price>, long_prompt: Option<(u64, Price)> }
 pub struct CostEstimate { micro_usd: u64, prices_as_of: jiff::civil::Date }
 pub enum Period { Today, Last7Days, Last30Days, ThisMonth, LastMonth }
+pub enum TelemetryMetric { Cost, Tokens, ActiveTime, LinesAdded, LinesRemoved, Commits, PullRequests, Sessions }
+pub struct TelemetryPoint { at, metric, detail: Option<String>, model: Option<ModelId>, session: Option<String>, value: u64 }
+pub struct TelemetryTotals { cost_micro_usd, active_user_ms, active_cli_ms, lines_added, lines_removed, commits, pull_requests, sessions }
 ```
+
+`PlanWindow::is_current(now)` ist wahr bis `resets_at`; danach ist nur bekannt, dass das Fenster neu begonnen hat.
 
 `CostEstimate` ist per Konstruktion immer geschätzt. Einen Typ für exakte Kosten gibt es nicht. Geldbeträge sind ganzzahlige Mikro-Dollar (`u64`) statt `f64`, damit keine Rundungsfehler beim Summieren entstehen; Zwischensummen rechnen in Mikro-Dollar × 10⁶ (`u128`) und werden erst am Ende gerundet.
 
-Preise: `PriceTable` enthält die offiziellen Preise mit Stand-Datum (`PRICES_AS_OF`) für alle Claude-Modelle. Eine Modell-ID passt zu einem Eintrag, wenn sie ihm gleicht oder mit `-` weitergeht (Datumssuffix); der längste Eintrag gewinnt. Berücksichtigt werden Fast Mode (eigene Preise, Cache-Faktoren darauf), der Langprompt-Tarif von Haiku 5.5 (Prompt über 100 000 Token) und US-Inferenz (× 1,1). Ein Override aus `[ai.prices."<model-id>"]` ersetzt alle Preise seines Modells. Unbekannte Modelle haben keinen Preis; Summen mit solchen Anteilen sind `Accuracy::Partial`.
+Preise: `PriceTable` enthält die offiziellen Preise mit Stand-Datum (`PRICES_AS_OF`) für die Claude-Modelle und die OpenAI-Modelle von Codex (`gpt-*`). Reasoning-Token werden wie Output bepreist. Eine Modell-ID passt zu einem Eintrag, wenn sie ihm gleicht oder mit `-` weitergeht (Datumssuffix); der längste Eintrag gewinnt. Berücksichtigt werden Fast Mode (eigene Preise, Cache-Faktoren darauf), der Langprompt-Tarif von Haiku 5.5 (Prompt über 100 000 Token), der Langkontext-Tarif der neueren OpenAI-Modelle (Prompt über 272 000 Token: Input und Cache × 2, Output × 1,5) und US-Inferenz (× 1,1). Ein Override aus `[ai.prices."<model-id>"]` ersetzt alle Preise seines Modells. Unbekannte Modelle haben keinen Preis; Summen mit solchen Anteilen sind `Accuracy::Partial`.
+
+**Aktivität:** `ActivityCalendar { first_day, days }` mit `calendar(times, today, zone)` zählt Zeitpunkte je lokalem Tag über bis zu 53 Wochen (`CALENDAR_WEEKS`), beginnend an einem Montag; genutzt für Antworten der KI und eigene Commits.
 
 `Period::range` liefert Beginn und Ende in der lokalen Zeitzone: „heute“ ab Mitternacht, „7 Tage“ und „30 Tage“ einschließlich heute, Kalendermonate vom Ersten an. Sommerzeitwechsel folgen dem Kalender.
 
 **Protokoll**
 
 ```rust
-pub struct ActionRecord { id: ActionId, at: jiff::Timestamp, kind: ActionKind, target: String, trigger: Trigger, outcome: Outcome }
+pub struct ActionRecord {
+    id: ActionId, started_at: Timestamp, finished_at: Option<Timestamp>, kind: ActionKind,
+    target: String, trigger: Trigger, outcome: Option<Outcome>, summary: Option<String>,
+}
+pub enum ActionKind { Fetch, FastForward, Install }
 pub enum Trigger { Manual, Auto }
 pub enum Outcome { Succeeded, Failed(String), Skipped(String), Cancelled, TimedOut }
 ```
 
-**Newtypes** (validierender Konstruktor über `TryFrom`, Parse-don't-validate): `WorkspacePath`, `RepoPath` (absolut, normalisiert), `BranchName`, `CommitId` (40 oder 64 Hex-Zeichen), `PackageName`, `ModelId`, `SessionId`, `SourceId`, `JobId`, `ActionId`.
+**Newtypes** mit validierendem `TryFrom` (Parse-don't-validate): `WorkspacePath`, `RepoPath` (absolut, normalisiert), `BranchName`, `CommitId` (40 oder 64 Hex-Zeichen), `PackageName`, `ModelId`. Ohne Validierung: `Version` (tolerant, `Version::new`) und `ActionId(i64)`. `SourceId` ist ein Enum; `JobId(u64)` gehört zu `hud-application`; Sessions sind `String`.
 
-### 5.4 Ebene 2: Use Cases (`hud-application`)
+### 5.4 Ebene 2: Use Cases und Agents (`hud-application`)
+
+![Laufzeit-Topologie der Agents und Kanäle](diagrams/agents.svg)
+
+**Use Cases** sind Structs mit Abhängigkeiten im Konstruktor und einer Methode `execute`:
 
 | Use Case | Ablauf |
 |---|---|
 | `LoadCachedRepos` | letzte Status aus `ScanCache`, gruppiert nach Workspace, Zustand neu berechnet; für einen sofortigen Start |
-| `SyncRepositories` | zuerst Discovery aller Workspaces (Gesamtzahl bekannt, `AppEvent::ScanStarted { total, fetch }`), dann je Repo (parallel, höchstens 8): optional Fetch → Status → `ScanCache` → Decision → bei Permit Fast-Forward mit `ActionLog` (Abschnitt 6.2); jedes fertige Repo wird sofort als `AppEvent::RepoScanned` gemeldet; ohne Fetch ein reiner lokaler Scan |
+| `SyncRepositories` | zuerst Discovery aller Workspaces (Gesamtzahl bekannt, `AppEvent::ScanStarted { total, fetch }`), dann je Repo (parallel, höchstens 8, `buffer_unordered`): optional Fetch → Status → `ScanCache` → Decision → bei Permit Fast-Forward mit `ActionLog` (Abschnitt 6.2); jedes fertige Repo wird sofort als `AppEvent::RepoScanned` gemeldet; ohne Fetch ein reiner lokaler Scan |
 | `FastForwardRepo` | manueller FF für ein Repo (ignoriert Opt-out, nicht die übrigen Regeln) |
-| `CheckUpdates` | alle `UpdateSource`s parallel, Fehler pro Quelle isoliert → `AppEvent::UpdatesChecked` |
-| `InstallUpdates` | Decision je Kandidat → Installation mit Permit, Sperre pro Paketmanager → `ActionLog` |
-| `TelemetrySetupAgent` | meldet beim Start und nach jedem `TelemetryCommand` den Zustand von Empfänger und Claude Code (`AppEvent::Telemetry`); `TelemetryCommand::Enable` ergänzt über den Port `ClaudeSettings` fehlende Einträge in `~/.claude/settings.json`, aber nur, wenn `classify` keinen Konflikt findet |
+
+**Agents** sind je ein Tokio-Task (gestartet im Composition Root) mit `run(…)`, das bis zum gemeinsamen `CancellationToken` läuft. Periodische Arbeit treibt jeder Agent selbst mit einem `tokio::time::interval`:
+
+| Agent | Aufgabe |
+|---|---|
+| `WorkspaceAgent` | beim Start Cache (`LoadCachedRepos`), dann lokaler Scan, dann Git-Kalender, danach sofort `SyncRepositories` mit Fetch und wieder im Fetch-Intervall (`git.fetch_interval_min`, Standard 15 min, gemessen ab Ende des letzten Syncs) sowie auf `WorkspaceCommand::SyncNow`; `WorkspaceCommand::FastForward` startet `FastForwardRepo`. Beobachtet die Einstellungen und scannt nach jeder Änderung sofort lokal; ein neues Fetch-Intervall startet den Timer neu. Berechnet nach dem lokalen Scan, jedem Sync und jeder Änderung der Workspaces den Git-Kalender (`AppEvent::GitActivity`): `GitPort::own_commits` je Repo (höchstens 8 gleichzeitig), Commits über ihre ID dedupliziert, gezählt je lokalem Tag. Sendet `Workspaces`, `SyncStarted`, `ScanStarted`, `RepoScanned`, `RepoUpdated`. |
+| `UpdatesAgent` | prüft alle Update-Quellen beim Start, im Prüf-Intervall (`updates.check_interval_min`, Standard 360 min; eine Änderung startet den Timer sofort neu) und auf `UpdateCommand::CheckNow`; jede Quelle unter der Sperre ihrer `SourceId`, zuerst `availability()`, nur bei `Available` dann `check()`. Installiert nach jeder Prüfung, was `install_decision(…, InstallRequest::Auto, …)` mit den Opt-ins erlaubt; führt `UpdateCommand::Install` als Job aus (`JobState`: Queued, Running, Succeeded, NeedsInteraction, Denied, Failed, TimedOut, Cancelled). Prüfungen und Jobs laufen als Tasks in einem `JoinSet`. Schreibt jedes Paketergebnis in die `InstallHistory`; manuell abgelehnte Installationen melden `Denied`, automatisch abgelehnte bleiben stumm. `UpdateCommand::Drain` siehe Abschnitt 6.6. Sendet `Updates`, `SourceUpdated`, `Job`, `JobsFinished`. |
+| `UsageAgent` | liest beim Start, alle 60 s und nach jeder Änderung der Einstellungen alle `UsageSource`s nacheinander inkrementell in den `UsageStore` und fasst die Nutzung je Quelle zusammen (`SourceUsage`, Abschnitt 6.5); sendet `AppEvent::Usage(UsageReport)` |
 | `SystemAgent` | misst alle 2 s über `SystemProbe` und sendet `AppEvent::System`; die TUI behält die letzten 60 Werte (2 min) für die Sparklines |
-| `TelemetryAgent` | speichert die Datenpunkte, die der `OtlpReceiver` (Infrastruktur, Composition Root) über einen Kanal liefert |
-| `UsageAgent` | liest beim Start, alle 60 s und nach jeder Änderung der Einstellungen alle `UsageSource`s inkrementell in den `UsageStore`, fasst die Nutzung mit `summarize` je `Period`, Provider und Modell zusammen (Sessions, Antworten, Token, `CostEstimate`, jeweils mit `Accuracy`), ergänzt je Zeitraum die Summen aus dem `TelemetryStore` (immer `Accuracy::Partial`, ADR 0011) und sendet `AppEvent::Usage(UsageReport)` |
 | `SettingsAgent` | wendet `SettingsCommand::Change(SettingsChange)` über `SettingsStore::update` an (Sprache, Theme, Symbolsatz, Workspace hinzufügen/entfernen, Fast-Forward-Opt-out, Installations-Opt-ins) und liest auf `SettingsCommand::Reload` die Datei neu; veröffentlicht das Ergebnis über einen `watch`-Kanal und sendet `AppEvent::Settings` bzw. bei Fehlern `SettingsRejected` (die bisherigen Einstellungen bleiben dann gültig); sendet beim Start die aktuellen Einstellungen |
 | `LogAgent` | liest auf `LogCommand::Load` die letzten 500 Einträge aus dem `ActionLog` und sendet `AppEvent::Actions`; die TUI fordert sie beim Öffnen des Protokoll-Tabs an und, solange er offen ist, nach jedem beendeten Job, manuellen Fast-Forward und Sync |
-| `WorkspaceAgent` | berechnet nach dem lokalen Scan, jedem Sync und jeder Änderung der Workspaces den Git-Kalender (`AppEvent::GitActivity`): `GitPort::own_commits` je Repo (höchstens 8 gleichzeitig), Commits über ihre ID dedupliziert, gezählt je lokalem Tag; außerdem führt er die Workspace-Use-Cases aus: beim Start Cache, dann lokaler Scan, danach `SyncRepositories` mit Fetch im Fetch-Intervall und auf `Command::SyncNow`; beobachtet die Einstellungen und scannt nach jeder Änderung sofort lokal (neues Fetch-Intervall gilt ab dann); `Command::FastForward` startet `FastForwardRepo`; sendet `AppEvent::Workspaces`, `SyncStarted`, `RepoUpdated`; stoppt über `CancellationToken` |
-| `UpdatesAgent` | prüft alle Update-Quellen beim Start, im Prüf-Intervall (6 h) und auf `UpdateCommand::CheckNow`; führt `UpdateCommand::Install` als Job aus (`JobState`: Queued, Running, Succeeded, NeedsInteraction, Denied, Failed, TimedOut) mit `install_decision` und `ActionLog`; installiert nach jeder Prüfung die Kandidaten, die `install_decision(…, InstallRequest::Auto, …)` mit den Opt-ins erlaubt, nacheinander und ohne zweiten Lauf parallel; schreibt jedes Paketergebnis in die `InstallHistory`; liest Opt-ins und Prüf-Intervall aus den beobachteten Einstellungen, Änderungen gelten ab der nächsten Prüfung; Prüfungen und Jobs laufen als eigene Tasks unter der Sperre ihrer Quelle; sendet `AppEvent::Updates`, `SourceUpdated`, `Job` |
-| `Scheduler` | treibt periodische Use Cases (Fetch 15 min, Updates 6 h, Ingest 60 s, System 2 s) |
-| `JobRunner` | führt verändernde Use Cases als Jobs aus, verwaltet Status, Sperren und Abbruch |
+| `TelemetryAgent` | speichert die Datenpunkte, die der `OtlpReceiver` über einen Kanal liefert, im `TelemetryStore` |
+| `TelemetrySetupAgent` | meldet beim Start und nach jedem `TelemetryCommand` den Zustand von Empfänger und Claude Code (`AppEvent::Telemetry`); `TelemetryCommand::Enable` (Taste `t` nach Bestätigung) ergänzt über den Port `ClaudeSettings` fehlende Einträge in `~/.claude/settings.json`, aber nur, wenn `classify` keinen Konflikt findet |
 
-Jeder Use Case ist eine Struct mit Abhängigkeiten im Konstruktor und einer Methode `execute`.
+Befehle der TUI sind nach Agent gruppiert: `Command::Workspaces(WorkspaceCommand)`, `Command::Updates(UpdateCommand)`, `Command::Settings(SettingsCommand)`, `Command::Log(LogCommand)` und `Command::Telemetry(TelemetryCommand)`. Der `Router` im Binary leitet jede Gruppe über einen eigenen begrenzten Kanal (64) an ihren Agent weiter; Ergebnisse kommen gemeinsam als `AppEvent` über einen Kanal (256) zurück. Kein Agent kennt einen anderen: Einstellungen erreichen Workspace-, Updates- und Usage-Agent nur über den `watch`-Kanal des `SettingsAgent`. Nur beim Start gelesen werden `[tools]`, `[updates.skills]`, `ai.claude.enabled`, `ai.codex.enabled` und `[ai.telemetry]`; Änderungen daran brauchen einen Neustart.
 
-Befehle der TUI sind nach Agent gruppiert: `Command::Workspaces(WorkspaceCommand)`, `Command::Updates(UpdateCommand)`, `Command::Settings(SettingsCommand)` und `Command::Log(LogCommand)`. Das Binary leitet jede Gruppe über einen eigenen Kanal an ihren Agent weiter; Ergebnisse kommen gemeinsam als `AppEvent` zurück. Kein Agent kennt einen anderen: Einstellungen erreichen Workspace- und Updates-Agent nur über den `watch`-Kanal des `SettingsAgent`. Werkzeugpfade (`[tools]`) und die Aktivierung von Skills werden nur beim Start gelesen.
+| `AppEvent` | Sender | Bedeutung |
+|---|---|---|
+| `Workspaces { reports, source }` | `WorkspaceAgent` | Gesamtbild aller Workspaces; `ReportSource::{Cache, LocalScan, Sync}` |
+| `SyncStarted` | `WorkspaceAgent` | ein Sync mit Fetch beginnt |
+| `ScanStarted { total, fetch }` | `SyncRepositories` | Scan über `total` Repos beginnt |
+| `RepoScanned { workspace, report }` | `SyncRepositories` | ein Repo ist fertig, während der Scan noch läuft |
+| `RepoUpdated(report)` | `WorkspaceAgent` | Ergebnis eines manuellen Fast-Forwards |
+| `GitActivity(calendar)` | `WorkspaceAgent` | eigene Commits je Tag |
+| `Updates(reports)` | `UpdatesAgent` | Gesamtbild aller Update-Quellen |
+| `SourceUpdated(report)` | `UpdatesAgent` | eine Quelle wurde erneut geprüft, z. B. nach einer Installation |
+| `Job(update)` | `UpdatesAgent` | Zustandswechsel eines Installationsjobs |
+| `JobsFinished` | `UpdatesAgent` | nach `Drain`: alle laufenden Installationen sind beendet |
+| `Settings(settings)` | `SettingsAgent` | aktuelle Einstellungen (Start, Änderung, Neuladen) |
+| `SettingsRejected(message)` | `SettingsAgent` | Änderung oder Neuladen fehlgeschlagen |
+| `Actions(records)` | `LogAgent` | neueste Protokolleinträge |
+| `Usage(report)` | `UsageAgent` | KI-Nutzung je Quelle und Zeitraum |
+| `Telemetry(status)` | `TelemetrySetupAgent` | Zustand von OTLP-Empfänger und Claude-Code-Einstellungen |
+| `System(sample)` | `SystemAgent` | CPU, Speicher, Prozessanzahl |
 
 ### 5.5 Ebene 2: Präsentation (`hud-tui`)
 
@@ -265,9 +316,15 @@ Befehle der TUI sind nach Agent gruppiert: `Command::Workspaces(WorkspaceCommand
 | `model` | `Model`: aktiver Tab, Auswahl, Scroll-Offsets, Dialoge, zuletzt empfangene Daten, Terminalgröße |
 | `msg` | `Msg`: `Key`, `Mouse`, `Resize(Spalten, Zeilen)`, `Tick(Instant)`, `App(AppEvent)`; der Tick trägt die Zeit, damit `update` ohne Uhr auskommt |
 | `update` | `fn update(model: &mut Model, msg: Msg) -> Vec<Command>`, rein, ohne I/O |
-| `view` | `fn view(model: &Model, frame: &mut Frame)`, rein; je Tab ein Untermodul |
+| `view` | `fn view(model: &Model, frame: &mut Frame)`, rein; je Tab ein Untermodul (`overview`, `workspaces`, `updates`, `ai`, `log`, `settings`) plus `ai_kpis` (Kennzahlen des KI-Tabs), `calendar` (Aktivitätskalender), `help` (Hilfe-Overlay); `areas` und `hit` für die Maus |
+| `mouse` | löst Klicks und Mausrad über `view::hit` auf und übersetzt sie in Tasten-Aktionen (Abschnitt 8.10) |
+| `log_tab` | Filter, Suche und Auswahl des Protokoll-Tabs; fordert das Protokoll neu an, solange der Tab offen ist |
+| `settings_tab` | Zeilen des Einstellungen-Tabs, Pfadeingabe, Entfernen-Dialog; Änderungen nur als `SettingsCommand` |
+| `setup` | Einrichtungsdialog: `SetupModel`, `update_setup`, `view_setup` |
+| `settings` | `UiSettings::resolve` (Sprache, Erscheinungsbild, Symbolsatz aus Config und System), `Language::from_locale`, `ColorDepth::from_env` |
+| `icons` | Glyphen je Symbolsatz (`unicode`, `nerd`, `ascii`) für Status und Quellen |
 | `theme` | Palette aus [DESIGN.md](DESIGN.md), Farbtiefe, hell/dunkel |
-| `i18n` | Fluent-Ressourcen `locales/{de,en}/hud.ftl`, Abbildung von Domain-Enums auf Nachrichten-IDs |
+| `i18n` | Fluent-Loader (`t`, `t_args`, `t_count`) für `locales/{de,en}/hud.ftl`; die `view`-Module bilden Domain-Enums auf Nachrichten-IDs ab |
 
 ---
 
@@ -277,37 +334,40 @@ Befehle der TUI sind nach Agent gruppiert: `Command::Workspaces(WorkspaceCommand
 
 ![Start und Erststart](diagrams/startup-flow.svg)
 
-Zuerst wertet hud die Kommandozeile aus. `--version` und `--help` geben Text aus und beenden hud. `--reset-config` und `--reset-data` (kombinierbar) löschen die Config bzw. die Datenbank samt `-wal`/`-shm`, nachdem hud die Pfade gezeigt und mit `[y/N]` nachgefragt hat; `--yes` überspringt die Frage. Ohne Terminal an stdin und ohne `--yes` bricht hud mit Exit-Code 2 ab. Fehlende Dateien sind kein Fehler, Logs bleiben erhalten, die TUI startet nicht. Ohne Argumente folgt der Start:
+Zuerst wertet hud die Kommandozeile aus (`crates/hud/src/cli.rs`): `-V`/`--version` und `-h`/`--help` geben Text aus und beenden hud. `--reset-config` und `--reset-data` (kombinierbar, beliebige Reihenfolge) löschen die Config bzw. die ganze Datenbank samt `-wal`/`-shm`, nachdem hud die Pfade gezeigt und mit `[y/N]` nachgefragt hat; nur `y`/`yes` (Groß-/Kleinschreibung egal) gilt als Zustimmung, `-y`/`--yes` überspringt die Frage. Die Ausgabe nennt je Datei `deleted` oder `missing`; fehlende Dateien sind kein Fehler, Logs bleiben erhalten, die TUI startet nicht. Ohne Terminal an stdin und ohne `--yes` bricht hud mit Exit-Code 2 ab. Unbekannte Argumente, `--yes` ohne Reset und Reset gemischt mit anderen Optionen geben die Hilfe auf stderr aus, Exit-Code 2. Ohne Argumente folgt der Start:
 
-1. Panic-Hook und Terminal-Guard installieren (stellen den Terminalzustand in jedem Fall wieder her).
-2. Logging initialisieren (`~/Library/Logs/hud/`).
-3. Config lesen. Fehlt sie oder enthält sie keinen Workspace, zeigt hud nach dem Terminal-Setup den Einrichtungsdialog: (1) Workspaces wählen (Vorschläge sind vorhandene typische Ordner unter Home wie `~/workspace`, `~/Developer`, `~/Projects`; eigene Pfade mit `/` oder `~/`), (2) Symbolsatz mit Vorschau wählen. `Esc` beendet hud ohne Schreiben. Sonst schreibt `SettingsStore::apply_setup` die Auswahl kommentarerhaltend und atomar in die Config und liefert die neuen Einstellungen; der Hauptbildschirm startet ohne Neustart.
-4. SQLite öffnen, Migrationen ausführen.
-5. Ermittlung des Login-PATH im Hintergrund anstoßen (`$SHELL -l -i -c …`, Timeout 3 s, Fallback: aktueller PATH). Die TUI wartet nicht darauf; erst der erste Fremdprozess wartet bei Bedarf. Der Wert wird einmal ermittelt und von allen Prozessaufrufen geteilt.
-6. Terminal-Hintergrund (OSC 11, 100 ms) und Systemsprache (`sys-locale`) ermitteln, auch wenn die Config sie festlegt: Stellt man später im Einstellungen-Tab auf `auto`, gilt der ermittelte Wert ohne erneute Abfrage. `UiSettings::resolve` bildet daraus und aus der Config die Darstellung; dieselbe Funktion läuft nach jeder Änderung der Einstellungen.
-7. Composition Root baut Adapter und Use Cases, startet Scheduler und Job-Runner.
-8. Letzte Ergebnisse aus `ScanCache` anzeigen, dann ersten Scan anstoßen.
+1. Logging initialisieren (`~/Library/Logs/hud/`).
+2. Config lesen; eine ungültige Config beendet hud mit Fehlermeldung in der Shell, bevor das Terminal übernommen wird.
+3. `TokioProcessRunner` anlegen und die Ermittlung des Login-PATH als Task anstoßen (`$SHELL -l -i +m -c …`, Standard-Shell `/bin/zsh`, Timeout 3 s, Fallback: geerbter PATH). Die TUI wartet nicht darauf; erst der erste Fremdprozess wartet bei Bedarf. Der Wert wird einmal ermittelt und von allen Prozessaufrufen geteilt.
+4. Terminal-Hintergrund (OSC 11, 100 ms, nur wenn stdout ein Terminal ist), Systemsprache (`sys-locale`) und Farbtiefe ermitteln, auch wenn die Config Theme und Sprache festlegt: Stellt man später im Einstellungen-Tab auf `auto`, gilt der ermittelte Wert ohne erneute Abfrage. `UiSettings::resolve` bildet daraus und aus der Config die Darstellung; dieselbe Funktion läuft nach jeder Änderung der Einstellungen.
+5. Terminal übernehmen (`terminal::Session::enter`): Panic-Hook, Raw Mode, Alternate Screen, Mouse Capture; ein Guard stellt den Zustand in jedem Fall wieder her.
+6. Enthält die Config keinen Workspace, zeigt hud den Einrichtungsdialog: (1) Workspaces wählen (Vorschläge sind vorhandene typische Ordner unter Home wie `~/workspace`, `~/Developer`, `~/Projects`; eigene Pfade mit `/` oder `~/`), (2) Symbolsatz wählen (alle drei Sätze nebeneinander). `Esc` beendet hud ohne Schreiben. Sonst schreibt `SettingsStore::apply_setup` die Auswahl kommentarerhaltend und atomar in die Config und liefert die neuen Einstellungen; der Hauptbildschirm startet ohne Neustart.
+7. OTLP-Empfänger öffnen, falls `[ai.telemetry]` aktiv ist (Abschnitt 6.5).
+8. Composition Root: SQLite öffnen, Migrationen ausführen, `action_log`-Einträge älter als 90 Tage löschen; Adapter bauen und die Agents als Tasks starten.
+9. Ereignisschleife; vorher meldet das Binary einmal die Terminalgröße (`Msg::Resize`). Der `WorkspaceAgent` meldet zuerst den `ScanCache`, dann einen lokalen Scan, dann den Git-Kalender und startet direkt danach den ersten Sync mit Fetch.
 
 ### 6.2 Automatischer Fast-Forward
 
 ![Ablauf automatischer Fast-Forward](diagrams/seq-auto-ff.svg)
 
-1. Der Scheduler löst `SyncRepositories` aus (alle 15 min oder manuell per `r`).
-2. Für jedes Repo: `GitPort::fetch` (ohne Passwortabfrage), dann `GitPort::status`.
-3. `sync_decision` prüft die Regeln in fester Reihenfolge (siehe PRD, Abbildung 2). Nur bei Erfolg entsteht ein `FastForwardPermit { repo, head_oid, target_oid }`.
+1. Der Timer des `WorkspaceAgent` löst `SyncRepositories` mit Fetch aus (direkt nach dem lokalen Startscan, danach im Fetch-Intervall ab Ende des letzten Syncs), oder `WorkspaceCommand::SyncNow` per `r` (nicht im Updates-, Protokoll- und Einstellungen-Tab, dort hat `r` eine eigene Bedeutung; nicht während eines Syncs).
+2. Für jedes Repo: `GitPort::fetch` (`git fetch --quiet --prune`, ohne Passwortabfrage), dann `GitPort::status`; der Status landet im `ScanCache`.
+3. `sync_decision` prüft die Regeln in fester Reihenfolge (siehe PRD, Abbildung 2). Nur bei Erfolg entsteht ein `FastForwardPermit { repo, head_oid, target_oid, commits }`.
 4. Der Use Case schreibt `ActionLog: started` und ruft `GitPort::fast_forward(permit)`.
 5. Der Adapter prüft, dass `HEAD` noch `head_oid` ist (sonst `StateChanged`), und führt `git merge --ff-only <target_oid>` aus. Git verweigert den Merge, falls lokale Änderungen überschrieben würden.
-6. Ergebnis → `ActionLog: finished` → `AppEvent::RepoSynced` → die TUI zeigt den Status `ok` für 30 s.
+6. Ergebnis → `ActionLog: finished` (bei `StateChanged`: `Skipped`, angezeigt als `RepoState::Behind`) → `AppEvent::RepoScanned` sofort und `AppEvent::Workspaces { source: Sync }` am Ende → die TUI zeigt einen erfolgreichen Fast-Forward 30 s als `ok`.
 
 Protokolliert werden jeder Fast-Forward und jeder fehlgeschlagene Fetch. Erfolgreiche Fetches werden nicht protokolliert, weil sie alle 15 Minuten für jedes Repo anfallen und die relevanten Einträge verdrängen würden. Für die Anzeige liefert der Use Case je Repo einen `RepoState` (`UpToDate`, `Behind`, `Skipped`, `Error`, `FastForwarded`); er enthält keinen Permit und kann daher frei gespeichert und verschickt werden.
 
 ### 6.3 Update-Prüfung und Installation
 
-1. `CheckUpdates` ruft alle `UpdateSource`s parallel auf (`futures::future::join_all`); ein Fehler in einer Quelle betrifft die anderen nicht.
+![Update-Prüfung und Installation](diagrams/update-flow.svg)
+
+1. Der `UpdatesAgent` prüft alle `UpdateSource`s parallel (`futures::future::join_all`) in einem eigenen Task, jede unter der Sperre ihrer Quelle: zuerst `availability()` (`--version`), nur bei `Available` dann `check()`. Ein Fehler in einer Quelle betrifft die anderen nicht.
 2. Bei aktivem Opt-in erzeugt `install_decision(…, InstallRequest::Auto, …)` nach jeder Prüfung Permits für erlaubte Kandidaten (PRD, Abbildung 3); `needed_interaction_before` kommt aus der `InstallHistory` (letztes Ergebnis je Quelle und Paket; ist der Verlauf nicht lesbar, gilt der Kandidat als „Passwort nötig“). Abgelehnte Kandidaten erzeugen keinen Job. Das `ActionLog` vermerkt den Auslöser `auto`.
 3. Manuelle Installation: Die TUI zeigt einen Bestätigungsdialog mit dem genauen Befehl und warnt bei Major-Updates; erst nach `Enter` sendet sie `UpdateCommand::Install { confirmed: true }`, und erst danach wird `install_decision(…, InstallRequest::Manual { confirmed: true }, …)` aufgerufen.
-4. `InstallUpdates` übernimmt die Sperre der Quelle (nie zwei `brew`- oder `npm -g`-Prozesse gleichzeitig) und installiert sequenziell. Eine erfolgreiche Installation liefert `InstallOutcome::Installed { output }` mit den letzten drei nicht leeren Ausgabezeilen; Zugangsdaten in URLs (`https://user:token@…`) sind maskiert. Der Agent speichert sie als Zusammenfassung im `ActionLog`, Fehler speichern das Ende der Fehlerausgabe im Ergebnis.
-5. Bricht ein Cask mit einer Passwortabfrage ab (stdin ist geschlossen, `sudo` meldet „a terminal is required“), wird er als `NeedsInteraction` in `install_history` markiert und nicht mehr automatisch versucht, bis ein späteres Ergebnis für dasselbe Paket etwas anderes zeigt.
+4. Jede Installation läuft als eigener Task (`JoinSet`); die Sperre je Quelle verhindert zwei `brew`- bzw. `npm`-Läufe gleichzeitig, verschiedene Quellen laufen parallel. Eine erfolgreiche Installation liefert `InstallOutcome::Installed { output }` mit den letzten drei nicht leeren Ausgabezeilen; Zugangsdaten in URLs (`https://user:token@…`) sind maskiert. Der Agent speichert sie als Zusammenfassung im `ActionLog`; Fehler speichern die letzte nicht leere Zeile der Fehlerausgabe. Danach prüft der Agent die Quelle erneut und sendet `AppEvent::SourceUpdated`.
+5. Bricht `brew upgrade` mit einer Passwortabfrage ab (stdin ist geschlossen; Marker „a terminal is required“, „no tty present“, „a password is required“, „sudo: “), meldet der Adapter `NeedsInteraction`; der Agent schreibt das in `install_history`. Automatisch erneut versucht wird ein solcher Cask erst, wenn ein späteres Ergebnis für dasselbe Paket etwas anderes zeigt. Abgebrochene Läufe werden nicht vermerkt.
 
 ### 6.4 Ereignisschleife (Elm-Architektur)
 
@@ -317,22 +377,22 @@ Protokolliert werden jeder Fast-Forward und jeder fehlgeschlagene Fetch. Erfolgr
 loop {
     terminal.draw(|f| view(&model, f))?;
     let msg = tokio::select! {
-        Some(ev) = input.next()      => Msg::from(ev?),        // crossterm EventStream, cancel-safe
+        Some(ev) = input.next()      => match Msg::from_terminal(&ev?) { Some(m) => m, None => continue }, // crossterm EventStream, cancel-safe
         Some(ev) = app_events.recv() => Msg::App(ev),          // mpsc, cancel-safe
-        _ = render_tick.tick()       => Msg::Tick(Instant::now()), // 250 ms, cancel-safe
+        _ = render_tick.tick()       => Msg::Tick(Instant::now()), // 250 ms, MissedTickBehavior::Skip, cancel-safe
     };
     for cmd in update(&mut model, msg) { commands.send(cmd).await?; }
     if model.should_quit() { break; }
 }
 ```
 
-Alle drei `select!`-Zweige sind cancel-safe. Die Schleife macht kein I/O außer Rendern; `update` und `view` sind reine Funktionen.
+Alle drei `select!`-Zweige sind cancel-safe. Die Schleife macht kein I/O außer Rendern; `update` und `view` sind reine Funktionen und laufen bei jedem Durchlauf. `Msg::from_terminal` verwirft Tastenwiederholungen und -loslassen, Fokus- und Paste-Ereignisse. Vor der Schleife sendet das Binary einmal `Msg::Resize(Breite, Höhe)`. `commands.send` ist der `Router`, der je Gruppe an den Kanal des Agents weiterleitet.
 
 ### 6.5 KI-Nutzung einlesen
 
 ![Datenfluss KI-Nutzung](diagrams/ingest-flow.svg)
 
-1. Beim Start, alle 60 s und nach jeder Änderung der Einstellungen liest der `UsageAgent` jede `UsageSource`. `ClaudeLogs` durchsucht `~/.claude/projects` (bzw. `$CLAUDE_CONFIG_DIR/projects`) rekursiv nach `*.jsonl`, einschließlich der Subagent-Logs; die Desktop-App schreibt ihre Claude-Code-Sitzungen in denselben Ordner. Das Lesen läuft in `spawn_blocking`.
+1. Beim Start, alle 60 s und nach jeder Änderung der Einstellungen liest der `UsageAgent` jede `UsageSource` nacheinander; `SourceState` hält je Quelle Fehler, unlesbare Zeilen, Zahl der Dateien und Lesedauer (`read_ms`). `ClaudeLogs` durchsucht `~/.claude/projects` (bzw. `$CLAUDE_CONFIG_DIR/projects`) rekursiv nach `*.jsonl`, einschließlich der Subagent-Logs; die Desktop-App schreibt ihre Claude-Code-Sitzungen in denselben Ordner. Das Lesen läuft in `spawn_blocking`.
 2. Je Datei steht in `ingest_offset` Größe, Byte-Offset und die Zahl unlesbarer Zeilen. Gelesen wird ab dem Offset bis zum letzten vollständigen Zeilenumbruch; eine unvollständige letzte Zeile bleibt für den nächsten Lauf liegen.
 3. Ist eine Datei kleiner als ihr Offset (neu geschrieben), wird sie ab 0 gelesen; die Deduplizierung verhindert Doppelzählungen.
 4. Ein Vorfilter überspringt Zeilen ohne `"assistant"` und `"usage"`. Der Parser liest nur Usage-Metadaten (Serde ohne `deny_unknown_fields`); Inhalte werden nie übernommen. Platzhalter-Antworten mit Modell `<synthetic>` zählen nicht. Kaputte Zeilen werden gezählt und machen Token und Kosten zu `Accuracy::Partial`.
@@ -340,7 +400,7 @@ Alle drei `select!`-Zweige sind cancel-safe. Die Schleife macht kein I/O außer 
 6. `summarize` berechnet je Zeitraum Sessions, Token und `CostEstimate` aus der Preistabelle und den Overrides der Config, gesamt und je Modell (teuerstes zuerst).
 7. `period_kpis` berechnet je Zeitraum Cache-Hit, Anteile von Modellen, Projekten und Subagenten an den neuen Token (alle außer Cache-Lesen), Thinking-Anteil am Output, Antworten je Stunde (heute) bzw. je Tag, Antworten und Tool-Calls. `latest_context` liefert unabhängig vom Zeitraum den Kontextstand der letzten Antwort einer Hauptunterhaltung (Prompt-Token je Kontextfenster: 1 M ab Claude 4.6, sonst 200 k).
 8. Für die Übersicht zählt `calendar` die Antwortzeiten (`UsageStore::answer_times`) je lokalem Tag über bis zu 53 Wochen, beginnend an einem Montag.
-9. Zusätzlich liest `ClaudeLogs` je Zeile `cwd` (Projekt: der Vorfahr von `cwd`, aus dem Claude Code den Projektordner gebildet hat, sonst der Ordner von `cwd`), `isSidechain` bzw. den Ordner `subagents/`, `output_tokens_details.thinking_tokens` und die IDs der `tool_use`-Blöcke; von Inhaltsblöcken werden nur Typ und ID gelesen. Tool-Calls landen dedupliziert in `ai_tool_call`.
+9. Zusätzlich liest `ClaudeLogs` je Zeile `cwd` (Projekt: der Vorfahr von `cwd`, aus dem Claude Code den Projektordner gebildet hat, sonst der Ordner von `cwd`), `isSidechain` bzw. den Ordner `subagents/`, `output_tokens_details.thinking_tokens` und die IDs der `tool_use`-Blöcke; von Inhaltsblöcken werden nur Typ und ID gelesen. Tool-Calls landen dedupliziert in `ai_tool_call`. Die Deduplizierung geschieht beim Speichern (`ON CONFLICT … DO UPDATE` mit dem höchsten Wert je Token-Art bzw. `INSERT OR IGNORE` für Tool-Calls).
 
 **Codex.** Ist `[ai.codex]` aktiv, liest `CodexLogs` `sessions` und `archived_sessions` unter `$CODEX_HOME` bzw. `~/.codex`, sowohl `*.jsonl` als auch die zstd-Archive `*.jsonl.zst` (Rust-Decoder `ruzstd`), in `spawn_blocking`. Andere Dateien in `~/.codex` werden nicht geöffnet.
 
@@ -351,14 +411,20 @@ Alle drei `select!`-Zweige sind cancel-safe. Die Schleife macht kein I/O außer 
 5. `rate_limits` in `token_count` liefern die Abo-Auslastung: Plan, je Fenster Prozent, Länge und Rücksetzzeitpunkt. Die neueste Meldung landet in `ai_plan_usage`; eine ältere ersetzt sie nie.
 6. Der `UsageAgent` fasst jede Quelle getrennt zusammen (`SourceUsage`); nur der Kalender und „KI heute“ in der Übersicht zählen alle Quellen zusammen.
 
-**Telemetrie von Claude Code (ADR 0011).** Ist `[ai.telemetry]` aktiv (Standard), öffnet das Binary beim Start den `OtlpReceiver` auf `127.0.0.1:4318`. Ein belegter Port wird als `ReceiverState::Unavailable` geführt, hud startet trotzdem. Ausgewertet werden die Delta-Summen von `claude_code.cost.usage` (USD → Mikro-USD), `token.usage`, `active_time.total` (s → ms, `type` = `user`/`cli`), `lines_of_code.count` (`added`/`removed`), `commit.count`, `pull_request.count` und `session.count`; kumulative Reihen und andere Metriken werden übersprungen. Der `TelemetryAgent` speichert die Punkte in `otel_metric`.
+**Telemetrie von Claude Code (ADR 0011).**
+
+![Telemetrie von Claude Code](diagrams/telemetry-flow.svg)
+
+Ist `[ai.telemetry]` aktiv (Standard), öffnet das Binary beim Start den `OtlpReceiver` auf `127.0.0.1:4318`. Ein belegter Port wird als `ReceiverState::Unavailable` geführt, hud startet trotzdem. Ausgewertet werden die Delta-Summen von `claude_code.cost.usage` (USD → Mikro-USD), `token.usage`, `active_time.total` (s → ms, `type` = `user`/`cli`), `lines_of_code.count` (`added`/`removed`), `commit.count`, `pull_request.count` und `session.count`; kumulative Reihen und andere Metriken werden übersprungen. Der `TelemetryAgent` speichert die Punkte in `otel_metric`; der `UsageAgent` summiert sie je Zeitraum für Claude Code (`TelemetryStore::totals`, immer `Accuracy::Partial`, weil Daten nur ankommen, solange hud läuft). Einschalten: Taste `t` im KI-Tab öffnet einen Dialog mit den genauen Einträgen; nach Bestätigung sendet die TUI `TelemetryCommand::Enable`, der `TelemetrySetupAgent` prüft mit `classify` auf Konflikte und schreibt nur ohne Konflikt (Abschnitt 8.12).
 
 ### 6.6 Beenden während einer laufenden Aktion
 
-![Lebenszyklus eines Jobs und Beenden](diagrams/job-lifecycle.svg)
+![Lebenszyklus eines Installationsjobs](diagrams/job-lifecycle.svg)
+
+![Beenden und Herunterfahren](diagrams/quit-flow.svg)
 
 1. `q` oder `Ctrl-C` ohne laufende Installation: sofort beenden. Laufende Prüfungen, Fetches und Scans werden dabei abgebrochen; sie ändern nichts am System.
-2. Mit laufender Installation öffnet sich der Dialog „hud beenden?“, Default **Warten** (`Enter`), `a` bricht ab, `Esc` kehrt zurück. Ein zweites `q` oder `Ctrl-C` im Dialog oder während des Wartens beendet sofort wie „Abbrechen“.
+2. Mit wartender oder laufender Installation öffnet sich der Dialog „hud beenden?“, Default **Warten** (`Enter` oder `w`), `a` bricht ab, `Esc` oder `n` kehrt zurück. Ein zweites `q` oder `Ctrl-C` im Dialog oder während des Wartens beendet sofort wie „Abbrechen“.
 3. Warten: Die TUI sendet `UpdateCommand::Drain`. Der `UpdatesAgent` startet nichts Neues mehr, bricht laufende Prüfungen ab, meldet wartende Jobs als `Cancelled` (sie hatten noch nicht begonnen und erscheinen nicht im Protokoll) und lässt laufende Installationen zu Ende laufen. Danach sendet er `AppEvent::JobsFinished`, und hud beendet sich. Die Fußzeile zeigt bis dahin „Warte auf … Installationen“.
 4. Abbrechen: Ein gemeinsamer `CancellationToken` stoppt alle Agents und den `ProcessRunner`. Laufende Werkzeuge erhalten SIGTERM an ihre Prozessgruppe und nach 5 s SIGKILL. Die Agents warten auf ihre Tasks, sodass abgebrochene Installationen als `Cancelled` im Protokoll stehen. Das Binary wartet höchstens 8 s.
 5. In jedem Fall stellt der Terminal-Guard Raw Mode, Alternate Screen und Mouse Capture wieder her, bevor auf die Hintergrundarbeit gewartet wird.
@@ -375,11 +441,16 @@ Alle drei `select!`-Zweige sind cancel-safe. Die Schleife macht kein I/O außer 
 | Config | `~/.config/hud/config.toml` (respektiert `XDG_CONFIG_HOME`) |
 | Datenbank | `~/Library/Application Support/hud/hud.db` (WAL-Modus) |
 | Logs | `~/Library/Logs/hud/hud.log.YYYY-MM-DD`, 7 Tage aufbewahrt |
-| Gelesen | `~/.claude/projects/**/*.jsonl`, `~/.codex/sessions/**/*.jsonl`, Workspace-Ordner |
-| Aufgerufen | `git`, `brew`, `npm`, `npx` aus dem PATH der Login-Shell |
+| Gelesen | `~/.claude/projects/**/*.jsonl` (bzw. `$CLAUDE_CONFIG_DIR/projects`), `~/.codex/{sessions,archived_sessions}/**/*.jsonl[.zst]` (bzw. `$CODEX_HOME`), `~/.claude/settings.json`, Workspace-Ordner |
+| Geschrieben (nach Bestätigung) | Block `env` in `~/.claude/settings.json` |
+| Aufgerufen | `git`, `brew`, `npm`, `npx` aus dem PATH der Login-Shell oder aus `[tools]` (`npx` neben dem konfigurierten `npm`); einmalig `$SHELL` (Standard `/bin/zsh`) zum Auslesen des PATH |
 | Lauscht | `127.0.0.1:4318` (OTLP/HTTP+JSON, nur solange hud läuft; Port über `[ai.telemetry]`) |
 
-Pfade werden aus `$HOME` und `XDG_CONFIG_HOME` gebildet; ein zusätzliches Crate für Pfade ist nicht nötig.
+Pfade werden aus `$HOME`, `XDG_CONFIG_HOME` (nur wenn absolut), `CLAUDE_CONFIG_DIR`, `CODEX_HOME` und `SHELL` gebildet; ein zusätzliches Crate für Pfade ist nicht nötig.
+
+![Release-Pipeline: release-please, Universal-Build, Veröffentlichung und Homebrew-Tap](diagrams/release.svg)
+
+Release: release-please erzeugt Tag und Release; der Workflow `release-build.yml` baut auf macOS für `aarch64` und `x86_64`, fügt beides mit `lipo` zum Universal Binary zusammen, prüft `hud --version`, hängt Archiv und SHA-256 an das Release, erzeugt eine Build-Provenance-Attestierung (`gh attestation verify …`) und aktualisiert die Formel im Tap `nimble-123/homebrew-tap`. Das Binary ist weder signiert noch notarisiert.
 
 ---
 
@@ -388,7 +459,7 @@ Pfade werden aus `$HOME` und `XDG_CONFIG_HOME` gebildet; ein zusätzliches Crate
 ### 8.1 Typisierte Berechtigungen (Permits)
 
 ```rust
-/// Nur `sync_decision` kann einen Permit erzeugen: Felder privat, Konstruktor `pub(crate)`.
+/// Nur `sync_decision` kann einen Permit erzeugen: Felder privat, kein Konstruktor, kein `Clone`.
 #[must_use]
 pub struct FastForwardPermit { repo: RepoPath, head_oid: CommitId, target_oid: CommitId, commits: u32 }
 
@@ -402,6 +473,7 @@ impl FastForwardPermit {
 pub trait GitPort: Send + Sync {
     fn status(&self, repo: &RepoPath) -> impl Future<Output = Result<RepoStatus, GitError>> + Send;
     fn fetch(&self, repo: &RepoPath) -> impl Future<Output = Result<(), GitError>> + Send;
+    fn own_commits(&self, repo: &RepoPath, since: Timestamp) -> impl Future<Output = Result<Vec<(CommitId, Timestamp)>, GitError>> + Send;
     /// Verbraucht den Permit; ohne Permit kein Aufruf möglich.
     fn fast_forward(&self, permit: FastForwardPermit) -> impl Future<Output = Result<FfOutcome, GitError>> + Send;
 }
@@ -422,11 +494,11 @@ Der Permit ist nicht `Clone` und wird bei Benutzung verbraucht (Move). `InstallP
 | Schicht | Fehlertyp | Regel |
 |---|---|---|
 | Domain | `DomainError` (Validierung von Newtypes) | `thiserror`, keine I/O-Fehler |
-| Application | ein Fehler-Enum pro Port (`GitError`, `UpdateError`, `StoreError`, `SettingsError`, …) und `AppError` | Ports definieren ihre Fehler; Adapter mappen darauf |
-| Infrastructure | interne Fehler (`ProcessError`, Parse-Fehler) | per `From` auf Port-Fehler abgebildet, Quelle via `#[source]` erhalten |
+| Application | ein Fehlertyp pro Port (`GitError`, `UpdateError`, `StoreError`, `SettingsError`, `DiscoveryError`, `UsageError`; `ClaudeSettings` liefert `String`) | Ports definieren ihre Fehler; Adapter mappen darauf |
+| Infrastructure | interne Fehler (`ProcessError`, Parse-Fehler) | per `map_err` auf Port-Fehler abgebildet; die Ursache geht als Text in `message` ein |
 | Binary | `anyhow::Result` mit `.context(…)` | nur hier |
 
-- Fehlermeldungen klein geschrieben, ohne Satzzeichen am Ende (Rust-Konvention); die TUI übersetzt sie über i18n in Nutzertexte.
+- Fehlermeldungen klein geschrieben, ohne Satzzeichen am Ende (Rust-Konvention); die TUI setzt sie unübersetzt in eine übersetzte Rahmennachricht ein (z. B. „Fehler: {message}“).
 - Fehler werden genau einmal geloggt, mit voller Ursachenkette.
 - Fehler einer Quelle (z. B. `brew` fehlt) sind ein Zustand dieser Quelle, kein Absturz.
 - `unwrap` ist verboten; `expect` nur für Invarianten mit Text `"BUG: …"`.
@@ -435,16 +507,17 @@ Der Permit ist nicht `Clone` und wird bei Benutzung verbraucht (Move). `InstallP
 
 | Mechanismus | Einsatz |
 |---|---|
-| `tokio::sync::mpsc` (begrenzt, 256) | `AppEvent` von Use Cases zur TUI |
-| `tokio::sync::mpsc` (begrenzt, 64) | `Command` von der TUI zum Job-Runner |
-| `tokio::sync::watch` | aktuelle Systemwerte (nur der neueste Wert zählt) |
-| `tokio::sync::Semaphore` (8) | parallele Git-Scans |
-| Sperre pro Ressource (`tokio::sync::Mutex<()>` je `ResourceKey`) | nie zwei `brew`- bzw. `npm -g`-Prozesse, nie zwei Aktionen auf demselben Repo |
-| `tokio_util::sync::CancellationToken` | Scheduler stoppen, Jobs abbrechen |
-| `tokio::task::JoinSet` | Job-Tasks verwalten, beim Beenden einsammeln |
-| `tokio::task::spawn_blocking` | `sysinfo`-Abfragen |
+| `tokio::sync::mpsc` (begrenzt, 256) | `AppEvent` von den Agents zur TUI |
+| `tokio::sync::mpsc` (begrenzt, 64) | je Agent ein Befehlskanal (`WorkspaceCommand`, `UpdateCommand`, `SettingsCommand`, `LogCommand`, `TelemetryCommand`); außerdem OTLP-Empfänger → `TelemetryAgent` und Aufträge an den SQLite-Thread |
+| `tokio::sync::watch` | aktuelle Einstellungen vom `SettingsAgent` an Workspace-, Updates- und Usage-Agent |
+| `StreamExt::buffer_unordered(8)` | parallele Git-Scans und Commit-Abfragen |
+| `tokio::sync::Mutex<()>` je `SourceId` | nie zwei Prüf- oder Installationsläufe derselben Quelle gleichzeitig; Repo-Aktionen serialisiert der `WorkspaceAgent`, weil er Sync und manuellen Fast-Forward nacheinander abarbeitet |
+| `tokio_util::sync::CancellationToken` | ein gemeinsamer Token stoppt alle Agents, den OTLP-Empfänger und laufende Prozesse des `ProcessRunner` |
+| `tokio::task::JoinSet` | Prüf- und Installations-Tasks des `UpdatesAgent`, beim Beenden eingesammelt |
+| `tokio::task::spawn_blocking` | `sysinfo`-Abfragen, `FsDiscovery`, Lesen der Claude- und Codex-Logs |
+| eigener OS-Thread `hud-sqlite` | einzige SQLite-Verbindung (Abschnitt 8.6) |
 
-Keine Sperre wird über ein `.await` gehalten, außer den Ressourcen-Sperren, deren Zweck genau das ist (sie schützen einen ganzen Prozesslauf).
+Keine Sperre wird über ein `.await` gehalten, außer den Sperren je Quelle, deren Zweck genau das ist (sie schützen einen ganzen Prozesslauf).
 
 ### 8.5 Prozessausführung
 
@@ -457,13 +530,15 @@ Alle Fremdwerkzeuge laufen über den internen `ProcessRunner`:
 
 | Werkzeug | Umgebungsvariablen |
 |---|---|
-| git | `GIT_TERMINAL_PROMPT=0`, `GIT_SSH_COMMAND="ssh -o BatchMode=yes"`, `GIT_OPTIONAL_LOCKS=0` (für `status`, `config` und `log`) |
+| git | `fetch`: `GIT_TERMINAL_PROMPT=0`, `GIT_SSH_COMMAND="ssh -o BatchMode=yes"`; `status`/`rev-parse`/`config`/`log`: `GIT_OPTIONAL_LOCKS=0`; `rev-parse HEAD` und `merge` ohne Zusatz |
 | brew | `HOMEBREW_NO_AUTO_UPDATE=1`, `HOMEBREW_NO_ENV_HINTS=1`, `NONINTERACTIVE=1`, `HOMEBREW_NO_COLOR=1` |
 | npm/npx | `NO_COLOR=1`, `npm_config_fund=false`, `npm_config_update_notifier=false` |
-| skills (über npx) | zusätzlich `DISABLE_TELEMETRY=1`, `DO_NOT_TRACK=1`: die Skills-CLI sendet sonst Telemetrie |
+| skills (über npx) | `NO_COLOR=1`, `npm_config_update_notifier=false`, `DISABLE_TELEMETRY=1`, `DO_NOT_TRACK=1` (die Skills-CLI sendet sonst Telemetrie) |
 
-- Timeouts: Status 10 s, Fetch 60 s, Outdated 120 s, Upgrade/Install 15 min.
+- Timeouts: Git-Status/`rev-parse`/`config` 10 s, `log` 30 s, Fetch und Merge 60 s; `--version` 30 s (brew, npm) bzw. 60 s (Skills, auch `ls`); `brew update` und Outdated 120 s; Upgrade/Install/`skills update` 15 min; Login-Shell 3 s.
 - Bei Abbruch (`CancellationToken` des Runners): SIGTERM an die Prozessgruppe, nach 5 s SIGKILL; das Ergebnis ist `ProcessError::Cancelled`, das die Adapter auf `GitError::Cancelled` bzw. `UpdateError::Cancelled` abbilden. Bei Zeitüberschreitung erhält die Gruppe sofort SIGKILL.
+
+**Repo-Suche (`FsDiscovery`, in `spawn_blocking`).** Ein Repo ist ein Ordner mit `.git` (Ordner oder Worktree-Datei) bis `scan.max_depth` unter dem Workspace. Nicht betreten werden Repos selbst (Submodule und verschachtelte Repos gehören dazu), versteckte Ordner, Namen aus `scan.exclude` und Symlinks. Ein nicht lesbarer Unterordner wird übersprungen; ein fehlender Workspace ist ein Zustand („nicht verfügbar“), kein Fehler.
 
 ### 8.6 Persistenz
 
@@ -471,26 +546,28 @@ Alle Fremdwerkzeuge laufen über den internen `ProcessRunner`:
 
 | Tabelle | Zweck | Schlüssel |
 |---|---|---|
-| `action_log` | Protokoll aller Aktionen | `id` |
-| `repo_cache` | letzter Status je Repo für schnellen Start (Branch, Upstream, Ahead/Behind, Änderungen, Entscheidung) | `path` |
+| `action_log` | Fast-Forwards, Installationen und fehlgeschlagene Fetches | `id`, Index auf `started_at` |
+| `repo_cache` | letzter Status je Repo für schnellen Start (Branch, HEAD-OID, Upstream mit OID, Ahead/Behind, getrackte und untracked Änderungen, laufende Operation, Scanzeitpunkt); die Entscheidung wird beim Laden neu berechnet | `path` |
 | `install_history` | Installationsergebnis je Paket und Version (`installed`, `needs_interaction`, `failed`) | `id`, Index auf `source`, `name` |
 | `ingest_offset` | Lesefortschritt je JSONL-Datei | `provider`, `file` |
-| `ai_usage` | Nutzung je Antwort bzw. Token-Ereignis | `provider`, `message_key` |
-| `ai_tool_call` | Tool-Calls aus den Logs, einmal je ID | `provider`, `call_id` |
+| `ai_usage` | Nutzung je Antwort bzw. Token-Ereignis, mit Projekt, Subagent, Thinking und Kontextfenster | `provider`, `message_key`, Index auf `at_ms` |
+| `ai_tool_call` | Tool-Calls aus den Logs, einmal je ID | `provider`, `call_id`, Index auf `at_ms` |
 | `ai_plan_usage` | neueste Abo-Auslastung je Anbieter (Codex): Plan, je Fenster Promille, Länge, Rücksetzzeitpunkt | `provider` |
 | `otel_metric` | Telemetrie-Datenpunkte von Claude Code (Delta je Exportintervall) | `id`, Index auf `at_ms` |
 
 - `rusqlite` (`bundled`), WAL-Modus, `foreign_keys=ON`.
-- Ein **dedizierter DB-Thread** besitzt die einzige Verbindung (Actor). Anfragen kommen über `mpsc`, Antworten über `oneshot`. Dadurch blockiert SQLite nie die Runtime, und es gibt nur einen Schreiber.
-- Migrationen mit `rusqlite_migration`, versioniert im Code, beim Start ausgeführt.
-- Aufbewahrung: `action_log` 90 Tage, `ai_usage` unbegrenzt (klein), `repo_cache` wird überschrieben.
+- Ein **dedizierter DB-Thread** (`hud-sqlite`) besitzt die einzige Verbindung (Actor). Anfragen kommen über `mpsc`, Antworten über `oneshot`. Dadurch blockiert SQLite nie die Runtime, und es gibt nur einen Schreiber.
+- Migrationen mit `rusqlite_migration`, versioniert im Code (sechs Stufen), beim Start ausgeführt.
+- Aufbewahrung: `action_log` 90 Tage (beim Start bereinigt); `repo_cache` wird überschrieben und nach jedem Scan um nicht mehr gefundene Repos bereinigt; `install_history`, `ai_usage`, `ai_tool_call` und `otel_metric` unbegrenzt; `ai_plan_usage` hält je Anbieter nur die neueste Meldung.
 - Update-Kandidaten werden nicht gespeichert: Die Update-Quellen werden bei jedem Start neu geprüft.
 
 ### 8.7 Konfiguration
 
 - Lesen: `toml` + Serde in typisierte Structs mit `#[serde(default)]` und `#[serde(deny_unknown_fields)]`; Tippfehler führen zu einer klaren Fehlermeldung mit Zeilennummer. Eine ungültige Config beendet hud vor der Übernahme des Terminals, damit die Meldung in der Shell lesbar bleibt; eine fehlende Config ergibt die Defaults.
 - Preis-Overrides werden beim Einlesen in ganzzahlige Mikro-USD umgerechnet (ADR 0009).
-- Validierung beim Laden in Domain-Typen (Parse-don't-validate), z. B. `WorkspacePath`.
+- Validierung beim Laden in Domain-Typen (Parse-don't-validate), z. B. `WorkspacePath`. Regeln: Workspace-Pfade müssen nach Auflösung von `~`/`~/` absolut sein; `fetch_interval_min` und `check_interval_min` mindestens 1; Preise zwischen 0 und 1 000 000 USD; `[[workspaces]].auto_fast_forward` ist standardmäßig `true`.
+- Ort: `$XDG_CONFIG_HOME/hud/config.toml`, wenn `XDG_CONFIG_HOME` absolut ist, sonst `~/.config/hud/config.toml`. Eine neu angelegte Datei beginnt mit einem Kopfkommentar.
+- Der Einstellungen-Tab schreibt nur Sprache, Theme, Symbolsatz, Workspaces, `auto_fast_forward` und die drei Installations-Opt-ins; alles andere wird von Hand bearbeitet. `billing` ändert nur die Bezeichnung der Kosten (`subscription` → „API-Äquivalent“, `api` → „Schätzung“).
 - Schreiben: `toml_edit`, Datei vorher neu einlesen, nur geänderte Schlüssel anfassen, atomar schreiben (temporäre Datei + `rename`). Ein ersetzter Wert behält Leerraum und Inline-Kommentar. Workspaces werden über den Pfad nach `~/`-Auflösung erkannt, sodass `~/code` und `/Users/…/code` derselbe Workspace sind. Das Ergebnis wird vor dem Schreiben vollständig validiert; eine ungültige Änderung schreibt nichts.
 
 ```toml
@@ -521,7 +598,7 @@ auto_install = false         # Major-Sprünge nie automatisch
 
 [updates.skills]
 enabled = true
-cli_version = "x.y.z"        # gepinnte Version für npx
+cli_version = "1.7.2"        # gepinnte Version für npx (Standard, wenn nicht gesetzt)
 
 [ai.claude]
 enabled = true
@@ -537,7 +614,9 @@ port = 4318
 
 # Optional: feste Pfade statt Suche im Login-PATH
 # [tools]
-# npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
+# git = "/opt/homebrew/bin/git"
+# brew = "/opt/homebrew/bin/brew"
+# npm = "~/.nvm/versions/node/v24.12.0/bin/npm"   # npx wird daneben gesucht
 
 # Optional: Preise überschreiben (USD pro Million Token)
 # [ai.prices."<model-id>"]
@@ -550,14 +629,14 @@ port = 4318
 
 ### 8.8 Genauigkeitsmodell
 
-Jeder angezeigte Wert ist ein `Measured<T>`:
+Die Summen der KI-Nutzung je Zeitraum (Sessions, Token, Kosten, Telemetrie) sind `Measured<T>`:
 
 | `Accuracy` | Darstellung | Beispiel |
 |---|---|---|
 | `Exact` | ohne Zusatz | Token aus Claude-Logs |
 | `Estimated` | `≈` | Kosten |
 | `Partial` | `~` + Hinweis „unvollständig“ | Quelle mit nicht lesbaren Zeilen |
-| `Unavailable` | `—` + Grund | Reasoning-Token bei Claude |
+| `Unavailable` | `—` | derzeit nicht erzeugt; fehlende Werte wie Reasoning bei Claude sind `None` und werden ausgeblendet |
 
 ### 8.9 Internationalisierung
 
@@ -569,10 +648,12 @@ Jeder angezeigte Wert ist ein `Measured<T>`:
 ### 8.10 Theme und Terminal
 
 - Palette und Regeln aus [DESIGN.md](DESIGN.md).
-- Theme-Erkennung bei `theme = "auto"`: `terminal-colorsaurus` fragt den Hintergrund per OSC 11 ab (100 ms Timeout, Fallback dunkel).
+- Theme-Erkennung: `terminal-colorsaurus` fragt den Hintergrund beim Start immer per OSC 11 ab (100 ms Timeout, nur wenn stdout ein Terminal ist, Fallback dunkel); verwendet wird er bei `theme = "auto"`.
 - Farbtiefe aus `COLORTERM`/`TERM`; `NO_COLOR` schaltet Farben ab.
 - Symbolsatz aus der Config (`unicode`, `nerd`, `ascii`); `hud-tui` bildet Statuswerte und Quellen über eine Tabelle pro Satz auf Glyphen ab ([DESIGN.md §3.4](DESIGN.md#34-symbolsätze)).
 - Terminal-Guard (RAII, `Drop`) plus Panic-Hook stellen Raw Mode, Alternate Screen und Mouse Capture wieder her.
+![Mausbedienung](diagrams/mouse.svg)
+
 - Maus: Crossterm Mouse Capture. Das Binary meldet die Terminalgröße beim Start und bei jeder Größenänderung als `Msg::Resize`. `view` stellt mit `areas` und `hit` dieselbe Layout-Berechnung bereit, mit der es zeichnet; das Modul `mouse` löst Klicks darüber auf und übersetzt sie in die gleichen Aktionen wie die Tasten. Das Model speichert keine Klickflächen, deshalb können Darstellung und Klickziel nicht auseinanderlaufen.
 - Klicks: Tab-Beschriftung wechselt den Tab, Fußzeilen-Hinweis wirkt wie seine Taste, Zeitraum im KI-Tab wählt den Zeitraum, Zeile wählt aus, zweiter Klick auf die gewählte Zeile wirkt wie Enter. Mausrad wirkt wie ↑/↓. Offene Dialoge reagieren nur auf Tasten; ein Klick schließt nur die Hilfe.
 
@@ -580,31 +661,33 @@ Jeder angezeigte Wert ist ein `Measured<T>`:
 
 - `tracing` in allen Crates; nur das Binary installiert einen Subscriber.
 - `tracing-appender` schreibt täglich rotierend nach `~/Library/Logs/hud/`; stdout gehört der TUI.
-- Filter über `HUD_LOG` (EnvFilter-Syntax), Default `info`.
-- Strukturierte Felder statt String-Interpolation; `#[tracing::instrument]` an Use Cases und Adapter-Methoden.
+- Filter über `HUD_LOG` (EnvFilter-Syntax), Default `info`; 7 Dateien werden aufbewahrt.
+- Strukturierte Felder statt String-Interpolation (`tracing::warn!(%error, …)`).
 - Keine Prompt-Inhalte, Tokens oder Zugangsdaten im Log.
 
 ### 8.12 Sicherheit und Datenschutz
 
 - Keine ausgehenden Verbindungen, keine Telemetrie von hud selbst.
-- Der OTLP-Empfänger (ADR 0011) lauscht nur auf `127.0.0.1`, nimmt nur `POST /v1/metrics` mit `application/json` ohne Kompression an (höchstens 4 MiB) und behält je Datenpunkt nur Metrikname, Wert, Zeit, `session.id`, `model` und `type`; `user.email`, Konto- und Organisations-IDs werden beim Parsen verworfen. `/v1/logs` und `/v1/traces` werden angenommen und nicht ausgewertet.
-- Einschalten in Claude Code (`ClaudeSettingsFile`): hud schreibt nur nach Bestätigung im Dialog und nur die metrik-spezifischen Variablen `CLAUDE_CODE_ENABLE_TELEMETRY=1`, `OTEL_METRICS_EXPORTER=otlp`, `OTEL_EXPORTER_OTLP_METRICS_PROTOCOL=http/json`, `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://127.0.0.1:<port>/v1/metrics`; nie `OTEL_LOG_*`. Ein vorhandenes allgemeines `OTEL_EXPORTER_OTLP_ENDPOINT`, kumulative Temporality oder abweichende Werte gelten als Konflikt: hud schreibt dann nichts. Die Datei wird vor dem Schreiben neu gelesen, alle anderen Schlüssel behalten Wert und Reihenfolge (`serde_json` mit `preserve_order`), geschrieben wird atomar mit den alten Dateirechten; ungültiges JSON wird nie überschrieben.
+- Der OTLP-Empfänger (ADR 0011) lauscht nur auf `127.0.0.1`, nimmt nur `POST /v1/metrics` mit `application/json` ohne Kompression an (höchstens 4 MiB) und behält je Datenpunkt nur Metrikname, Wert, Zeit, `session.id`, `model` und `type`; `user.email`, Konto- und Organisations-IDs werden beim Parsen verworfen. `/v1/logs` und `/v1/traces` werden angenommen und nicht ausgewertet. Antworten: 405 für andere Methoden, 415 für falschen Typ oder Kompression, 404 für andere Pfade, 413 über 4 MiB, 400 für ungültiges JSON, 503 wenn der Kanal zum `TelemetryAgent` geschlossen ist.
+- Einschalten in Claude Code (`ClaudeSettingsFile`): hud schreibt nur nach Bestätigung im Dialog und nur die metrik-spezifischen Variablen `CLAUDE_CODE_ENABLE_TELEMETRY=1`, `OTEL_METRICS_EXPORTER=otlp`, `OTEL_EXPORTER_OTLP_METRICS_PROTOCOL=http/json`, `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://127.0.0.1:<port>/v1/metrics`; nie `OTEL_LOG_*`. hud ergänzt nur fehlende Einträge und ersetzt nie vorhandene Werte. `OTEL_METRICS_EXPORTER` mit mehreren Exportern einschließlich `otlp` ist erlaubt. Ein vorhandenes allgemeines `OTEL_EXPORTER_OTLP_ENDPOINT`, eine Temporality-Präferenz außer `delta` oder sonst abweichende Werte gelten als Konflikt: hud schreibt dann nichts. Die Datei wird vor dem Schreiben neu gelesen, alle anderen Schlüssel behalten Wert und Reihenfolge (`serde_json` mit `preserve_order`), geschrieben wird atomar mit den alten Dateirechten; ungültiges JSON wird nie überschrieben.
 - Fremdwerkzeuge laufen ohne Shell-Interpolation (Argumente als Liste, nie als String an `sh -c`; einzige Ausnahme: das einmalige Auslesen des Login-PATH).
 - `npx skills` läuft mit gepinnter Version, damit kein ungeprüfter neuer Code ausgeführt wird, und mit abgeschalteter Telemetrie (`DISABLE_TELEMETRY`, `DO_NOT_TRACK`).
 - Die Skills-CLI kennt keinen reinen Prüfmodus: `update` vergleicht den Hash aus `~/.agents/.skill-lock.json` mit dem aktuellen Git-Stand der Quelle und installiert sofort.
 - Gelesene KI-Logs: nur Nutzungsfelder werden geparst und gespeichert.
-- `~/.codex/auth.json` und ähnliche Dateien werden nie geöffnet.
+- In `~/.codex` öffnet hud nur `sessions` und `archived_sessions`; `~/.codex/auth.json` und ähnliche Dateien werden nie geöffnet.
+- Für den Git-Kalender liest hud nur Commit-ID und Zeitpunkt eigener Commits (`git log`), keine Nachrichten.
 
 ### 8.13 Testbarkeit
 
-![Testpyramide](diagrams/test-pyramid.svg)
+![Tests je Schicht: Anzahl je Crate und Testtechniken](diagrams/test-pyramid.svg)
 
 | Schicht | Testart | Werkzeuge |
 |---|---|---|
 | Domain | Unit-Tests aller Regeln; Property-Tests für Grenzfälle (z. B. „bei `tracked_changes > 0` nie `FastForward`“) | `proptest` |
-| Application | Use-Case-Tests gegen handgeschriebene Fakes (`FakeGit`, `FakeClock`, `FakeUpdateSource`); `mockall` nur dort, wo Aufrufe verifiziert werden müssen (z. B. „Upgrade wurde *nicht* aufgerufen“) | Fakes, `mockall` |
-| Infrastructure | Parser-Tests mit Fixtures; Git-Integrationstests mit temporären Repos und lokalem Bare-Repo als Upstream; Adapter gegen `FakeProcessRunner` | `tempfile`, `insta` |
-| TUI | `update`-Tests (Msg → Model/Commands); Snapshot-Tests von `view` mit `TestBackend` in beiden Sprachen und beiden Themes | `insta` |
+| Application | Use-Case- und Agent-Tests gegen handgeschriebene Fakes (`FakeGit`, `FakeDiscovery`, `FakeLog`, `FakeCache`, `FakeHistory`, `FakeClock` in `testing.rs`; lokale `FakeSource`/`FakeStore`); Aufrufe werden über Zähler in den Fakes geprüft (z. B. „Upgrade wurde *nicht* aufgerufen“) | Fakes |
+| Infrastructure | Parser-Tests mit Fixtures (Skills, npm, Claude einschließlich Subagents, Codex einschließlich `.jsonl.zst`); Git-Integrationstests mit temporären Repos und lokalem Bare-Repo als Upstream; Update-Adapter gegen `FakeRunner`; SQLite in-memory | `tempfile` |
+| TUI | `update`- und Maus-Tests (Msg → Model/Commands); Snapshot-Tests von `view` und Einrichtung mit `TestBackend` (Text ohne Farben) in Deutsch und Englisch | `insta` |
+| Binary | CLI-Auswertung und Reset | `tempfile` |
 
 - Review-Screenshots: `scripts/tui-screenshots.sh` rendert jeden Tab über das Example `hud-tui/examples/screenshot.rs` mit dem echten `view` in SVG und PNG.
 - Runner `cargo nextest`; Testnamen beschreiben das Verhalten (`sync_decision_skips_when_tracked_changes`).
@@ -667,8 +750,8 @@ Architekturentscheidungen stehen als einzelne Dateien in [`docs/adr/`](adr/) (Vo
 | Preistabelle veraltet | Kostenschätzung ungenau | Stand-Datum sichtbar, Config-Override, Werte immer als Schätzung |
 | `npx skills` ändert Befehle oder Ausgabe | Skills-Quelle fällt aus | gepinnte Version, Fixture-Tests der Ausgabe, Fehler isoliert |
 | SSH-Fetch braucht Passphrase/Touch-ID | Fetch hängt | `BatchMode=yes`, `GIT_TERMINAL_PROMPT=0`, Timeout, Status `warning` „Fetch fehlgeschlagen“ |
-| Große KI-Historie (GB) | langsamer Erstimport | inkrementell per Byte-Offset, Erstimport im Hintergrund mit Fortschritt |
-| Viele Repos | viele parallele Fetches | Semaphore, Intervall, Fehler pro Repo |
+| Große KI-Historie (GB) | langsamer Erstimport | inkrementell per Byte-Offset, Erstimport im Hintergrund (Hinweis „wird gelesen“ bis zum ersten Bericht) |
+| Viele Repos | viele parallele Fetches | höchstens 8 gleichzeitig (`buffer_unordered`), Intervall, Fehler pro Repo |
 | release-please und Cargo-Workspace mit vererbter Version | Versions-Bump greift nicht | TOML-Updater auf `workspace.package.version`; CI prüft den Release-PR mit `--locked` |
 
 ---
@@ -678,7 +761,8 @@ Architekturentscheidungen stehen als einzelne Dateien in [`docs/adr/`](adr/) (Vo
 | Begriff | Bedeutung |
 |---|---|
 | **Adapter** | Implementierung eines Ports in `hud-infrastructure` |
-| **Composition Root** | Stelle im Binary, an der Adapter erzeugt und in Use Cases injiziert werden |
+| **Agent** | langlebiger Tokio-Task in `hud-application`, der Befehle einer Gruppe annimmt, periodische Arbeit selbst taktet und Ergebnisse als `AppEvent` sendet, z. B. `WorkspaceAgent` |
+| **Composition Root** | Stelle im Binary, an der Adapter erzeugt und in Use Cases und Agents injiziert werden |
 | **Dark Cockpit** | Gestaltungsprinzip: Normalzustand ohne Farbe, nur Abweichungen hervorgehoben |
 | **EICAS** | Engine Indication and Crew Alerting System; Vorbild für die Statusfarben |
 | **Fast-Forward (FF)** | Branch auf den Upstream-Stand vorziehen, ohne Merge-Commit |

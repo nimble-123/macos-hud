@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg viewBox="0 0 1040 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="job-lifecycle-title job-lifecycle-desc" id="job-lifecycle-root">
-        <title id="job-lifecycle-title">Lebenszyklus eines Jobs</title>
-        <desc id="job-lifecycle-desc">Ein Job wird geplant, wartet auf die Sperre seiner Ressource, läuft und endet erfolgreich, fehlgeschlagen oder abgebrochen; Taste q öffnet den Beenden-Dialog, der standardmäßig wartet oder per Abbruch die Kindprozesse beendet.</desc>
+<svg viewBox="0 0 920 568" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="job-lifecycle-title job-lifecycle-desc" id="job-lifecycle-root">
+        <title id="job-lifecycle-title">Lebenszyklus eines Installations-Jobs</title>
+        <desc id="job-lifecycle-desc">Zustände einer Installation: manuell abgelehnte Anfragen enden als Denied, mit Permit wartet der Job als Queued auf die Sperre seiner Quelle, läuft als Running und endet als Succeeded, NeedsInteraction, Failed, TimedOut oder Cancelled; beim Beenden werden wartende Jobs abgebrochen.</desc>
         <defs>
       <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
       #job-lifecycle-root { --color-paper:   #f2f3f1;
@@ -9,94 +9,76 @@
       --color-muted:   #47505c;
       --color-accent:  #b02a8a;
       --font-sans:     'Chakra Petch', system-ui, sans-serif;
-      --font-serif:    'IBM Plex Serif', serif;
+      --font-serif:    'Chakra Petch', system-ui, sans-serif;
       --font-mono:     'IBM Plex Mono', ui-monospace, monospace; }
       #job-lifecycle-root { font-family: var(--font-sans); color: var(--color-ink); }
       #job-lifecycle-root .diagram-container { width: 100%; overflow-x: auto; }
-      #job-lifecycle-root .diagram-container { overflow-x: visible; }</style>
-          <marker id="job-lifecycle-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker>
-          <marker id="job-lifecycle-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker>
-        </defs>
+      #job-lifecycle-root .diagram-container { overflow-x: visible; }</style><marker id="job-lifecycle-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker><marker id="job-lifecycle-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker><marker id="job-lifecycle-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker><marker id="job-lifecycle-arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#47505c" stroke-width="1.2"/></marker></defs>
         <rect width="100%" height="100%" fill="#f2f3f1"/>
-        <line x1="50" y1="256" x2="70" y2="256" stroke="#47505c" stroke-width="1.2" marker-end="url(#job-lifecycle-arrow)"/>
-        <line x1="222" y1="256" x2="320" y2="256" stroke="#47505c" stroke-width="1.2" marker-end="url(#job-lifecycle-arrow)"/>
-        <rect x="246" y="236" width="52" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="272" y="245" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ANFORDERN</text>
-        <line x1="472" y1="256" x2="570" y2="256" stroke="#47505c" stroke-width="1.2" marker-end="url(#job-lifecycle-arrow)"/>
-        <rect x="486" y="236" width="72" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="522" y="245" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">[SPERRE FREI]</text>
-        <line x1="722" y1="256" x2="820" y2="256" stroke="#b02a8a" stroke-width="1.4" marker-end="url(#job-lifecycle-arrow-accent)"/>
-        <rect x="752" y="236" width="40" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="772" y="245" fill="#b02a8a" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">EXIT 0</text>
-        <line x1="622" y1="220" x2="622" y2="138" stroke="#47505c" stroke-width="1.2" marker-end="url(#job-lifecycle-arrow)"/>
-        <rect x="570" y="173" width="44" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="592" y="182" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">TASTE Q</text>
-        <line x1="672" y1="136" x2="672" y2="218" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#job-lifecycle-arrow)"/>
-        <rect x="680" y="173" width="40" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="700" y="182" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">WARTEN</text>
-        <line x1="722" y1="100" x2="820" y2="100" stroke="#47505c" stroke-width="1.2" marker-end="url(#job-lifecycle-arrow)"/>
-        <rect x="746" y="80" width="52" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="772" y="89" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ABBRECHEN</text>
-        <line x1="647" y1="292" x2="647" y2="398" stroke="#47505c" stroke-width="1.2" marker-end="url(#job-lifecycle-arrow)"/>
-        <rect x="655" y="341" width="80" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="695" y="350" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">FEHLER/TIMEOUT</text>
-        <path d="M972,100 H992 Q1000,100 1000,108 V428 Q1000,436 992,436 H974" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#job-lifecycle-arrow)"/>
-        <rect x="920" y="341" width="72" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="956" y="350" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PROZESS ENDET</text>
-        <circle cx="44" cy="256" r="6" fill="#1c2128"/>
-        <text x="72" y="100" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.18em">UNTERBRECHUNG</text>
-        <text x="72" y="210" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.18em">FORTSCHRITT</text>
-        <text x="72" y="392" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.18em">ENDE</text>
-        <rect x="72" y="220" width="150" height="72" rx="8" fill="#f2f3f1"/>
-        <rect x="72" y="220" width="150" height="72" rx="8" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-        <text x="147.0" y="255" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Geplant</text>
-        <text x="147.0" y="271" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">scheduler oder taste</text>
-        <rect x="322" y="220" width="150" height="72" rx="8" fill="#f2f3f1"/>
-        <rect x="322" y="220" width="150" height="72" rx="8" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-        <text x="397.0" y="255" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Wartend</text>
-        <text x="397.0" y="271" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">sperre: brew · npm · repo</text>
-        <rect x="572" y="220" width="150" height="72" rx="8" fill="#f2f3f1"/>
-        <rect x="572" y="220" width="150" height="72" rx="8" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-        <text x="647.0" y="255" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Läuft</text>
-        <text x="647.0" y="271" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">kindprozess mit timeout</text>
-        <rect x="822" y="220" width="150" height="72" rx="8" fill="#f2f3f1"/>
-        <rect x="822" y="220" width="150" height="72" rx="8" fill="#b02a8a" stroke="#b02a8a" stroke-width="1" fill-opacity="0.08"/>
-        <text x="897.0" y="255" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle"><tspan fill="#24774a">●</tspan> Erfolgreich</text>
-        <text x="897.0" y="271" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">protokolliert</text>
-        <rect x="572" y="64" width="150" height="72" rx="8" fill="#f2f3f1"/>
-        <rect x="572" y="64" width="150" height="72" rx="8" fill="#f2f3f1" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4"/>
-        <text x="647.0" y="99" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Beenden-Dialog</text>
-        <text x="647.0" y="115" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">default: warten</text>
-        <rect x="822" y="64" width="150" height="72" rx="8" fill="#f2f3f1"/>
-        <rect x="822" y="64" width="150" height="72" rx="8" fill="#f2f3f1" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4"/>
-        <text x="897.0" y="99" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Abbruch</text>
-        <text x="897.0" y="115" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">SIGTERM → 5 s → SIGKILL</text>
-        <rect x="572" y="400" width="150" height="72" rx="8" fill="#f2f3f1"/>
-        <rect x="572" y="400" width="150" height="72" rx="8" fill="#ffffff" stroke="#b42f25" stroke-width="1"/>
-        <text x="647.0" y="435" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle"><tspan fill="#b42f25">✖</tspan> Fehlgeschlagen</text>
-        <text x="647.0" y="451" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">exit ≠ 0 oder timeout</text>
-        <rect x="822" y="400" width="150" height="72" rx="8" fill="#f2f3f1"/>
-        <rect x="822" y="400" width="150" height="72" rx="8" fill="#ffffff" stroke="#8f6200" stroke-width="1"/>
-        <text x="897.0" y="435" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle"><tspan fill="#8f6200">▲</tspan> Abgebrochen</text>
-        <text x="897.0" y="451" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">CancellationToken</text>
-        <text x="72" y="420" fill="#47505c" font-size="13" font-style="italic" font-family="'IBM Plex Serif', serif">Nach „Warten“ startet der Scheduler keine</text>
-        <text x="72" y="437" fill="#47505c" font-size="13" font-style="italic" font-family="'IBM Plex Serif', serif">neuen Jobs; hud beendet sich, sobald</text>
-        <text x="72" y="454" fill="#47505c" font-size="13" font-style="italic" font-family="'IBM Plex Serif', serif">der letzte laufende Job endet.</text>
-        <line x1="40" y1="504" x2="1000" y2="504" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.10"/>
-        <text x="40" y="520" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.18em">LEGENDE</text>
-        <rect x="120" y="510" width="24" height="12" rx="4" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-        <text x="152" y="520" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">Phase</text>
-        <rect x="216" y="510" width="24" height="12" rx="4" fill="#f2f3f1" stroke="#47505c" stroke-width="1" stroke-dasharray="4,3"/>
-        <text x="248" y="520" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">Unterbrechung</text>
-        <line x1="346" y1="516" x2="372" y2="516" stroke="#b02a8a" stroke-width="1.4" marker-end="url(#job-lifecycle-arrow-accent)"/>
-        <text x="380" y="520" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">Erfolgspfad</text>
-        <line x1="470" y1="516" x2="496" y2="516" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#job-lifecycle-arrow)"/>
-        <text x="504" y="520" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">Rückkehr</text>
-        <text x="580" y="521" fill="#24774a" font-size="11" font-family="'Chakra Petch', system-ui, sans-serif">●</text>
-        <text x="594" y="520" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">erfolgreich</text>
-        <text x="690" y="521" fill="#b42f25" font-size="11" font-family="'Chakra Petch', system-ui, sans-serif">✖</text>
-        <text x="704" y="520" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">Fehler</text>
-        <text x="780" y="521" fill="#8f6200" font-size="11" font-family="'Chakra Petch', system-ui, sans-serif">▲</text>
-        <text x="794" y="520" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">abgebrochen</text>
-
+        <path d="M60 198 V88 Q60 80 68 80 H118" fill="none" stroke="#47505c" stroke-width="1" marker-end="url(#job-lifecycle-arrow)"/>
+        <rect x="64.0" y="133" width="55.7" height="12" rx="2" fill="#f2f3f1"/><text x="91.8" y="142" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ABGELEHNT</text>
+        <line x1="66" y1="204" x2="118" y2="204" stroke="#47505c" stroke-width="1" marker-end="url(#job-lifecycle-arrow)"/>
+        <rect x="72.1" y="183" width="39.8" height="12" rx="2" fill="#f2f3f1"/><text x="92.0" y="192" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PERMIT</text>
+        <line x1="280" y1="204" x2="358" y2="204" stroke="#47505c" stroke-width="1" marker-end="url(#job-lifecycle-arrow)"/>
+        <rect x="285.9" y="185" width="66.3" height="12" rx="2" fill="#f2f3f1"/><text x="319.0" y="194" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">SPERRE FREI</text>
+        <line x1="520" y1="204" x2="618" y2="204" stroke="#b02a8a" stroke-width="1" marker-end="url(#job-lifecycle-arrow-accent)"/>
+        <rect x="549.1" y="185" width="39.8" height="12" rx="2" fill="#f2f3f1"/><text x="569.0" y="194" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ERFOLG</text>
+        <line x1="176" y1="232" x2="176" y2="358" stroke="#47505c" stroke-width="1" marker-end="url(#job-lifecycle-arrow)"/>
+        <rect x="184.0" y="289" width="34.5" height="12" rx="2" fill="#f2f3f1"/><text x="201.2" y="298" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">DRAIN</text>
+        <path d="M400 232 V292 Q400 300 392 300 H260 Q252 300 252 308 V358" fill="none" stroke="#47505c" stroke-width="1" marker-end="url(#job-lifecycle-arrow)"/>
+        <rect x="303.4" y="281" width="45.1" height="12" rx="2" fill="#f2f3f1"/><text x="326.0" y="290" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ABBRUCH</text>
+        <line x1="440" y1="232" x2="440" y2="358" stroke="#47505c" stroke-width="1" marker-end="url(#job-lifecycle-arrow)"/>
+        <rect x="448.0" y="323" width="50.4" height="12" rx="2" fill="#f2f3f1"/><text x="473.2" y="332" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PASSWORT</text>
+        <path d="M480 232 V308 Q480 316 488 316 H612 Q620 316 620 324 V358" fill="none" stroke="#47505c" stroke-width="1" marker-end="url(#job-lifecycle-arrow)"/>
+        <rect x="536.1" y="297" width="39.8" height="12" rx="2" fill="#f2f3f1"/><text x="556.0" y="306" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">FEHLER</text>
+        <path d="M500 232 V276 Q500 284 508 284 H792 Q800 284 800 292 V358" fill="none" stroke="#47505c" stroke-width="1" marker-end="url(#job-lifecycle-arrow)"/>
+        <rect x="700.1" y="265" width="39.8" height="12" rx="2" fill="#f2f3f1"/><text x="720.0" y="274" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">15 MIN</text>
+        <circle cx="60" cy="204" r="6" fill="#1c2128"/>
+        <rect x="120" y="56" width="160" height="48" rx="8" fill="#f2f3f1"/>
+<rect x="120" y="56" width="160" height="48" rx="8" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="200.0" y="77.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Denied</text>
+<text x="200.0" y="92.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Regel verbietet (manuell)</text>
+        <rect x="120" y="176" width="160" height="56" rx="8" fill="#f2f3f1"/>
+<rect x="120" y="176" width="160" height="56" rx="8" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="200.0" y="201.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Queued</text>
+<text x="200.0" y="216.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">wartet auf Quellen-Sperre</text>
+        <rect x="360" y="176" width="160" height="56" rx="8" fill="#f2f3f1"/>
+<rect x="360" y="176" width="160" height="56" rx="8" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="440.0" y="201.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Running</text>
+<text x="440.0" y="216.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Werkzeug läuft</text>
+        <rect x="620" y="176" width="160" height="56" rx="8" fill="#f2f3f1"/>
+<rect x="620" y="176" width="160" height="56" rx="8" fill="#b02a8a" stroke="#b02a8a" stroke-width="1" fill-opacity="0.08"/>
+<text x="700.0" y="201.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Succeeded</text>
+<text x="700.0" y="216.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">installiert</text>
+        <text x="40" y="344" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">ENDZUSTÄNDE</text>
+        <rect x="110" y="360" width="160" height="56" rx="8" fill="#f2f3f1"/>
+<rect x="110" y="360" width="160" height="56" rx="8" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="190.0" y="385.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Cancelled</text>
+<text x="190.0" y="400.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">hud beendet</text>
+        <rect x="365" y="360" width="150" height="56" rx="8" fill="#f2f3f1"/>
+<rect x="365" y="360" width="150" height="56" rx="8" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="440.0" y="385.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">NeedsInteraction</text>
+<text x="440.0" y="400.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Passwort nötig</text>
+        <rect x="545" y="360" width="150" height="56" rx="8" fill="#f2f3f1"/>
+<rect x="545" y="360" width="150" height="56" rx="8" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="620.0" y="385.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Failed</text>
+<text x="620.0" y="400.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">letzte Fehlerzeile</text>
+        <rect x="725" y="360" width="150" height="56" rx="8" fill="#f2f3f1"/>
+<rect x="725" y="360" width="150" height="56" rx="8" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="800.0" y="385.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">TimedOut</text>
+<text x="800.0" y="400.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Werkzeug gestoppt</text>
+        <text x="312" y="76" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">Auslöser: Install-Befehl (u, Enter) oder</text>
+<text x="312" y="94" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">Auto-Installation nach jeder Prüfung</text>
+        <text x="40" y="456" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">Nur Installationen sind Jobs. Automatisch abgelehnte erzeugen keinen;</text>
+<text x="40" y="474" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">die Sperre gilt je Quelle (Homebrew, npm, Skills), nicht je Paket.</text>
+        <line x1="40" y1="512" x2="880" y2="512" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.1"/>
+<text x="40" y="528" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">LEGENDE</text>
+<circle cx="134" cy="527" r="6" fill="#1c2128"/>
+<text x="146" y="531" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Start</text>
+<rect x="189.5" y="520" width="28" height="14" rx="5" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="225.5" y="531" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Zustand</text>
+<rect x="278.4" y="520" width="28" height="14" rx="3" fill="#b02a8a" stroke="#b02a8a" stroke-width="1" fill-opacity="0.08"/>
+<text x="314.4" y="531" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Erfolg</text>
+<line x1="362.59999999999997" y1="527" x2="390.59999999999997" y2="527" stroke="#47505c" stroke-width="1" marker-end="url(#job-lifecycle-arrow)"/>
+<text x="398.59999999999997" y="531" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Übergang</text>
       </svg>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agents und Kanäle · hud</title>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Serif:ital@0;1&amp;display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f2f3f1;
+      --color-ink:     #1c2128;
+      --color-muted:   #47505c;
+      --color-accent:  #b02a8a;
+      --font-sans:     'Chakra Petch', system-ui, sans-serif;
+      --font-title:    'Chakra Petch', system-ui, sans-serif;
+      --font-mono:     'IBM Plex Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+      -webkit-font-smoothing: antialiased;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-title);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 1.75rem);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Bausteinsicht · Agents</p>
+    <h1>Agents und Kanäle</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 850" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="agents-title agents-desc">
+<title id="agents-title">Agents und Kanäle</title>
+<desc id="agents-desc">Laufzeit-Topologie: Die Ereignisschleife im Binary übersetzt Nachrichten mit update() in Commands, die der Router über je einen begrenzten Kanal (64) an Workspace-, Updates-, Settings-, Log- und TelemetrySetup-Agent gibt; Usage- und System-Agent laufen nur nach Timer, der Telemetry-Agent schreibt die Punkte des OtlpReceivers in otel_metric; alle Agents außer dem Telemetry-Agent melden AppEvents über einen Kanal (256) zurück.</desc>
+<defs>
+  <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker>
+  <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker>
+  <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker>
+</defs>
+<rect width="100%" height="100%" fill="#f2f3f1"/>
+<rect x="296" y="64" width="320" height="384" rx="8" fill="rgba(28,33,40,0.02)" stroke="rgba(28,33,40,0.1)" stroke-width="0.8"/>
+<rect x="308" y="68" width="171.7" height="12" rx="2" fill="#f2f3f1"/>
+<text x="393.9" y="77" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">BEFEHLSGESTEUERT · MPSC 64 JE AGENT</text>
+<rect x="296" y="480" width="320" height="232" rx="8" fill="rgba(28,33,40,0.02)" stroke="rgba(28,33,40,0.1)" stroke-width="0.8"/>
+<rect x="308" y="484" width="88.5" height="12" rx="2" fill="#f2f3f1"/>
+<text x="352.3" y="493" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">OHNE BEFEHLSKANAL</text>
+<path d="M 240,116 H 320" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 592,116 H 680" fill="none" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4"/>
+<circle cx="680" cy="116" r="2.5" fill="#47505c"/>
+<path d="M 240,188 H 320" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 592,188 H 680" fill="none" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4"/>
+<circle cx="680" cy="188" r="2.5" fill="#47505c"/>
+<path d="M 240,260 H 320" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 592,260 H 680" fill="none" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4"/>
+<circle cx="680" cy="260" r="2.5" fill="#47505c"/>
+<path d="M 240,332 H 320" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 592,332 H 680" fill="none" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4"/>
+<circle cx="680" cy="332" r="2.5" fill="#47505c"/>
+<path d="M 240,404 H 320" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 592,404 H 680" fill="none" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4"/>
+<circle cx="680" cy="404" r="2.5" fill="#47505c"/>
+<path d="M 592,528 H 680" fill="none" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4"/>
+<circle cx="680" cy="528" r="2.5" fill="#47505c"/>
+<path d="M 592,596 H 680" fill="none" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4"/>
+<circle cx="680" cy="596" r="2.5" fill="#47505c"/>
+<path d="M 680,116 V 744 Q 680,752 672,752 H 148 Q 140,752 140,744 V 440" fill="none" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+<rect x="374.3" y="758" width="71.4" height="12" rx="2" fill="#f2f3f1"/>
+<text x="410" y="767" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">APPEVENT 256</text>
+<rect x="40" y="96" width="200" height="344" rx="6" fill="#f2f3f1"/>
+<rect x="40" y="96" width="200" height="344" rx="6" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+<rect x="48" y="102" width="36.6" height="12" rx="2" fill="transparent" stroke="rgba(176,42,138,0.5)" stroke-width="0.8"/>
+<text x="66.3" y="111" fill="#b02a8a" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">BINARY</text>
+<text x="140.0" y="245.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Ereignisschleife</text>
+<text x="140.0" y="257.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Msg → update()</text>
+<text x="140.0" y="269.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">→ Vec&lt;Command&gt;</text>
+<text x="140.0" y="281.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">→ Router</text>
+<text x="140.0" y="293.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle"></text>
+<text x="140.0" y="305.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">view() je Durchlauf</text>
+<text x="140.0" y="317.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Tick 250 ms</text>
+<rect x="320" y="88" width="272" height="56" rx="6" fill="#f2f3f1"/>
+<rect x="320" y="88" width="272" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="328" y="94" width="31.8" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
+<text x="343.9" y="103" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">AGENT</text>
+<text x="456.0" y="123.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">WorkspaceAgent</text>
+<text x="456.0" y="135.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">WorkspaceCommand · Timer Fetch</text>
+<rect x="320" y="160" width="272" height="56" rx="6" fill="#f2f3f1"/>
+<rect x="320" y="160" width="272" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="328" y="166" width="31.8" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
+<text x="343.9" y="175" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">AGENT</text>
+<text x="456.0" y="195.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">UpdatesAgent</text>
+<text x="456.0" y="207.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">UpdateCommand · Timer Prüfung</text>
+<rect x="320" y="232" width="272" height="56" rx="6" fill="#f2f3f1"/>
+<rect x="320" y="232" width="272" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="328" y="238" width="31.8" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
+<text x="343.9" y="247" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">AGENT</text>
+<text x="456.0" y="267.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">SettingsAgent</text>
+<text x="456.0" y="279.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">SettingsCommand · sendet watch</text>
+<rect x="320" y="304" width="272" height="56" rx="6" fill="#f2f3f1"/>
+<rect x="320" y="304" width="272" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="328" y="310" width="31.8" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
+<text x="343.9" y="319" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">AGENT</text>
+<text x="456.0" y="339.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">LogAgent</text>
+<text x="456.0" y="351.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">LogCommand</text>
+<rect x="320" y="376" width="272" height="56" rx="6" fill="#f2f3f1"/>
+<rect x="320" y="376" width="272" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="328" y="382" width="31.8" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
+<text x="343.9" y="391" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">AGENT</text>
+<text x="456.0" y="411.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">TelemetrySetupAgent</text>
+<text x="456.0" y="423.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">TelemetryCommand</text>
+<rect x="320" y="504" width="272" height="48" rx="6" fill="#f2f3f1"/>
+<rect x="320" y="504" width="272" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="328" y="510" width="31.8" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
+<text x="343.9" y="519" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">AGENT</text>
+<text x="456.0" y="535.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">UsageAgent</text>
+<text x="456.0" y="547.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Timer 60 s</text>
+<rect x="320" y="572" width="272" height="48" rx="6" fill="#f2f3f1"/>
+<rect x="320" y="572" width="272" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="328" y="578" width="31.8" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
+<text x="343.9" y="587" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">AGENT</text>
+<text x="456.0" y="603.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">SystemAgent</text>
+<text x="456.0" y="615.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Timer 2 s</text>
+<rect x="320" y="640" width="272" height="48" rx="6" fill="#f2f3f1"/>
+<rect x="320" y="640" width="272" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="328" y="646" width="31.8" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
+<text x="343.9" y="655" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">AGENT</text>
+<text x="456.0" y="671.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">TelemetryAgent</text>
+<text x="456.0" y="683.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">OtlpReceiver → otel_metric</text>
+<text x="712" y="196" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" font-style="italic">Workspace-, Updates- und</text>
+<text x="712" y="214" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" font-style="italic">Usage-Agent lesen die</text>
+<text x="712" y="232" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" font-style="italic">Einstellungen über</text>
+<text x="712" y="250" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" font-style="italic">watch&lt;Settings&gt; vom</text>
+<text x="712" y="268" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" font-style="italic">SettingsAgent.</text>
+<text x="712" y="540" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" font-style="italic">Ein CancellationToken</text>
+<text x="712" y="558" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" font-style="italic">beendet alle Agents, den</text>
+<text x="712" y="576" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" font-style="italic">OtlpReceiver und laufende</text>
+<text x="712" y="594" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" font-style="italic">Prozesse.</text>
+<line x1="40" y1="792" x2="920" y2="792" stroke="rgba(28,33,40,0.1)" stroke-width="0.8"/>
+<text x="40" y="808" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.18em">LEGENDE</text>
+<rect x="40.0" y="819" width="14" height="10" rx="2" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+<text x="60.0" y="827" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">Ereignisschleife im Binary</text>
+<rect x="202.2" y="819" width="14" height="10" rx="2" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="222.2" y="827" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">Agent (Tokio-Task)</text>
+<line x1="326.8" y1="824" x2="354.8" y2="824" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<text x="362.8" y="827" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">Befehl (mpsc 64)</text>
+<line x1="458.0" y1="824" x2="486.0" y2="824" stroke="#47505c" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+<text x="494.0" y="827" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">AppEvent (mpsc 256)</text>
+</svg>
+    </div>
+  </div>
+</body>
+</html>
