@@ -1,5 +1,6 @@
 //! hud binary: composition root, terminal lifecycle and event loop.
 
+mod cli;
 mod environment;
 mod logging;
 mod terminal;
@@ -36,7 +37,19 @@ const SHUTDOWN_GRACE: Duration = Duration::from_secs(2);
 const RENDER_TICK: Duration = Duration::from_millis(250);
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> anyhow::Result<std::process::ExitCode> {
+    match cli::parse(std::env::args().skip(1)) {
+        cli::Action::Run => {}
+        cli::Action::Print(text) => {
+            println!("{text}");
+            return Ok(std::process::ExitCode::SUCCESS);
+        }
+        cli::Action::Fail(text) => {
+            eprintln!("{text}");
+            return Ok(std::process::ExitCode::from(2));
+        }
+    }
+
     let _log_guard = logging::init().context("failed to initialise logging")?;
     tracing::info!(version = env!("CARGO_PKG_VERSION"), "starting hud");
 
@@ -66,7 +79,7 @@ async fn main() -> anyhow::Result<()> {
             SetupOutcome::Cancelled => {
                 drop(session);
                 tracing::info!("setup cancelled, nothing written");
-                return Ok(());
+                return Ok(std::process::ExitCode::SUCCESS);
             }
             SetupOutcome::Done(choice) => {
                 let initial = InitialSetup {
@@ -136,7 +149,7 @@ async fn main() -> anyhow::Result<()> {
         tracing::warn!("background work still running at exit");
     }
     tracing::info!("stopping hud");
-    result
+    result.map(|()| std::process::ExitCode::SUCCESS)
 }
 
 fn config_store(home: &std::path::Path) -> TomlSettings {

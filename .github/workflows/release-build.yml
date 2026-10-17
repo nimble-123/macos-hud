@@ -1,0 +1,240 @@
+name: Release-Build
+
+# Builds the universal macOS binary (Apple Silicon + Intel).
+# - Release PRs from release-please and PRs touching this workflow: build and package only, as a check.
+# - Published release: build, attest, attach archive + checksum, then update the formula in
+#   nimble-123/homebrew-tap. Fires only because release-please runs with RELEASE_PLEASE_TOKEN.
+# - Manual: rebuild and upload for an existing tag.
+# The build job only reads; writing happens in "publish" and "homebrew", never on PRs.
+
+on:
+  pull_request:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, e.g. v0.1.1
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-build-${{ github.event.release.tag_name || inputs.tag || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Packaging changed?
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      packaging: ${{ steps.filter.outputs.packaging }}
+    steps:
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        with:
+          filters: |
+            packaging:
+              - .github/workflows/release-build.yml
+
+  build:
+    name: Release-Build (universal)
+    needs: changes
+    # Skipped on ordinary PRs; !cancelled() keeps it running when "changes" is skipped on releases.
+    if: >-
+      !cancelled() && (
+        github.event_name != 'pull_request' ||
+        startsWith(github.head_ref, 'release-please--') ||
+        needs.changes.outputs.packaging == 'true'
+      )
+    runs-on: macos-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG || github.ref }}
+
+      - name: Install toolchain and targets
+        run: |
+          rustup show active-toolchain || rustup toolchain install
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${TAG}" ]; then
+            version="${TAG#v}"
+          else
+            # Release PR: release-please already wrote the new version into Cargo.toml.
+            version="$(sed -n '/^\[workspace.package\]/,/^\[/ s/^version = "\(.*\)"/\1/p' Cargo.toml)"
+          fi
+          [ -n "${version}" ] || { echo "version not found" >&2; exit 1; }
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Build universal binary
+        run: |
+          cargo build --release --locked -p hud --target aarch64-apple-darwin --target x86_64-apple-darwin
+          mkdir -p dist/stage
+          lipo -create -output dist/stage/hud \
+            target/aarch64-apple-darwin/release/hud \
+            target/x86_64-apple-darwin/release/hud
+          lipo -info dist/stage/hud
+
+      - name: Check the binary reports the release version
+        run: |
+          actual="$(dist/stage/hud --version)"
+          [ "${actual}" = "hud ${{ steps.version.outputs.version }}" ] || {
+            echo "binary says '${actual}', expected 'hud ${{ steps.version.outputs.version }}'" >&2
+            exit 1
+          }
+
+      - name: Package
+        run: |
+          archive="hud-${{ steps.version.outputs.version }}-universal-apple-darwin.tar.gz"
+          cp LICENSE README.md dist/stage/
+          tar -C dist/stage -czf "dist/${archive}" hud LICENSE README.md
+          (cd dist && shasum -a 256 "${archive}" > "${archive}.sha256")
+          rm -rf dist/stage
+          ls -l dist
+
+      - name: Keep artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: hud-${{ steps.version.outputs.version }}-universal-apple-darwin
+          path: dist/
+          retention-days: 14
+
+  publish:
+    name: Publish
+    needs: build
+    if: >-
+      !cancelled() && needs.build.result == 'success' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write # build provenance (Sigstore)
+      attestations: write
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: hud-*-universal-apple-darwin
+          path: dist/
+          merge-multiple: true
+
+      # Verify with: gh attestation verify <archive> --repo nimble-123/macos-hud
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/*.tar.gz
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release upload "${TAG}" dist/* --clobber
+          notes="$(gh release view "${TAG}" --json body --jq .body)"
+          if ! grep -q "hud-install-note" <<< "${notes}"; then
+            cat > note.md <<'EOF'
+          <!-- hud-install-note -->
+          ### Install
+
+          ```bash
+          brew install nimble-123/tap/hud
+          ```
+
+          Or download `hud-*-universal-apple-darwin.tar.gz` (Apple Silicon and Intel), unpack it and put `hud` on your `PATH`. The binary is not signed or notarized; if macOS blocks a browser download, run `xattr -d com.apple.quarantine hud`.
+
+          Verify the origin: `gh attestation verify hud-*-universal-apple-darwin.tar.gz --repo nimble-123/macos-hud`
+          EOF
+            printf '%s\n\n%s\n' "${notes}" "$(cat note.md)" > notes.md
+            gh release edit "${TAG}" --notes-file notes.md
+          fi
+
+  homebrew:
+    name: Homebrew tap
+    needs: publish
+    if: >-
+      !cancelled() && needs.publish.result == 'success' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      # A missing secret is a setting, not a broken release: warn instead of failing.
+      - name: Tap token present?
+        id: token
+        env:
+          TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [ -z "${TOKEN}" ]; then
+            echo "::warning::HOMEBREW_TAP_TOKEN missing - the formula keeps pointing at the previous release."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v7
+        if: steps.token.outputs.present == 'true'
+        with:
+          repository: nimble-123/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      # The whole formula is generated, so the first release creates it as well.
+      - name: Write formula for the new archive
+        if: steps.token.outputs.present == 'true'
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          version="${TAG#v}"
+          archive="hud-${version}-universal-apple-darwin.tar.gz"
+          url="https://github.com/${REPO}/releases/download/${TAG}/${archive}"
+          curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors -o "${archive}" "${url}"
+          sha="$(sha256sum "${archive}" | cut -d' ' -f1)"
+          rm "${archive}"
+          mkdir -p Formula
+          cat > Formula/hud.rb <<EOF
+          class Hud < Formula
+            desc "Heads-up display for your developer machine in the terminal"
+            homepage "https://github.com/${REPO}"
+            url "${url}"
+            sha256 "${sha}"
+            license :cannot_represent
+
+            depends_on :macos
+
+            def install
+              bin.install "hud"
+            end
+
+            test do
+              assert_match "hud #{version}", shell_output("#{bin}/hud --version")
+            end
+          end
+          EOF
+          grep -qxF "  sha256 \"${sha}\"" Formula/hud.rb
+          cat Formula/hud.rb
+
+      - name: Commit if changed
+        if: steps.token.outputs.present == 'true'
+        run: |
+          git add Formula/hud.rb
+          git diff --cached --quiet && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: hud ${TAG}"
+          git push
