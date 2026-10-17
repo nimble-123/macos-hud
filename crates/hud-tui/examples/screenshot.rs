@@ -199,6 +199,19 @@ fn sample_usage() -> hud_application::usecases::usage::UsageReport {
                 value: cost(137_667_500),
                 accuracy: Accuracy::Estimated,
             },
+            telemetry: Measured {
+                value: hud_domain::usage::TelemetryTotals {
+                    cost_micro_usd: 131_920_000,
+                    active_user_ms: 34 * 60_000,
+                    active_cli_ms: 100 * 60_000,
+                    lines_added: 1_240,
+                    lines_removed: 310,
+                    commits: 3,
+                    pull_requests: 1,
+                    sessions: 5,
+                },
+                accuracy: Accuracy::Partial,
+            },
         })
         .collect();
     UsageReport {

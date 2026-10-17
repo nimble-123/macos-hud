@@ -220,3 +220,18 @@ telemetry-dialog-body = hud ergänzt in ~/.claude/settings.json unter "env":
 telemetry-dialog-note = Nur Metriken, keine Prompts oder Antworten. Andere Einträge bleiben unverändert.
 telemetry-dialog-write = eintragen
 key-t = t
+ai-active-time = Aktive Zeit
+ai-active-user = Eingabe
+ai-active-cli = Claude
+ai-telemetry-note = (Telemetrie, nur solange hud läuft)
+ai-code = Code
+ai-lines = +{ $added } / −{ $removed } Zeilen
+ai-commits = { $count ->
+    [one] 1 Commit
+   *[other] { $count } Commits
+}
+ai-pull-requests = { $count ->
+    [one] 1 PR
+   *[other] { $count } PRs
+}
+ai-cost-claude = Kosten laut Claude
