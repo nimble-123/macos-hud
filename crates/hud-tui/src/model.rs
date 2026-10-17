@@ -69,6 +69,17 @@ use crate::theme::Theme;
 /// the quiet normal state (`docs/DESIGN.md` §6).
 pub(crate) const OK_HIGHLIGHT: Duration = Duration::from_secs(30);
 
+/// Moves a list cursor one row up (`-1`) or down (`1`), wrapping around at
+/// both ends. An empty list keeps the cursor at 0.
+pub(crate) fn wrap_step(index: usize, delta: isize, count: usize) -> usize {
+    if count == 0 {
+        return 0;
+    }
+    (index.cast_signed() + delta)
+        .rem_euclid(count.cast_signed())
+        .cast_unsigned()
+}
+
 /// Complete UI state. Changed only by [`crate::update`].
 #[derive(Debug)]
 pub struct Model {
@@ -261,6 +272,19 @@ impl Model {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn wrap_step_goes_from_last_to_first_and_back() {
+        assert_eq!(wrap_step(2, 1, 3), 0);
+        assert_eq!(wrap_step(0, -1, 3), 2);
+        assert_eq!(wrap_step(1, 1, 3), 2);
+    }
+
+    #[test]
+    fn wrap_step_on_an_empty_list_stays_at_zero() {
+        assert_eq!(wrap_step(0, 1, 0), 0);
+        assert_eq!(wrap_step(0, -1, 0), 0);
+    }
 
     #[test]
     fn next_wraps_from_last_to_first() {

@@ -12,6 +12,7 @@ use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
 use crate::i18n::t;
 use crate::icons::{Source, Status, source_glyph, status_glyph};
+use crate::model::wrap_step;
 use crate::msg::Msg;
 use crate::settings::{IconSet, UiSettings};
 use crate::theme::Theme;
@@ -109,8 +110,9 @@ pub fn update_setup(model: &mut SetupModel, msg: &Msg) -> Option<SetupOutcome> {
 
 fn on_workspaces_key(model: &mut SetupModel, key: KeyEvent) -> Option<SetupOutcome> {
     match key.code {
-        KeyCode::Up => model.cursor = model.cursor.saturating_sub(1),
-        KeyCode::Down => model.cursor = (model.cursor + 1).min(model.folders.len()),
+        // The input row below the folders is part of the cycle.
+        KeyCode::Up => model.cursor = wrap_step(model.cursor, -1, model.folders.len() + 1),
+        KeyCode::Down => model.cursor = wrap_step(model.cursor, 1, model.folders.len() + 1),
         KeyCode::Char(' ') if !model.on_input_row() => {
             if let Some((_, on)) = model.folders.get_mut(model.cursor) {
                 *on = !*on;
@@ -160,8 +162,8 @@ fn add_input(model: &mut SetupModel) {
 
 fn on_icons_key(model: &mut SetupModel, key: KeyEvent) -> Option<SetupOutcome> {
     match key.code {
-        KeyCode::Up => model.icon_cursor = model.icon_cursor.saturating_sub(1),
-        KeyCode::Down => model.icon_cursor = (model.icon_cursor + 1).min(ICON_SETS.len() - 1),
+        KeyCode::Up => model.icon_cursor = wrap_step(model.icon_cursor, -1, ICON_SETS.len()),
+        KeyCode::Down => model.icon_cursor = wrap_step(model.icon_cursor, 1, ICON_SETS.len()),
         KeyCode::Char(c @ '1'..='3') => {
             model.icon_cursor = usize::from(u8::try_from(c).unwrap_or(b'1') - b'1');
         }
@@ -393,6 +395,30 @@ mod tests {
             UiSettings::default(),
             vec!["~/workspace".into(), "~/Developer".into()],
         )
+    }
+
+    #[test]
+    fn folder_cursor_wraps_through_the_input_row() {
+        let mut model = model();
+        update_setup(&mut model, &key(KeyCode::Up));
+        assert!(model.on_input_row(), "up from the first folder");
+        update_setup(&mut model, &key(KeyCode::Down));
+        assert_eq!(model.cursor, 0, "down from the input row");
+    }
+
+    #[test]
+    fn icon_cursor_wraps_at_both_ends() {
+        let mut model = model();
+        update_setup(&mut model, &key(KeyCode::Char(' ')));
+        update_setup(&mut model, &key(KeyCode::Enter));
+        update_setup(&mut model, &key(KeyCode::Up));
+        assert_eq!(
+            model.icon_cursor,
+            ICON_SETS.len() - 1,
+            "up from the first set"
+        );
+        update_setup(&mut model, &key(KeyCode::Down));
+        assert_eq!(model.icon_cursor, 0, "down from the last set");
     }
 
     #[test]
