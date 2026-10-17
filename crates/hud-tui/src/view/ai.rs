@@ -1,18 +1,21 @@
 //! AI tab: sessions, tokens and estimated costs per period and model.
 
+use hud_application::ports::telemetry::{ClaudeTelemetry, ReceiverState};
 use hud_application::ports::usage::UsageError;
 use hud_application::settings::Billing;
+use hud_application::usecases::telemetry::TelemetryStatus;
 use hud_application::usecases::usage::{ModelUsage, PeriodUsage, SourceState};
 use hud_domain::usage::{Accuracy, CostEstimate, Measured, Period, Provider};
 use ratatui::Frame;
-use ratatui::layout::Rect;
+use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::Paragraph;
+use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 
 use crate::Model;
 use crate::i18n::{t, t_args, t_count};
 use crate::icons::{Source, Status, source_glyph, status_glyph};
+use crate::model::TelemetryFlow;
 use crate::settings::Language;
 
 const LABEL_WIDTH: usize = 16;
@@ -34,6 +37,9 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
     // TODO(#31): totals cover all providers; split them once Codex is read too.
     for source in &report.sources {
         lines.push(source_heading(model, source));
+        if source.provider == Provider::Claude {
+            lines.extend(telemetry_lines(model));
+        }
         if let Some(error) = &source.error {
             lines.push(source_error(model, error));
             continue;
@@ -60,6 +66,11 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         ));
     }
     frame.render_widget(Paragraph::new(lines), area);
+    if model.telemetry_flow == TelemetryFlow::Confirming
+        && let Some(status) = &model.telemetry
+    {
+        render_telemetry_dialog(model, status, frame, area);
+    }
 }
 
 fn period_key(period: Period) -> &'static str {
@@ -354,6 +365,142 @@ fn fit(text: &str, width: usize) -> String {
 
 fn right(text: &str, width: usize) -> String {
     format!("{text:>width$}")
+}
+
+/// Receiver and Claude Code setup, with the next step if there is one.
+fn telemetry_lines<'a>(model: &Model) -> Vec<Line<'a>> {
+    let language = model.settings.language;
+    let theme = &model.theme;
+    let Some(status) = &model.telemetry else {
+        return Vec::new();
+    };
+    let icons = model.settings.icons;
+    let (state, text) = match (&status.receiver, &status.claude) {
+        (ReceiverState::Off, _) => (Status::Neutral, t(language, "telemetry-off")),
+        (ReceiverState::Unavailable { port, reason }, _) => (
+            Status::Warning,
+            t_args(
+                language,
+                "telemetry-port-busy",
+                &[("port", &port.to_string()), ("reason", reason)],
+            ),
+        ),
+        (ReceiverState::Listening(port), ClaudeTelemetry::Enabled) => (
+            Status::Ok,
+            t_args(
+                language,
+                "telemetry-enabled",
+                &[("port", &port.to_string())],
+            ),
+        ),
+        (ReceiverState::Listening(_), ClaudeTelemetry::Disabled) => {
+            (Status::Advisory, t(language, "telemetry-disabled"))
+        }
+        (ReceiverState::Listening(_), ClaudeTelemetry::Conflict(keys)) => (
+            Status::Caution,
+            t_args(
+                language,
+                "telemetry-conflict",
+                &[("keys", &keys.join(", "))],
+            ),
+        ),
+        (ReceiverState::Listening(_), ClaudeTelemetry::Unreadable(reason)) => (
+            Status::Warning,
+            t_args(language, "telemetry-unreadable", &[("reason", reason)]),
+        ),
+    };
+    let mut first = vec![
+        Span::styled(
+            fit(&t(language, "telemetry"), LABEL_WIDTH),
+            Style::new().fg(theme.soft),
+        ),
+        Span::styled(
+            format!("{} {text}", status_glyph(icons, state)),
+            Style::new().fg(theme.status(state)),
+        ),
+    ];
+    if status.claude == ClaudeTelemetry::Disabled
+        && matches!(status.receiver, ReceiverState::Listening(_))
+    {
+        first.push(Span::styled(
+            format!("   {} ", t(language, "key-t")),
+            Style::new().fg(theme.focus).add_modifier(Modifier::BOLD),
+        ));
+        first.push(Span::styled(
+            t(language, "telemetry-enable"),
+            Style::new().fg(theme.soft),
+        ));
+    }
+    let mut lines = vec![Line::from(first)];
+    if model.telemetry_flow == TelemetryFlow::Requested && status.claude == ClaudeTelemetry::Enabled
+    {
+        lines.push(Line::styled(
+            format!(
+                "{}{}",
+                " ".repeat(LABEL_WIDTH),
+                t(language, "telemetry-restart")
+            ),
+            Style::new().fg(theme.soft),
+        ));
+    }
+    lines
+}
+
+/// Shows exactly what hud adds to Claude Code's settings before it does.
+fn render_telemetry_dialog(model: &Model, status: &TelemetryStatus, frame: &mut Frame, area: Rect) {
+    let language = model.settings.language;
+    let theme = &model.theme;
+    let height = u16::try_from(status.entries.len()).unwrap_or(0) + 9;
+    let [dialog] = Layout::horizontal([Constraint::Length(92)])
+        .flex(Flex::Center)
+        .areas(area);
+    let [dialog] = Layout::vertical([Constraint::Length(height)])
+        .flex(Flex::Center)
+        .areas(dialog);
+    let key = Style::new().fg(theme.focus).add_modifier(Modifier::BOLD);
+    let mut lines = vec![
+        Line::raw(""),
+        Line::styled(
+            format!("  {}", t(language, "telemetry-dialog-body")),
+            Style::new().fg(theme.ink),
+        ),
+        Line::raw(""),
+    ];
+    lines.extend(status.entries.iter().map(|(name, value)| {
+        Line::styled(
+            format!("    \"{name}\": \"{value}\""),
+            Style::new().fg(theme.ink).add_modifier(Modifier::BOLD),
+        )
+    }));
+    lines.push(Line::raw(""));
+    lines.push(Line::styled(
+        format!("  {}", t(language, "telemetry-dialog-note")),
+        Style::new().fg(theme.soft),
+    ));
+    lines.push(Line::raw(""));
+    lines.push(Line::from(vec![
+        Span::styled(format!("  {} ", t(language, "key-enter")), key),
+        Span::styled(
+            format!("{}   ", t(language, "telemetry-dialog-write")),
+            Style::new().fg(theme.soft),
+        ),
+        Span::styled(format!("{} ", t(language, "key-esc")), key),
+        Span::styled(t(language, "confirm-cancel"), Style::new().fg(theme.soft)),
+    ]));
+    let block = Block::new()
+        .borders(Borders::ALL)
+        .border_style(Style::new().fg(theme.focus))
+        .title(Span::styled(
+            format!(" {} ", t(language, "telemetry-dialog-title")),
+            key,
+        ));
+    frame.render_widget(Clear, dialog);
+    frame.render_widget(
+        Paragraph::new(lines)
+            .block(block)
+            .wrap(Wrap { trim: false }),
+        dialog,
+    );
 }
 
 #[cfg(test)]

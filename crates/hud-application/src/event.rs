@@ -7,6 +7,7 @@ use hud_domain::git::RepoPath;
 use hud_domain::update::InstallTarget;
 
 use crate::settings::{Settings, SettingsChange};
+use crate::usecases::telemetry::TelemetryStatus;
 use crate::usecases::updates::{JobUpdate, SourceReport};
 use crate::usecases::usage::UsageReport;
 use crate::usecases::workspaces::{RepoReport, WorkspaceReport};
@@ -66,6 +67,8 @@ pub enum AppEvent {
     JobsFinished,
     /// AI usage per period, after each read of the logs.
     Usage(Box<UsageReport>),
+    /// Telemetry receiver and Claude Code setup.
+    Telemetry(Box<TelemetryStatus>),
 }
 
 /// Request from the presentation layer to run a use case, grouped by the
@@ -80,6 +83,17 @@ pub enum Command {
     Settings(SettingsCommand),
     /// For the log agent.
     Log(LogCommand),
+    /// For the telemetry setup agent.
+    Telemetry(TelemetryCommand),
+}
+
+/// Telemetry setup requests.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TelemetryCommand {
+    /// Read Claude Code's settings again.
+    Refresh,
+    /// Add the entries that make Claude Code send its metrics to hud.
+    Enable,
 }
 
 /// Action log requests.

@@ -212,7 +212,15 @@ fn footer_hints(model: &Model) -> Vec<(&'static str, &'static str)> {
             ("key-slash", "hint-search"),
             ("key-f", "hint-filter"),
         ]),
-        Tab::Ai => hints.push(("key-left-right", "hint-period")),
+        Tab::Ai => {
+            hints.push(("key-left-right", "hint-period"));
+            let can_enable = model.telemetry.as_ref().is_some_and(|status| {
+                status.claude == hud_application::ports::telemetry::ClaudeTelemetry::Disabled
+            });
+            if can_enable {
+                hints.push(("key-t", "telemetry-enable"));
+            }
+        }
         Tab::Overview => {}
     }
     let refresh = if model.tab() == Tab::Settings {
@@ -514,6 +522,30 @@ mod tests {
     #[test]
     fn ai_tab_in_german() {
         insta::assert_snapshot!(render_wide(&ai_tab(Language::De)).backend());
+    }
+
+    #[test]
+    fn telemetry_dialog_in_german() {
+        use hud_application::AppEvent;
+        use hud_application::ports::telemetry::{
+            ClaudeTelemetry, ReceiverState, telemetry_entries,
+        };
+        use hud_application::usecases::telemetry::TelemetryStatus;
+        let mut model = ai_tab(Language::De);
+        let status = TelemetryStatus {
+            receiver: ReceiverState::Listening(4318),
+            claude: ClaudeTelemetry::Disabled,
+            entries: telemetry_entries(4318)
+                .into_iter()
+                .map(|(k, v)| (k.to_owned(), v))
+                .collect(),
+        };
+        update(&mut model, Msg::App(AppEvent::Telemetry(Box::new(status))));
+        update(
+            &mut model,
+            Msg::Key(KeyEvent::new(KeyCode::Char('t'), KeyModifiers::NONE)),
+        );
+        insta::assert_snapshot!(render_wide(&model).backend());
     }
 
     #[test]

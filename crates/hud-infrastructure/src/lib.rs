@@ -1,5 +1,6 @@
 //! Adapters that implement the ports of `hud-application`.
 
+pub mod claude_settings;
 pub mod clock;
 pub mod config;
 pub mod discovery;

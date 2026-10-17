@@ -22,12 +22,14 @@ use hud_application::ports::usage::UsageSource;
 use hud_application::usecases::agent::WorkspaceAgent;
 use hud_application::usecases::log::LogAgent;
 use hud_application::usecases::settings::SettingsAgent;
-use hud_application::usecases::telemetry::TelemetryAgent;
+use hud_application::usecases::telemetry::{TelemetryAgent, TelemetrySetupAgent};
 use hud_application::usecases::updates::UpdatesAgent;
 use hud_application::usecases::usage::UsageAgent;
 use hud_application::{
-    AppEvent, Command, LogCommand, SettingsCommand, UpdateCommand, WorkspaceCommand,
+    AppEvent, Command, LogCommand, SettingsCommand, TelemetryCommand, UpdateCommand,
+    WorkspaceCommand,
 };
+use hud_infrastructure::claude_settings::ClaudeSettingsFile;
 use hud_infrastructure::clock::SystemClock;
 use hud_infrastructure::config::TomlSettings;
 use hud_infrastructure::discovery::FsDiscovery;
@@ -221,6 +223,7 @@ fn start_background(
     // Tool paths and enabled sources are read once; changing them needs a restart.
     let sources = update_sources(&preferences, &runner);
     let usage_sources = usage_sources(&preferences);
+    let telemetry_port = preferences.telemetry.port;
     let (current, watched) = watch::channel(preferences);
     let workspaces = WorkspaceAgent::new(
         GitCli::new(runner, git_program),
@@ -235,6 +238,7 @@ fn start_background(
     let (update_commands, update_rx) = mpsc::channel::<UpdateCommand>(COMMAND_CAPACITY);
     let (settings_commands, settings_rx) = mpsc::channel::<SettingsCommand>(COMMAND_CAPACITY);
     let (log_commands, log_rx) = mpsc::channel::<LogCommand>(COMMAND_CAPACITY);
+    let (telemetry_commands, telemetry_rx) = mpsc::channel::<TelemetryCommand>(COMMAND_CAPACITY);
     let log = LogAgent::new(store.clone());
     let usage = UsageAgent::new(
         usage_sources,
@@ -255,7 +259,17 @@ fn start_background(
     let settings = SettingsAgent::new(config, current);
     let (receiver_state, receiver) = telemetry;
     tracing::info!(?receiver_state, "telemetry receiver");
-    let mut handles = Vec::with_capacity(7);
+    let setup = TelemetrySetupAgent::new(
+        ClaudeSettingsFile::new(claude_settings_path()?),
+        receiver_state,
+        telemetry_port,
+    );
+    let mut handles = Vec::with_capacity(8);
+    handles.push(tokio::spawn(setup.run(
+        telemetry_rx,
+        events_tx.clone(),
+        cancel.clone(),
+    )));
     if let Some(receiver) = receiver {
         let (points_tx, points_rx) = mpsc::channel(COMMAND_CAPACITY);
         handles.push(tokio::spawn(receiver.run(points_tx, cancel.clone())));
@@ -276,6 +290,7 @@ fn start_background(
             updates: update_commands,
             settings: settings_commands,
             log: log_commands,
+            telemetry: telemetry_commands,
         },
         events,
         cancel,
@@ -289,6 +304,7 @@ struct Router {
     updates: mpsc::Sender<UpdateCommand>,
     settings: mpsc::Sender<SettingsCommand>,
     log: mpsc::Sender<LogCommand>,
+    telemetry: mpsc::Sender<TelemetryCommand>,
 }
 
 impl Router {
@@ -298,6 +314,7 @@ impl Router {
             Command::Updates(command) => self.updates.send(command).await?,
             Command::Settings(command) => self.settings.send(command).await?,
             Command::Log(command) => self.log.send(command).await?,
+            Command::Telemetry(command) => self.telemetry.send(command).await?,
         }
         Ok(())
     }
@@ -431,6 +448,16 @@ async fn run_setup(
             return Ok(outcome);
         }
     }
+}
+
+/// Claude Code's user settings, respecting `CLAUDE_CONFIG_DIR`.
+fn claude_settings_path() -> anyhow::Result<PathBuf> {
+    let home = PathBuf::from(std::env::var_os("HOME").context("HOME is not set")?);
+    let config_dir = std::env::var_os("CLAUDE_CONFIG_DIR").map(PathBuf::from);
+    Ok(ClaudeSettingsFile::default_path(
+        &home,
+        config_dir.as_deref(),
+    ))
 }
 
 /// `~/Library/Application Support/hud/hud.db`.
