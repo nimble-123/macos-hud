@@ -59,7 +59,8 @@ Entwickler:innen, die mehrere lokale Repositories und CLI-Werkzeuge nutzen und d
 
 ### 4.3 Updates
 
-- Erkennung verfügbarer Updates für Homebrew-Formeln und -Casks (Default alle 6 h), globale npm-Pakete und installierte Skills (`npx skills`)
+- Erkennung verfügbarer Updates für Homebrew-Formeln und -Casks (Default alle 6 h) und globale npm-Pakete
+- Installierte Skills (`npx skills`) werden aufgelistet und mit einer Aktion „Alle aktualisieren“ aktualisiert; die Anzahl verfügbarer Skill-Updates ist als „nicht verfügbar“ gekennzeichnet, weil die Skills-CLI keinen Prüfmodus ohne Installation hat
 - Pro Quelle: Verfügbarkeit der CLI und letzte Fehlermeldung
 - Updates gezielt aus hud starten; vor manuellen systemweiten Paket-Updates eine Bestätigung einholen
 - **Automatische Installation nur per Opt-in**, standardmäßig aus, getrennt schaltbar für: Homebrew-Formeln, Homebrew-Casks, globale npm-Pakete
