@@ -549,6 +549,7 @@ Jeder angezeigte Wert ist ein `Measured<T>`:
 | Infrastructure | Parser-Tests mit Fixtures; Git-Integrationstests mit temporären Repos und lokalem Bare-Repo als Upstream; Adapter gegen `FakeProcessRunner` | `tempfile`, `insta` |
 | TUI | `update`-Tests (Msg → Model/Commands); Snapshot-Tests von `view` mit `TestBackend` in beiden Sprachen und beiden Themes | `insta` |
 
+- Review-Screenshots: `scripts/tui-screenshots.sh` rendert jeden Tab über das Example `hud-tui/examples/screenshot.rs` mit dem echten `view` in SVG und PNG.
 - Runner `cargo nextest`; Testnamen beschreiben das Verhalten (`sync_decision_skips_when_tracked_changes`).
 - Kein Test führt echtes `brew upgrade`, `npm install -g` oder `npx` aus.
 

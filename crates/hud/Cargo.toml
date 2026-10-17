@@ -12,6 +12,14 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
+anyhow.workspace = true
+crossterm.workspace = true
+futures.workspace = true
+ratatui.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-appender.workspace = true
+tracing-subscriber.workspace = true
 hud-application.workspace = true
 hud-domain.workspace = true
 hud-infrastructure.workspace = true

@@ -15,3 +15,8 @@ workspace = true
 hud-application.workspace = true
 hud-domain.workspace = true
 tracing.workspace = true
+crossterm.workspace = true
+ratatui.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
