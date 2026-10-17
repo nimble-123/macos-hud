@@ -119,12 +119,27 @@ pub struct Model {
     pub(crate) actions: Vec<ActionRecord>,
     /// Cursor, search and filter of the Log tab.
     pub(crate) log_tab: LogTab,
+    /// Telemetry receiver and Claude Code setup.
+    pub(crate) telemetry: Option<Box<hud_application::usecases::telemetry::TelemetryStatus>>,
+    /// Where switching telemetry on stands.
+    pub(crate) telemetry_flow: TelemetryFlow,
     /// Period shown in the AI tab.
     pub(crate) ai_period: hud_domain::usage::Period,
     /// AI usage per period, once the logs were read.
     pub(crate) usage: Option<Box<hud_application::usecases::usage::UsageReport>>,
     /// Zone for showing times; UTC unless the binary sets the system zone.
     pub(crate) time_zone: jiff::tz::TimeZone,
+}
+
+/// Switching Claude Code telemetry on from the AI tab.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum TelemetryFlow {
+    /// Nothing asked.
+    Idle,
+    /// The dialog shows the entries and waits for Enter.
+    Confirming,
+    /// The entries were requested; running sessions need a restart.
+    Requested,
 }
 
 /// Where quitting stands.
@@ -185,6 +200,8 @@ impl Model {
             log_tab: LogTab::default(),
             usage: None,
             ai_period: hud_domain::usage::Period::default(),
+            telemetry: None,
+            telemetry_flow: TelemetryFlow::Idle,
             time_zone: jiff::tz::TimeZone::UTC,
         }
     }

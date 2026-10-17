@@ -1,12 +1,13 @@
 //! State transitions.
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use hud_application::{AppEvent, Command, UpdateCommand, WorkspaceCommand};
+use hud_application::ports::telemetry::ClaudeTelemetry;
+use hud_application::{AppEvent, Command, TelemetryCommand, UpdateCommand, WorkspaceCommand};
 
 use hud_domain::update::InstallTarget;
 use hud_domain::usage::Period;
 
-use crate::model::{OK_HIGHLIGHT, Quit, ScanProgress, wrap_step};
+use crate::model::{OK_HIGHLIGHT, Quit, ScanProgress, TelemetryFlow, wrap_step};
 use crate::{Model, Msg, Tab};
 
 /// Applies a message to the model and returns the commands to run.
@@ -44,6 +45,9 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
     }
     if model.confirm.is_some() {
         return on_confirm_key(model, key);
+    }
+    if model.telemetry_flow == TelemetryFlow::Confirming {
+        return on_telemetry_key(model, key);
     }
     if model.tab == Tab::Settings
         && let Some(commands) = crate::settings_tab::on_key(model, key)
@@ -98,6 +102,9 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
         }
         KeyCode::Right | KeyCode::Char('l') if model.tab == Tab::Ai => step_period(model, 1),
         KeyCode::Left | KeyCode::Char('h') if model.tab == Tab::Ai => step_period(model, -1),
+        KeyCode::Char('t') if model.tab == Tab::Ai && telemetry_can_be_enabled(model) => {
+            model.telemetry_flow = TelemetryFlow::Confirming;
+        }
         KeyCode::Char(c @ '1'..='5') if model.tab == Tab::Ai => {
             let index = usize::from(u8::try_from(c).unwrap_or(b'1') - b'1');
             model.ai_period = Period::ALL[index];
@@ -153,6 +160,29 @@ fn on_confirm_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
             .unwrap_or_default(),
         KeyCode::Esc | KeyCode::Char('n') => {
             model.confirm = None;
+            Vec::new()
+        }
+        _ => Vec::new(),
+    }
+}
+
+/// Only when Claude Code is not set up yet and nothing conflicts.
+fn telemetry_can_be_enabled(model: &Model) -> bool {
+    model
+        .telemetry
+        .as_ref()
+        .is_some_and(|status| status.claude == ClaudeTelemetry::Disabled)
+}
+
+/// The dialog takes all keys: Enter writes the entries, Esc closes.
+fn on_telemetry_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
+    match key.code {
+        KeyCode::Enter => {
+            model.telemetry_flow = TelemetryFlow::Requested;
+            vec![Command::Telemetry(TelemetryCommand::Enable)]
+        }
+        KeyCode::Esc | KeyCode::Char('n') => {
+            model.telemetry_flow = TelemetryFlow::Idle;
             Vec::new()
         }
         _ => Vec::new(),
@@ -246,6 +276,7 @@ fn on_app_event(model: &mut Model, event: AppEvent) {
             crate::settings_tab::clamp(model);
         }
         AppEvent::Usage(report) => model.usage = Some(report),
+        AppEvent::Telemetry(status) => model.telemetry = Some(status),
         AppEvent::JobsFinished => {
             if model.quit == Quit::Waiting {
                 model.quit = Quit::Now;
@@ -398,6 +429,39 @@ mod tests {
         assert_eq!(model.ai_period, Period::Today);
         update(&mut model, key(KeyCode::Char('3')));
         assert_eq!(model.ai_period, Period::Last30Days);
+    }
+
+    fn ai_with_telemetry(claude: ClaudeTelemetry) -> Model {
+        use hud_application::ports::telemetry::ReceiverState;
+        use hud_application::usecases::telemetry::TelemetryStatus;
+        let mut model = Model {
+            tab: Tab::Ai,
+            ..Model::default()
+        };
+        let status = TelemetryStatus {
+            receiver: ReceiverState::Listening(4318),
+            claude,
+            entries: Vec::new(),
+        };
+        update(&mut model, Msg::App(AppEvent::Telemetry(Box::new(status))));
+        model
+    }
+
+    #[test]
+    fn t_asks_before_enabling_telemetry() {
+        let mut model = ai_with_telemetry(ClaudeTelemetry::Disabled);
+        assert_eq!(update(&mut model, key(KeyCode::Char('t'))), Vec::new());
+        assert_eq!(
+            update(&mut model, key(KeyCode::Enter)),
+            vec![Command::Telemetry(TelemetryCommand::Enable)]
+        );
+    }
+
+    #[test]
+    fn t_does_nothing_when_settings_conflict() {
+        let mut model = ai_with_telemetry(ClaudeTelemetry::Conflict(vec!["X=1".into()]));
+        update(&mut model, key(KeyCode::Char('t')));
+        assert_eq!(model.telemetry_flow, TelemetryFlow::Idle);
     }
 
     #[test]

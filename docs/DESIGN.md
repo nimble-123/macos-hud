@@ -131,6 +131,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 | `f` | Fast-Forward für das ausgewählte Repo (Workspaces) |
 | `u` | ausgewähltes Paket aktualisieren |
 | `←` `→`, `1`–`5` | im KI-Tab: Zeitraum wechseln |
+| `t` | im KI-Tab: Telemetrie in Claude Code einschalten (mit Rückfrage) |
 | `/` | im Protokoll suchen |
 | `f` | im Protokoll: Filter wechseln (sonst Fast-Forward) |
 | `a` | Workspace hinzufügen (Einstellungen) |
@@ -198,6 +199,7 @@ Kosten          ≈ 137,67 $   API-Äquivalent
 - Kosten tragen immer „API-Äquivalent“ (Abo, `billing = "subscription"`) oder „Schätzung“ (`billing = "api"`) und das Stand-Datum der Preistabelle.
 - Zahlen kompakt mit einer Nachkommastelle (`192,9 M`, englisch `192.9M`), Beträge auf Cent gerundet (`137,67 $`, englisch `$137.67`), Tausender gruppiert.
 - Modelle nach Kosten sortiert, teuerstes zuerst. Ohne Logs steht dort „Keine Logs unter …“ in neutral.
+- Unter dem Quellkopf steht die Zeile „Telemetrie“: `ok` „empfängt auf 127.0.0.1:4318, Claude Code sendet“, `advisory` „Claude Code sendet noch nicht“ mit `t einschalten`, `caution` bei eigenen OTel-Einstellungen, `warning` bei belegtem Port. `t` öffnet einen zentrierten Dialog mit den genauen Einträgen für `settings.json`; nach `Enter` erinnert eine Zeile daran, laufende Sitzungen neu zu starten.
 
 ### 5.4 Protokoll-Tab
 
