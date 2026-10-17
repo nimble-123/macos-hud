@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use hud_domain::usage::{
     Accuracy, CostEstimate, Measured, ModelId, PRICES_AS_OF, Period, PriceTable, Provider,
-    TokenUsage, UsageRecord,
+    TelemetryTotals, TokenUsage, UsageRecord,
 };
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
@@ -16,6 +16,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::event::AppEvent;
 use crate::ports::store::Clock;
+use crate::ports::telemetry::TelemetryStore;
 use crate::ports::usage::{UsageError, UsageSource, UsageStore};
 use crate::settings::Settings;
 
@@ -49,6 +50,9 @@ pub struct PeriodUsage {
     pub tokens: Measured<TokenUsage>,
     /// Estimated cost of everything with a known price.
     pub cost: Measured<CostEstimate>,
+    /// What Claude Code's telemetry reported; always partial, because it
+    /// only arrives while hud runs (ADR 0011).
+    pub telemetry: Measured<TelemetryTotals>,
 }
 
 /// State of one usage source after the last read.
@@ -159,6 +163,10 @@ pub fn summarize(
                         Accuracy::Estimated
                     },
                 },
+                telemetry: Measured {
+                    value: TelemetryTotals::default(),
+                    accuracy: Accuracy::Partial,
+                },
             }
         })
         .collect()
@@ -178,7 +186,7 @@ pub struct UsageAgent<S, C> {
     interval: Duration,
 }
 
-impl<S: UsageStore, C: Clock> UsageAgent<S, C> {
+impl<S: UsageStore + TelemetryStore, C: Clock> UsageAgent<S, C> {
     /// Agent over `sources`; prices follow the price overrides in `settings`.
     pub fn new(
         sources: Vec<Arc<dyn UsageSource>>,
@@ -239,10 +247,14 @@ impl<S: UsageStore, C: Clock> UsageAgent<S, C> {
         };
         let prices = PriceTable::new(self.settings.borrow_and_update().prices.clone());
         let unreadable = sources.iter().map(|s| s.unreadable).sum();
-        UsageReport {
-            periods: summarize(&records, &ranges, &prices, unreadable),
-            sources,
+        let mut periods = summarize(&records, &ranges, &prices, unreadable);
+        for (usage, (_, from, to)) in periods.iter_mut().zip(&ranges) {
+            match self.store.totals(*from, *to).await {
+                Ok(totals) => usage.telemetry.value = totals,
+                Err(error) => tracing::warn!(%error, "could not read telemetry"),
+            }
         }
+        UsageReport { periods, sources }
     }
 
     async fn ingest(&self, source: &dyn UsageSource) -> SourceState {
@@ -452,6 +464,30 @@ mod tests {
         }
     }
 
+    #[expect(
+        clippy::unused_async_trait_impl,
+        reason = "the fake answers immediately; the trait still needs async signatures"
+    )]
+    impl TelemetryStore for FakeStore {
+        async fn save_points(
+            &self,
+            _points: Vec<hud_domain::usage::TelemetryPoint>,
+        ) -> Result<(), StoreError> {
+            Ok(())
+        }
+
+        async fn totals(
+            &self,
+            _from: Timestamp,
+            _to: Timestamp,
+        ) -> Result<TelemetryTotals, StoreError> {
+            Ok(TelemetryTotals {
+                commits: 2,
+                ..TelemetryTotals::default()
+            })
+        }
+    }
+
     #[tokio::test]
     async fn the_agent_reads_stores_and_reports_every_period() {
         let store = Arc::new(FakeStore::default());
@@ -476,6 +512,8 @@ mod tests {
         assert_eq!(report.sources[0].unreadable, 1);
         assert_eq!(report.periods[0].tokens.accuracy, Accuracy::Partial);
         assert_eq!(store.cursors.lock().expect("BUG")["log.jsonl"].offset, 10);
+        assert_eq!(report.periods[0].telemetry.value.commits, 2);
+        assert_eq!(report.periods[0].telemetry.accuracy, Accuracy::Partial);
         cancel.cancel();
         task.await.expect("BUG");
     }

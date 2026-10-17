@@ -191,6 +191,9 @@ Sessions        5
 Antworten       1.751
 Token           192,9 M   Input 99,1 k   Output 230,7 k   Cache schr. 12,4 M   Cache lesen 180,2 M
 Kosten          ≈ 137,67 $   API-Äquivalent
+Aktive Zeit     ~ 2 h 14 min   Eingabe 34 min   Claude 1 h 40 min   (Telemetrie, nur solange hud läuft)
+Code            ~ +1.240 / −310 Zeilen   3 Commits   1 PR
+Kosten laut Claude  ~ 131,92 $
   Modell                     Antworten   Input   Output   Cache schr.   Cache lesen      Kosten
   claude-opus-5-5                1.537   3,1 k  212,4 k        12,4 M       180,2 M  ≈ 137,48 $
 ```
@@ -199,6 +202,7 @@ Kosten          ≈ 137,67 $   API-Äquivalent
 - Kosten tragen immer „API-Äquivalent“ (Abo, `billing = "subscription"`) oder „Schätzung“ (`billing = "api"`) und das Stand-Datum der Preistabelle.
 - Zahlen kompakt mit einer Nachkommastelle (`192,9 M`, englisch `192.9M`), Beträge auf Cent gerundet (`137,67 $`, englisch `$137.67`), Tausender gruppiert.
 - Modelle nach Kosten sortiert, teuerstes zuerst. Ohne Logs steht dort „Keine Logs unter …“ in neutral.
+- Werte aus der Telemetrie (aktive Zeit, Codezeilen, Commits, PRs, Kosten laut Claude) erscheinen, sobald Claude Code sendet oder Daten vorliegen, und tragen immer `~`: sie kommen nur an, solange hud läuft.
 - Unter dem Quellkopf steht die Zeile „Telemetrie“: `ok` „empfängt auf 127.0.0.1:4318, Claude Code sendet“, `advisory` „Claude Code sendet noch nicht“ mit `t einschalten`, `caution` bei eigenen OTel-Einstellungen, `warning` bei belegtem Port. `t` öffnet einen zentrierten Dialog mit den genauen Einträgen für `settings.json`; nach `Enter` erinnert eine Zeile daran, laufende Sitzungen neu zu starten.
 
 ### 5.4 Protokoll-Tab

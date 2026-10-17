@@ -5,7 +5,7 @@ use hud_application::ports::usage::UsageError;
 use hud_application::settings::Billing;
 use hud_application::usecases::telemetry::TelemetryStatus;
 use hud_application::usecases::usage::{ModelUsage, PeriodUsage, SourceState};
-use hud_domain::usage::{Accuracy, CostEstimate, Measured, Period, Provider};
+use hud_domain::usage::{Accuracy, CostEstimate, Measured, Period, Provider, TelemetryTotals};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Modifier, Style};
@@ -18,7 +18,7 @@ use crate::icons::{Source, Status, source_glyph, status_glyph};
 use crate::model::TelemetryFlow;
 use crate::settings::Language;
 
-const LABEL_WIDTH: usize = 16;
+const LABEL_WIDTH: usize = 20;
 const MODEL_WIDTH: usize = 28;
 const NUMBER_WIDTH: usize = 13;
 
@@ -167,7 +167,7 @@ fn totals<'a>(model: &Model, usage: &PeriodUsage, provider: Provider) -> Vec<Lin
         .map(|m| m.responses)
         .sum();
     let tokens = usage.tokens.value;
-    vec![
+    let mut lines = vec![
         Line::from(vec![
             label("ai-sessions"),
             value(measured(usage.sessions, |n| count(n, language))),
@@ -202,7 +202,99 @@ fn totals<'a>(model: &Model, usage: &PeriodUsage, provider: Provider) -> Vec<Lin
                 Style::new().fg(theme.soft),
             ),
         ]),
+    ];
+    if provider == Provider::Claude && shows_telemetry(model, usage) {
+        lines.extend(telemetry_totals(model, usage));
+    }
+    lines
+}
+
+/// Telemetry rows appear once Claude Code sends, or data from earlier exists.
+fn shows_telemetry(model: &Model, usage: &PeriodUsage) -> bool {
+    let sending = model
+        .telemetry
+        .as_ref()
+        .is_some_and(|status| status.claude == ClaudeTelemetry::Enabled);
+    sending || usage.telemetry.value != TelemetryTotals::default()
+}
+
+fn telemetry_totals<'a>(model: &Model, usage: &PeriodUsage) -> Vec<Line<'a>> {
+    let language = model.settings.language;
+    let theme = &model.theme;
+    let totals = usage.telemetry.value;
+    let label = |key: &str| {
+        Span::styled(
+            fit(&t(language, key), LABEL_WIDTH),
+            Style::new().fg(theme.soft),
+        )
+    };
+    let partial = |text: String| Span::styled(format!("~ {text}"), Style::new().fg(theme.ink));
+    let muted = |text: String| Span::styled(text, Style::new().fg(theme.muted));
+    let active = totals.active_user_ms + totals.active_cli_ms;
+    vec![
+        Line::from(vec![
+            label("ai-active-time"),
+            partial(duration(active)),
+            muted(format!(
+                "   {} {}   {} {}",
+                t(language, "ai-active-user"),
+                duration(totals.active_user_ms),
+                t(language, "ai-active-cli"),
+                duration(totals.active_cli_ms),
+            )),
+            Span::styled(
+                format!("   {}", t(language, "ai-telemetry-note")),
+                Style::new().fg(theme.soft),
+            ),
+        ]),
+        Line::from(vec![
+            label("ai-code"),
+            partial(t_args(
+                language,
+                "ai-lines",
+                &[
+                    ("added", &count(totals.lines_added, language)),
+                    ("removed", &count(totals.lines_removed, language)),
+                ],
+            )),
+            muted(format!(
+                "   {}   {}",
+                t_count(
+                    language,
+                    "ai-commits",
+                    "count",
+                    u32::try_from(totals.commits).unwrap_or(u32::MAX)
+                ),
+                t_count(
+                    language,
+                    "ai-pull-requests",
+                    "count",
+                    u32::try_from(totals.pull_requests).unwrap_or(u32::MAX)
+                ),
+            )),
+        ]),
+        Line::from(vec![
+            label("ai-cost-claude"),
+            partial(money(
+                CostEstimate {
+                    micro_usd: totals.cost_micro_usd,
+                    prices_as_of: hud_domain::usage::PRICES_AS_OF,
+                },
+                language,
+            )),
+        ]),
     ]
+}
+
+/// `2 h 14 min`, `14 min` or `45 s`.
+fn duration(ms: u64) -> String {
+    let seconds = ms / 1_000;
+    let (hours, minutes) = (seconds / 3_600, seconds % 3_600 / 60);
+    match (hours, minutes) {
+        (0, 0) => format!("{seconds} s"),
+        (0, m) => format!("{m} min"),
+        (h, m) => format!("{h} h {m} min"),
+    }
 }
 
 fn model_table<'a>(model: &Model, usage: &PeriodUsage, provider: Provider) -> Vec<Line<'a>> {
@@ -526,6 +618,13 @@ mod tests {
         assert_eq!(money(cost(41_205_000), Language::En), "$41.21");
         assert_eq!(money(cost(1_234_000_000), Language::En), "$1,234.00");
         assert_eq!(money(cost(1_234_000_000), Language::De), "1.234,00 $");
+    }
+
+    #[test]
+    fn durations_use_the_largest_sensible_units() {
+        assert_eq!(duration(45_000), "45 s");
+        assert_eq!(duration(14 * 60_000), "14 min");
+        assert_eq!(duration(134 * 60_000), "2 h 14 min");
     }
 
     #[test]
