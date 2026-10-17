@@ -8,6 +8,7 @@ use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 
 mod ai;
 mod ai_kpis;
+mod calendar;
 mod log;
 mod overview;
 mod settings;
@@ -443,6 +444,20 @@ mod tests {
         }
     }
 
+    /// A year of work: weekdays busy, weekends quiet, a holiday gap.
+    fn sample_calendar() -> hud_application::usecases::usage::ActivityCalendar {
+        let first_day =
+            hud_application::usecases::usage::calendar_start(jiff::civil::date(2026, 10, 17));
+        let days = (0..(52 * 7 + 6))
+            .map(|day: u64| match (day % 7, day / 7) {
+                (_, 11..=12) => 0,
+                (5 | 6, _) => [0, 0, 40, 0, 120][usize::try_from(day % 5).expect("BUG")],
+                _ => (day * 37 + day / 7 * 53) % 900,
+            })
+            .collect();
+        hud_application::usecases::usage::ActivityCalendar { first_day, days }
+    }
+
     fn sample_context() -> hud_application::usecases::usage::ContextUse {
         hud_application::usecases::usage::ContextUse {
             model: hud_domain::usage::ModelId::try_from("claude-opus-5-5".to_owned()).expect("BUG"),
@@ -537,6 +552,7 @@ mod tests {
                 read_ms: 239,
             }],
             context: Some(sample_context()),
+            calendar: sample_calendar(),
         }
     }
 
