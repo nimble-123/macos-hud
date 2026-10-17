@@ -4,7 +4,6 @@ tab-updates = Updates
 tab-ai = AI
 tab-log = Log
 tab-settings = Settings
-tab-placeholder = { $tab } is not built yet.
 key-tab = tab
 key-quit = q
 hint-switch = switch
@@ -235,3 +234,30 @@ ai-pull-requests = { $count ->
    *[other] { $count } PRs
 }
 ai-cost-claude = Cost per Claude
+overview-measuring = Measuring system values …
+overview-cpu = CPU
+overview-memory = Memory
+overview-processes = Processes
+overview-repos-behind = { $count ->
+    [one] 1 repo behind
+   *[other] { $count } repos behind
+}
+overview-repos-skipped = { $count } skipped
+overview-repos-diverged = { $count } diverged
+overview-repos-errors = { $count ->
+    [one] 1 error
+   *[other] { $count } errors
+}
+overview-workspaces-unavailable = { $count ->
+    [one] 1 workspace unavailable
+   *[other] { $count } workspaces unavailable
+}
+overview-updates = { $count ->
+    [one] 1 update
+   *[other] { $count } updates
+}
+overview-calm = All up to date.
+overview-calm-since = All up to date. Last check { $minutes } min ago.
+overview-checking = First check running …
+overview-ai-today = AI today
+overview-calm-now = All up to date. Checked just now.

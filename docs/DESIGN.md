@@ -104,11 +104,14 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 ┌ hud ───────────────────────────────────────────────────────────────┐
 │ Übersicht  Workspaces  Updates  KI  Protokoll  Einstellungen       │  Tabs, aktiver in focus
 ├────────────────────────────────────────────────────────────────────┤
-│ CPU  23 %  ▁▂▂▃▅▃▂▁▁▂   RAM 61 %  ▅▅▅▆▆▆▅▅▅▅   Prozesse 512        │  Summen + Sparklines
+│ CPU        23 %   ▁▂▂▃▅▃▂▁▁▂… (60 Werte = 2 min)                    │  Summen + Sparklines
+│ Speicher   65 %   ▅▅▅▆▆▆▅▅▅▅…   10,5 GB / 16,0 GB                   │
+│ Prozesse  612                                                      │
 │                                                                    │
 │ ◆ 3 Repos zurück   ▲ 2 übersprungen   ✖ 1 divergiert               │  nur Abweichungen
-│ ◆ 11 Updates (brew 1 · npm 10)                                     │
-│ KI heute  1,2 M Token  ≈ 4,10 $ API-Äquivalent                     │
+│ ◆ 11 Updates (Homebrew 1, npm (global) 10)                         │
+│                                                                    │
+│ KI heute   1,2 M Token   ≈ 4,10 $   API-Äquivalent                 │
 │                                                                    │
 ├────────────────────────────────────────────────────────────────────┤
 │ ⠋ npm install -g wrangler@4.151.1                    seit 00:12    │  laufende Aktion
@@ -119,7 +122,8 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 - **Linksbündig**, eine Spalte für Text, Zahlen rechtsbündig in eigenen Spalten.
 - **Rahmen** in `muted`, nur der aktive Bereich in `focus`.
 - **Fußzeile** zeigt kontextabhängige Aktionen; jedes Element ist per Maus klickbar und hat ein Tastenkürzel.
-- **Übersicht zeigt nur Abweichungen** (Dark Cockpit). Ist alles normal, steht dort ein einziger neutraler Satz, z. B. „Alles aktuell. Letzte Prüfung vor 4 min.“
+- **Übersicht zeigt nur Abweichungen** (Dark Cockpit). Ist alles normal, steht dort ein einziger neutraler Satz, z. B. „Alles aktuell. Letzte Prüfung vor 4 min.“ Repos zählen als „zurück“ (auch bei Opt-out), „übersprungen“ (Regel blockiert), „divergiert“ oder „Fehler“; nicht verfügbare Workspaces erscheinen eigens. Updates zählen ohne gepinnte Pakete.
+- Die Sparklines sind rechtsbündig: der neueste Wert steht immer an derselben Stelle. CPU oder Speicher ab 90 % erscheinen in `caution`.
 
 ### 5.1 Tastenbelegung
 

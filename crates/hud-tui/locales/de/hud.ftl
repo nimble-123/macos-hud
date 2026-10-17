@@ -4,7 +4,6 @@ tab-updates = Updates
 tab-ai = KI
 tab-log = Protokoll
 tab-settings = Einstellungen
-tab-placeholder = { $tab } ist noch nicht gebaut.
 key-tab = tab
 key-quit = q
 hint-switch = wechseln
@@ -235,3 +234,30 @@ ai-pull-requests = { $count ->
    *[other] { $count } PRs
 }
 ai-cost-claude = Kosten laut Claude
+overview-measuring = Systemwerte werden gemessen …
+overview-cpu = CPU
+overview-memory = Speicher
+overview-processes = Prozesse
+overview-repos-behind = { $count ->
+    [one] 1 Repo zurück
+   *[other] { $count } Repos zurück
+}
+overview-repos-skipped = { $count } übersprungen
+overview-repos-diverged = { $count } divergiert
+overview-repos-errors = { $count ->
+    [one] 1 Fehler
+   *[other] { $count } Fehler
+}
+overview-workspaces-unavailable = { $count ->
+    [one] 1 Workspace nicht verfügbar
+   *[other] { $count } Workspaces nicht verfügbar
+}
+overview-updates = { $count ->
+    [one] 1 Update
+   *[other] { $count } Updates
+}
+overview-calm = Alles aktuell.
+overview-calm-since = Alles aktuell. Letzte Prüfung vor { $minutes } min.
+overview-checking = Erste Prüfung läuft …
+overview-ai-today = KI heute
+overview-calm-now = Alles aktuell. Gerade eben geprüft.

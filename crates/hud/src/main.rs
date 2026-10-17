@@ -22,6 +22,7 @@ use hud_application::ports::usage::UsageSource;
 use hud_application::usecases::agent::WorkspaceAgent;
 use hud_application::usecases::log::LogAgent;
 use hud_application::usecases::settings::SettingsAgent;
+use hud_application::usecases::system::SystemAgent;
 use hud_application::usecases::telemetry::{TelemetryAgent, TelemetrySetupAgent};
 use hud_application::usecases::updates::UpdatesAgent;
 use hud_application::usecases::usage::UsageAgent;
@@ -37,6 +38,7 @@ use hud_infrastructure::git::GitCli;
 use hud_infrastructure::otlp::OtlpReceiver;
 use hud_infrastructure::process::{TERMINATE_GRACE, TokioProcessRunner};
 use hud_infrastructure::sqlite::SqliteStore;
+use hud_infrastructure::system::SysinfoProbe;
 use hud_infrastructure::updates::{brew::Brew, npm::NpmGlobal, skills::Skills};
 use hud_infrastructure::usage::claude::ClaudeLogs;
 use hud_tui::{
@@ -54,6 +56,8 @@ const COMMAND_CAPACITY: usize = 64;
 /// cancelled tools to stop after SIGTERM, or to be killed after the grace.
 const SHUTDOWN_GRACE: Duration = TERMINATE_GRACE.saturating_add(Duration::from_secs(3));
 const RENDER_TICK: Duration = Duration::from_millis(250);
+/// How often CPU, memory and processes are sampled (DESIGN.md §6).
+const SYSTEM_INTERVAL: Duration = Duration::from_secs(2);
 /// How often the AI logs are read again.
 const USAGE_INTERVAL: Duration = Duration::from_secs(60);
 
@@ -281,6 +285,10 @@ fn start_background(
         tokio::spawn(settings.run(settings_rx, events_tx.clone(), cancel.clone())),
         tokio::spawn(log.run(log_rx, events_tx.clone(), cancel.clone())),
         tokio::spawn(usage.run(events_tx.clone(), cancel.clone())),
+        tokio::spawn(
+            SystemAgent::new(SysinfoProbe::default(), SYSTEM_INTERVAL)
+                .run(events_tx.clone(), cancel.clone()),
+        ),
         tokio::spawn(workspaces.run(workspace_rx, events_tx, cancel.clone())),
         tokio::spawn(updates.run(update_rx, cancel.clone())),
     ]);

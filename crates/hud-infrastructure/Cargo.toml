@@ -24,6 +24,7 @@ rusqlite_migration.workspace = true
 futures.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+sysinfo.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["process", "fs", "io-util", "rt", "net"] }
 tokio-util.workspace = true

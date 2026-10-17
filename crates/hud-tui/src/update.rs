@@ -2,7 +2,9 @@
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use hud_application::ports::telemetry::ClaudeTelemetry;
-use hud_application::{AppEvent, Command, TelemetryCommand, UpdateCommand, WorkspaceCommand};
+use hud_application::{
+    AppEvent, Command, ReportSource, TelemetryCommand, UpdateCommand, WorkspaceCommand,
+};
 
 use hud_domain::update::InstallTarget;
 use hud_domain::usage::Period;
@@ -207,21 +209,31 @@ fn move_selection(model: &mut Model, delta: isize) {
     model.selected = wrap_step(model.selected, delta, count);
 }
 
+/// A complete workspace report replaces the old one and ends scan and sync.
+fn on_workspaces(
+    model: &mut Model,
+    reports: Vec<hud_application::usecases::workspaces::WorkspaceReport>,
+    source: ReportSource,
+) {
+    if source == ReportSource::Sync {
+        model.last_sync = model.now;
+    }
+    let finished: Vec<_> = reports
+        .iter()
+        .filter_map(|w| w.repos.clone())
+        .flatten()
+        .collect();
+    model.workspaces = reports;
+    model.syncing = false;
+    model.scan = None;
+    model.mark_fast_forwards(&finished);
+    let count = model.repo_rows().count();
+    model.selected = model.selected.min(count.saturating_sub(1));
+}
+
 fn on_app_event(model: &mut Model, event: AppEvent) {
     match event {
-        AppEvent::Workspaces { reports, source: _ } => {
-            let finished: Vec<_> = reports
-                .iter()
-                .filter_map(|w| w.repos.clone())
-                .flatten()
-                .collect();
-            model.workspaces = reports;
-            model.syncing = false;
-            model.scan = None;
-            model.mark_fast_forwards(&finished);
-            let count = model.repo_rows().count();
-            model.selected = model.selected.min(count.saturating_sub(1));
-        }
+        AppEvent::Workspaces { reports, source } => on_workspaces(model, reports, source),
         AppEvent::SyncStarted => model.syncing = true,
         AppEvent::ScanStarted { total, fetch } => {
             model.scan = Some(ScanProgress {
@@ -277,6 +289,12 @@ fn on_app_event(model: &mut Model, event: AppEvent) {
         }
         AppEvent::Usage(report) => model.usage = Some(report),
         AppEvent::Telemetry(status) => model.telemetry = Some(status),
+        AppEvent::System(sample) => {
+            if model.load.len() == crate::view::SPARK_SAMPLES {
+                model.load.pop_front();
+            }
+            model.load.push_back(sample);
+        }
         AppEvent::JobsFinished => {
             if model.quit == Quit::Waiting {
                 model.quit = Quit::Now;
