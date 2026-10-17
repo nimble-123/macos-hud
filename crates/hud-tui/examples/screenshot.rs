@@ -21,6 +21,7 @@ use hud_application::usecases::updates::{JobId, JobState, JobUpdate, SourceRepor
 use hud_application::usecases::workspaces::{RepoReport, RepoState, WorkspaceReport};
 use hud_application::{AppEvent, ReportSource};
 use hud_domain::WorkspacePath;
+use hud_domain::action::{ActionId, ActionKind, ActionRecord, Outcome, Trigger};
 use hud_domain::git::{
     BranchName, CommitId, GitOperation, Head, RepoPath, RepoStatus, SkipReason, Upstream,
 };
@@ -109,6 +110,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &mut model,
             Msg::App(AppEvent::Settings(Box::new(sample_settings()))),
         );
+        update(&mut model, Msg::App(AppEvent::Actions(sample_actions())));
         update(&mut model, Msg::App(sample_workspaces()));
         for event in sample_updates() {
             update(&mut model, Msg::App(event));
@@ -133,6 +135,41 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     Ok(())
+}
+
+/// A failed manual installation on top, then automatic work.
+fn sample_actions() -> Vec<ActionRecord> {
+    let at = |minute: u8| {
+        format!("2026-10-17T12:{minute:02}:00Z")
+            .parse::<jiff::Timestamp>()
+            .expect("BUG: timestamp")
+    };
+    let record = |id, minute, kind, target: &str, trigger, outcome, summary: Option<&str>| {
+        let started = at(minute);
+        ActionRecord {
+            id: ActionId(id),
+            started_at: started,
+            finished_at: Some(started + jiff::SignedDuration::from_secs(14)),
+            kind,
+            target: target.to_owned(),
+            trigger,
+            outcome: Some(outcome),
+            summary: summary.map(str::to_owned),
+        }
+    };
+    vec![
+        record(6, 41, ActionKind::Install, "Npm wrangler 4.81.0 → 4.151.1", Trigger::Manual,
+            Outcome::Failed("npm failed: npm error code EACCES\nnpm error syscall rename\nnpm error path /usr/local/lib/node_modules/wrangler".into()), None),
+        record(5, 30, ActionKind::Install, "Homebrew wget 1.21.4 → 1.24.5", Trigger::Auto, Outcome::Succeeded, None),
+        record(4, 30, ActionKind::Install, "Homebrew firefox 118.0 → 119.0", Trigger::Auto,
+            Outcome::Skipped("needs a password".into()), None),
+        record(3, 15, ActionKind::FastForward, "/Users/nimble/workspace/projects/hud", Trigger::Auto,
+            Outcome::Succeeded, Some("3 commits to 1a2b3c4d5e6f")),
+        record(2, 15, ActionKind::Fetch, "/Users/nimble/workspace/projects/legacy", Trigger::Auto,
+            Outcome::Failed("git failed: Permission denied (publickey)".into()), None),
+        record(1, 2, ActionKind::FastForward, "/Volumes/1TB EXT/workspace/oss/abap-ai-documentation", Trigger::Manual,
+            Outcome::Succeeded, Some("1 commit to 9f8e7d6c5b4a")),
+    ]
 }
 
 /// Two workspaces, one opted out of fast-forward, formulae installed automatically.

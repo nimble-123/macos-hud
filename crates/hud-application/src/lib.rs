@@ -13,5 +13,5 @@ pub mod usecases;
 mod testing;
 
 pub use event::{
-    AppEvent, Command, ReportSource, SettingsCommand, UpdateCommand, WorkspaceCommand,
+    AppEvent, Command, LogCommand, ReportSource, SettingsCommand, UpdateCommand, WorkspaceCommand,
 };

@@ -1,6 +1,7 @@
 //! Messages between the presentation layer and the use cases.
 
 use hud_domain::WorkspacePath;
+use hud_domain::action::ActionRecord;
 use hud_domain::git::RepoPath;
 
 use hud_domain::update::InstallTarget;
@@ -58,6 +59,8 @@ pub enum AppEvent {
     Settings(Box<Settings>),
     /// A change or reload failed; the previous settings stay in effect.
     SettingsRejected(String),
+    /// The most recent logged actions, newest first.
+    Actions(Vec<ActionRecord>),
 }
 
 /// Request from the presentation layer to run a use case, grouped by the
@@ -70,6 +73,15 @@ pub enum Command {
     Updates(UpdateCommand),
     /// For the settings agent.
     Settings(SettingsCommand),
+    /// For the log agent.
+    Log(LogCommand),
+}
+
+/// Action log requests.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LogCommand {
+    /// Read the most recent actions.
+    Load,
 }
 
 /// Settings requests.

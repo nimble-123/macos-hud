@@ -128,8 +128,10 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 | `Tab` / `Shift-Tab` | nächster / vorheriger Tab |
 | `↑` `↓` | Auswahl bewegen |
 | `Enter` | ausgewählte Aktion ausführen |
-| `f` | Fast-Forward für das ausgewählte Repo |
+| `f` | Fast-Forward für das ausgewählte Repo (Workspaces) |
 | `u` | ausgewähltes Paket aktualisieren |
+| `/` | im Protokoll suchen |
+| `f` | im Protokoll: Filter wechseln (sonst Fast-Forward) |
 | `a` | Workspace hinzufügen (Einstellungen) |
 | `d` | ausgewählten Workspace entfernen (Einstellungen, mit Rückfrage) |
 | `r` | jetzt aktualisieren; im Einstellungen-Tab: Config neu laden |
@@ -177,6 +179,23 @@ Automatische Installation
 - `a` oder `Enter` auf „Workspace hinzufügen“ öffnet eine Eingabezeile in `focus` mit Cursor `█`; Pfade beginnen mit `/` oder `~/`. Solange die Eingabe offen ist, gehen alle Tasten an sie.
 - `d` öffnet einen zentrierten Dialog „Workspace entfernen?“ mit dem Hinweis, dass nur die Config geändert wird.
 - Sprache, Theme und Symbolsatz gelten sofort. Ein abgelehnter Schreibversuch erscheint unter den Einstellungen in `warning`, ein ungültiger Pfad in `caution`.
+
+### 5.4 Protokoll-Tab
+
+```
+Filter: alle    Suche: wget█
+  Zeit              Aktion        Auslöser  Ergebnis           Ziel
+▌ 2026-10-17 12:41  Installation  manuell   ✖ fehlgeschlagen   Npm wrangler 4.81.0 → 4.151.1
+  2026-10-17 12:15  Fast-Forward  auto      ● erledigt         /Users/nimble/workspace/projects/hud
+────────────────────────────────────────────────────────────────
+Ziel            Npm wrangler 4.81.0 → 4.151.1
+Ergebnis        fehlgeschlagen   Dauer 14 s
+Ausgabe-Ende    npm error code EACCES …
+```
+
+- Neueste Aktion oben, Zeiten in der lokalen Zeitzone. Die Ergebnisspalte zeigt Statussymbol und Ergebnis in der UI-Sprache.
+- Der Detailbereich unten zeigt die ausgewählte Aktion: vollständiges Ziel, Ergebnis mit Dauer, die technische Zusammenfassung und das Ende der Ausgabe (so viele letzte Zeilen, wie Platz haben).
+- `f` wechselt den Filter: alle, automatisch, manuell, Probleme (alles außer „erledigt“). `/` öffnet die Suche, die beim Tippen filtert und Ziel, Zusammenfassung und Ausgabe durchsucht; `Enter` behält den Suchtext, `Esc` verwirft ihn.
 
 ## 6. Bewegung
 

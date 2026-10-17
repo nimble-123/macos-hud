@@ -5,6 +5,7 @@
 
 mod i18n;
 pub mod icons;
+mod log_tab;
 mod model;
 mod msg;
 mod settings;

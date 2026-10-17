@@ -14,7 +14,13 @@ use crate::{Model, Msg, Tab};
 pub fn update(model: &mut Model, msg: Msg) -> Vec<Command> {
     match msg {
         Msg::Key(key) => return on_key(model, key),
-        Msg::App(event) => on_app_event(model, event),
+        Msg::App(event) => {
+            let reload = model.tab == Tab::Log && crate::log_tab::adds_entries(&event);
+            on_app_event(model, event);
+            if reload {
+                return vec![crate::log_tab::load()];
+            }
+        }
         Msg::Tick(now) => {
             model.now = Some(now);
             model.ticks = model.ticks.wrapping_add(1);
@@ -36,9 +42,23 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
     {
         return commands;
     }
+    if model.tab == Tab::Log
+        && let Some(commands) = crate::log_tab::on_key(model, key)
+    {
+        return commands;
+    }
     match key.code {
-        KeyCode::Tab => model.tab = model.tab.next(),
-        KeyCode::BackTab => model.tab = model.tab.previous(),
+        KeyCode::Tab | KeyCode::BackTab => {
+            model.tab = if key.code == KeyCode::Tab {
+                model.tab.next()
+            } else {
+                model.tab.previous()
+            };
+            // The log changes in the background; read it whenever it is shown.
+            if model.tab == Tab::Log {
+                return vec![crate::log_tab::load()];
+            }
+        }
         KeyCode::Char('q') => model.quit = true,
         KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => model.quit = true,
         KeyCode::Char('r') if model.tab == Tab::Updates => {
@@ -188,6 +208,10 @@ fn on_app_event(model: &mut Model, event: AppEvent) {
             model.apply_preferences(*preferences);
             model.settings_tab.notice = None;
             crate::settings_tab::clamp(model);
+        }
+        AppEvent::Actions(actions) => {
+            model.actions = actions;
+            crate::log_tab::clamp(model);
         }
         AppEvent::SettingsRejected(reason) => {
             model.settings_tab.notice = Some(crate::settings_tab::Notice::Rejected(reason));

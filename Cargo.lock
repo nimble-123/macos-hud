@@ -916,6 +916,7 @@ dependencies = [
  "hud-application",
  "hud-domain",
  "insta",
+ "jiff",
  "ratatui",
  "tracing",
 ]

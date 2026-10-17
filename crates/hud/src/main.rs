@@ -18,9 +18,12 @@ use std::sync::Arc;
 
 use hud_application::ports::updates::UpdateSource;
 use hud_application::usecases::agent::WorkspaceAgent;
+use hud_application::usecases::log::LogAgent;
 use hud_application::usecases::settings::SettingsAgent;
 use hud_application::usecases::updates::UpdatesAgent;
-use hud_application::{AppEvent, Command, SettingsCommand, UpdateCommand, WorkspaceCommand};
+use hud_application::{
+    AppEvent, Command, LogCommand, SettingsCommand, UpdateCommand, WorkspaceCommand,
+};
 use hud_infrastructure::clock::SystemClock;
 use hud_infrastructure::config::TomlSettings;
 use hud_infrastructure::discovery::FsDiscovery;
@@ -102,7 +105,9 @@ async fn main() -> anyhow::Result<std::process::ExitCode> {
     let mut background = start_background(preferences, config, runner)?;
     let result = run(
         session.terminal(),
-        Model::new(settings).with_system(system),
+        Model::new(settings)
+            .with_system(system)
+            .with_time_zone(jiff::tz::TimeZone::system()),
         &mut background.events,
         &background.commands,
     )
@@ -213,6 +218,8 @@ fn start_background(
     let (workspace_commands, workspace_rx) = mpsc::channel::<WorkspaceCommand>(COMMAND_CAPACITY);
     let (update_commands, update_rx) = mpsc::channel::<UpdateCommand>(COMMAND_CAPACITY);
     let (settings_commands, settings_rx) = mpsc::channel::<SettingsCommand>(COMMAND_CAPACITY);
+    let (log_commands, log_rx) = mpsc::channel::<LogCommand>(COMMAND_CAPACITY);
+    let log = LogAgent::new(store.clone());
     let updates = UpdatesAgent::new(
         sources,
         store.clone(),
@@ -225,6 +232,7 @@ fn start_background(
     let cancel = CancellationToken::new();
     let handles = vec![
         tokio::spawn(settings.run(settings_rx, events_tx.clone(), cancel.clone())),
+        tokio::spawn(log.run(log_rx, events_tx.clone(), cancel.clone())),
         tokio::spawn(workspaces.run(workspace_rx, events_tx, cancel.clone())),
         tokio::spawn(updates.run(update_rx, cancel.clone())),
     ];
@@ -233,6 +241,7 @@ fn start_background(
             workspaces: workspace_commands,
             updates: update_commands,
             settings: settings_commands,
+            log: log_commands,
         },
         events,
         cancel,
@@ -245,6 +254,7 @@ struct Router {
     workspaces: mpsc::Sender<WorkspaceCommand>,
     updates: mpsc::Sender<UpdateCommand>,
     settings: mpsc::Sender<SettingsCommand>,
+    log: mpsc::Sender<LogCommand>,
 }
 
 impl Router {
@@ -253,6 +263,7 @@ impl Router {
             Command::Workspaces(command) => self.workspaces.send(command).await?,
             Command::Updates(command) => self.updates.send(command).await?,
             Command::Settings(command) => self.settings.send(command).await?,
+            Command::Log(command) => self.log.send(command).await?,
         }
         Ok(())
     }
