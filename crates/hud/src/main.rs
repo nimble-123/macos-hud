@@ -16,11 +16,13 @@ use std::path::PathBuf;
 use hud_application::settings::{IconPreference, InitialSetup, Settings, SettingsStore};
 use std::sync::Arc;
 
+use hud_application::ports::telemetry::ReceiverState;
 use hud_application::ports::updates::UpdateSource;
 use hud_application::ports::usage::UsageSource;
 use hud_application::usecases::agent::WorkspaceAgent;
 use hud_application::usecases::log::LogAgent;
 use hud_application::usecases::settings::SettingsAgent;
+use hud_application::usecases::telemetry::TelemetryAgent;
 use hud_application::usecases::updates::UpdatesAgent;
 use hud_application::usecases::usage::UsageAgent;
 use hud_application::{
@@ -30,6 +32,7 @@ use hud_infrastructure::clock::SystemClock;
 use hud_infrastructure::config::TomlSettings;
 use hud_infrastructure::discovery::FsDiscovery;
 use hud_infrastructure::git::GitCli;
+use hud_infrastructure::otlp::OtlpReceiver;
 use hud_infrastructure::process::{TERMINATE_GRACE, TokioProcessRunner};
 use hud_infrastructure::sqlite::SqliteStore;
 use hud_infrastructure::updates::{brew::Brew, npm::NpmGlobal, skills::Skills};
@@ -111,7 +114,8 @@ async fn main() -> anyhow::Result<std::process::ExitCode> {
         (preferences, settings)
     };
 
-    let mut background = start_background(preferences, config, runner, cancel)?;
+    let telemetry = bind_telemetry(&preferences).await;
+    let mut background = start_background(preferences, config, runner, cancel, telemetry)?;
     let result = run(
         session.terminal(),
         Model::new(settings)
@@ -205,6 +209,7 @@ fn start_background(
     config: TomlSettings,
     runner: TokioProcessRunner,
     cancel: CancellationToken,
+    telemetry: (ReceiverState, Option<OtlpReceiver>),
 ) -> anyhow::Result<Background> {
     let store = SqliteStore::open(&database_path()?, jiff::Timestamp::now())
         .context("failed to open the database")?;
@@ -242,19 +247,29 @@ fn start_background(
     let updates = UpdatesAgent::new(
         sources,
         store.clone(),
-        store,
+        store.clone(),
         SystemClock,
         watched,
         events_tx.clone(),
     );
     let settings = SettingsAgent::new(config, current);
-    let handles = vec![
+    let (receiver_state, receiver) = telemetry;
+    tracing::info!(?receiver_state, "telemetry receiver");
+    let mut handles = Vec::with_capacity(7);
+    if let Some(receiver) = receiver {
+        let (points_tx, points_rx) = mpsc::channel(COMMAND_CAPACITY);
+        handles.push(tokio::spawn(receiver.run(points_tx, cancel.clone())));
+        handles.push(tokio::spawn(
+            TelemetryAgent::new(store).run(points_rx, cancel.clone()),
+        ));
+    }
+    handles.extend([
         tokio::spawn(settings.run(settings_rx, events_tx.clone(), cancel.clone())),
         tokio::spawn(log.run(log_rx, events_tx.clone(), cancel.clone())),
         tokio::spawn(usage.run(events_tx.clone(), cancel.clone())),
         tokio::spawn(workspaces.run(workspace_rx, events_tx, cancel.clone())),
         tokio::spawn(updates.run(update_rx, cancel.clone())),
-    ];
+    ]);
     Ok(Background {
         commands: Router {
             workspaces: workspace_commands,
@@ -285,6 +300,24 @@ impl Router {
             Command::Log(command) => self.log.send(command).await?,
         }
         Ok(())
+    }
+}
+
+/// Opens the OTLP receiver if enabled; a taken port is a state, not an error.
+async fn bind_telemetry(preferences: &Settings) -> (ReceiverState, Option<OtlpReceiver>) {
+    let settings = preferences.telemetry;
+    if !settings.enabled {
+        return (ReceiverState::Off, None);
+    }
+    match OtlpReceiver::bind(settings.port).await {
+        Ok(receiver) => (ReceiverState::Listening(receiver.port()), Some(receiver)),
+        Err(error) => (
+            ReceiverState::Unavailable {
+                port: settings.port,
+                reason: error.to_string(),
+            },
+            None,
+        ),
     }
 }
 

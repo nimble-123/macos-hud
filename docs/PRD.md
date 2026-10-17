@@ -83,6 +83,7 @@ Entwickler:innen, die mehrere lokale Repositories und CLI-Werkzeuge nutzen und d
 - Codex: zusätzlich Auslastung des Abo-Limits (Prozent, Rücksetzzeitpunkt), soweit lokal verfügbar
 - Jeder Wert trägt Quelle und Genauigkeit; nicht verfügbare oder nicht vergleichbare Werte werden als solche gekennzeichnet
 - Es werden nur Nutzungsmetadaten gelesen, **keine** Prompt- oder Antwortinhalte gespeichert
+- Zusätzlich empfängt hud, solange es läuft, die OpenTelemetry-Metriken von Claude Code auf `127.0.0.1` (aktive Zeit, Codezeilen, Commits, PRs, Kosten laut Claude); die Logs bleiben die vollständige Historie
 
 ### 4.5 Protokoll
 

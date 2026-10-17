@@ -20,6 +20,9 @@ anyhow = "1.0.104"
 fluent-templates = "0.15.1"
 crossterm = { version = "0.29.0", features = ["event-stream"] }
 futures = "0.3.34"
+http-body-util = "0.1.5"
+hyper = { version = "1.12.0", features = ["server", "http1"] }
+hyper-util = { version = "0.1.21", features = ["tokio"] }
 insta = "1.49.0"
 jiff = "0.2.38"
 nix = { version = "0.31.3", default-features = false, features = ["signal"] }

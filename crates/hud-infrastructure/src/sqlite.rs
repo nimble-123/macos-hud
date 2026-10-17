@@ -7,11 +7,15 @@ use std::time::Duration;
 use hud_application::ports::store::{
     ActionLog, CachedRepo, InstallHistory, InstallResult, ScanCache, StoreError,
 };
+use hud_application::ports::telemetry::TelemetryStore;
 use hud_application::ports::usage::{Cursors, FileCursor, UsageBatch, UsageStore};
 use hud_domain::action::{ActionId, ActionKind, ActionRecord, Outcome, Trigger};
 use hud_domain::git::{BranchName, CommitId, GitOperation, Head, RepoPath, RepoStatus, Upstream};
 use hud_domain::update::{PackageName, SourceId, UpdateCandidate};
-use hud_domain::usage::{Geo, ModelId, Provider, Speed, TokenUsage, UsageRecord};
+use hud_domain::usage::{
+    Geo, ModelId, Provider, Speed, TelemetryMetric, TelemetryPoint, TelemetryTotals, TokenUsage,
+    UsageRecord,
+};
 use jiff::Timestamp;
 use rusqlite::{Connection, OptionalExtension, params};
 use rusqlite_migration::{M, Migrations};
@@ -88,6 +92,18 @@ fn migrations() -> Migrations<'static> {
                 unreadable INTEGER NOT NULL,
                 PRIMARY KEY (provider, file)
             );",
+        ),
+        M::up(
+            "CREATE TABLE otel_metric (
+                id INTEGER PRIMARY KEY,
+                at_ms INTEGER NOT NULL,
+                metric TEXT NOT NULL,
+                detail TEXT,
+                model TEXT,
+                session TEXT,
+                value INTEGER NOT NULL
+            );
+            CREATE INDEX otel_metric_at ON otel_metric (at_ms);",
         ),
     ])
 }
@@ -498,6 +514,94 @@ fn get_u64(row: &rusqlite::Row<'_>, column: usize) -> rusqlite::Result<u64> {
     u64::try_from(row.get::<_, i64>(column)?).map_err(|e| conversion(column, e))
 }
 
+impl TelemetryStore for SqliteStore {
+    async fn save_points(&self, points: Vec<TelemetryPoint>) -> Result<(), StoreError> {
+        self.call(move |db| {
+            let transaction = db.transaction()?;
+            {
+                let mut insert = transaction.prepare(
+                    "INSERT INTO otel_metric (at_ms, metric, detail, model, session, value)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                )?;
+                for point in &points {
+                    insert.execute(params![
+                        point.at.as_millisecond(),
+                        metric_str(point.metric),
+                        point.detail,
+                        point.model.as_ref().map(ModelId::as_str),
+                        point.session,
+                        int(point.value),
+                    ])?;
+                }
+            }
+            transaction.commit()
+        })
+        .await
+    }
+
+    async fn totals(&self, from: Timestamp, to: Timestamp) -> Result<TelemetryTotals, StoreError> {
+        self.call(move |db| {
+            let mut query = db.prepare(
+                "SELECT metric, detail, sum(value) FROM otel_metric
+                 WHERE at_ms >= ?1 AND at_ms < ?2 GROUP BY metric, detail",
+            )?;
+            let rows =
+                query.query_map(params![from.as_millisecond(), to.as_millisecond()], |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        get_u64(row, 2)?,
+                    ))
+                })?;
+            let mut totals = TelemetryTotals::default();
+            for row in rows {
+                let (metric, detail, value) = row?;
+                let Some(metric) = parse_metric(&metric) else {
+                    continue;
+                };
+                totals.add(&TelemetryPoint {
+                    at: from,
+                    metric,
+                    detail,
+                    model: None,
+                    session: None,
+                    value,
+                });
+            }
+            Ok(totals)
+        })
+        .await
+    }
+}
+
+fn metric_str(metric: TelemetryMetric) -> &'static str {
+    match metric {
+        TelemetryMetric::Cost => "cost",
+        TelemetryMetric::Tokens => "tokens",
+        TelemetryMetric::ActiveTime => "active_time",
+        TelemetryMetric::LinesAdded => "lines_added",
+        TelemetryMetric::LinesRemoved => "lines_removed",
+        TelemetryMetric::Commits => "commits",
+        TelemetryMetric::PullRequests => "pull_requests",
+        TelemetryMetric::Sessions => "sessions",
+    }
+}
+
+/// Unknown names come from a newer hud and are skipped, not an error.
+fn parse_metric(text: &str) -> Option<TelemetryMetric> {
+    Some(match text {
+        "cost" => TelemetryMetric::Cost,
+        "tokens" => TelemetryMetric::Tokens,
+        "active_time" => TelemetryMetric::ActiveTime,
+        "lines_added" => TelemetryMetric::LinesAdded,
+        "lines_removed" => TelemetryMetric::LinesRemoved,
+        "commits" => TelemetryMetric::Commits,
+        "pull_requests" => TelemetryMetric::PullRequests,
+        "sessions" => TelemetryMetric::Sessions,
+        _ => return None,
+    })
+}
+
 fn provider_str(provider: Provider) -> &'static str {
     match provider {
         Provider::Claude => "claude",
@@ -874,5 +978,53 @@ mod tests {
                 .is_empty(),
             "the range end is exclusive and filters by time"
         );
+    }
+
+    #[tokio::test]
+    async fn telemetry_totals_sum_per_metric_within_the_range() {
+        let store = SqliteStore::in_memory(ts("2026-10-17T10:00:00Z")).expect("BUG");
+        let point = |at: &str, metric, detail: Option<&str>, value| TelemetryPoint {
+            at: ts(at),
+            metric,
+            detail: detail.map(str::to_owned),
+            model: None,
+            session: Some("s".into()),
+            value,
+        };
+        store
+            .save_points(vec![
+                point("2026-10-17T08:00:00Z", TelemetryMetric::Cost, None, 120_000),
+                point("2026-10-17T09:00:00Z", TelemetryMetric::Cost, None, 30_000),
+                point(
+                    "2026-10-17T09:00:00Z",
+                    TelemetryMetric::ActiveTime,
+                    Some("user"),
+                    5_000,
+                ),
+                point(
+                    "2026-10-17T09:00:00Z",
+                    TelemetryMetric::ActiveTime,
+                    Some("cli"),
+                    7_000,
+                ),
+                point(
+                    "2026-10-17T09:00:00Z",
+                    TelemetryMetric::LinesAdded,
+                    Some("added"),
+                    42,
+                ),
+                point("2026-10-16T09:00:00Z", TelemetryMetric::Commits, None, 9),
+            ])
+            .await
+            .expect("BUG");
+        let totals = store
+            .totals(ts("2026-10-17T00:00:00Z"), ts("2026-10-18T00:00:00Z"))
+            .await
+            .expect("BUG");
+        assert_eq!(totals.cost_micro_usd, 150_000);
+        assert_eq!(totals.active_user_ms, 5_000);
+        assert_eq!(totals.active_cli_ms, 7_000);
+        assert_eq!(totals.lines_added, 42);
+        assert_eq!(totals.commits, 0, "yesterday is outside the range");
     }
 }
