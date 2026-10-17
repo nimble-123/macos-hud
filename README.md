@@ -20,7 +20,7 @@ One terminal view for system load, Git workspaces, package updates and AI usage,
 </div>
 
 > [!NOTE]
-> hud is in planning. The screenshot below is a design preview of the overview screen; implementation starts with milestone M0. Requirements, architecture and design are fixed in [`docs/`](docs/).
+> hud is in early development. Workspaces, the automatic fast-forward and the first-run setup work today; updates, the AI dashboard and the overview are next ([milestones](https://github.com/nimble-123/macos-hud/milestones)). The screenshot below is a design preview of the overview screen.
 
 <div align="center">
 
@@ -81,7 +81,21 @@ The rule lives in a pure function in the domain layer. Passing it is the only wa
 
 ## Install
 
-hud is not released yet. Once milestone M0 lands, build it from source:
+With [Homebrew](https://brew.sh), from the [nimble-123/tap](https://github.com/nimble-123/homebrew-tap) tap:
+
+```bash
+brew install nimble-123/tap/hud
+```
+
+Update with `brew upgrade hud`; every release updates the formula automatically.
+
+Or download `hud-<version>-universal-apple-darwin.tar.gz` (Apple Silicon and Intel) from the [latest release](https://github.com/nimble-123/macos-hud/releases/latest), unpack it and put `hud` on your `PATH`. The binary is not signed or notarized; if macOS blocks a browser download, run `xattr -d com.apple.quarantine hud`. To check that an archive was built by this repository's release workflow:
+
+```bash
+gh attestation verify hud-<version>-universal-apple-darwin.tar.gz --repo nimble-123/macos-hud
+```
+
+### From source
 
 ```bash
 git clone https://github.com/nimble-123/macos-hud.git

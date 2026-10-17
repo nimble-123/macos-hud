@@ -59,7 +59,13 @@ Snapshot-Tests prüfen und annehmen: `cargo insta review`.
 
 ## Releases
 
-release-please pflegt auf `main` einen Release-PR mit Versionssprung und `CHANGELOG.md`. Wird er gemergt, entstehen Tag und GitHub-Release.
+release-please pflegt auf `main` einen Release-PR mit Versionssprung und `CHANGELOG.md`. Auf diesem PR baut der Workflow `release-build.yml` das Universal Binary bereits zur Probe. Wird der PR gemergt, entstehen Tag und GitHub-Release, und derselbe Workflow
+
+1. baut `hud` für Apple Silicon und Intel und führt beide per `lipo` zusammen,
+2. hängt `hud-<version>-universal-apple-darwin.tar.gz` mit `.sha256` und Build-Provenance an das Release,
+3. schreibt `Formula/hud.rb` in `nimble-123/homebrew-tap` neu (Secret `HOMEBREW_TAP_TOKEN`).
+
+Für ein bestehendes Tag lässt sich der Workflow manuell mit `workflow_dispatch` neu starten.
 
 ## TUI-Screenshots
 

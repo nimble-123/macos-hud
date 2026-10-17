@@ -340,7 +340,7 @@ Alle drei `select!`-Zweige sind cancel-safe. Die Schleife macht kein I/O außer 
 
 | Artefakt | Ort |
 |---|---|
-| Binary | `~/.cargo/bin/hud` (`cargo install --path crates/hud`) oder aus GitHub-Release |
+| Binary | Homebrew-Formel `nimble-123/tap/hud` (Universal Binary aus dem GitHub-Release), alternativ Archiv aus dem Release oder `cargo install --path crates/hud` |
 | Config | `~/.config/hud/config.toml` (respektiert `XDG_CONFIG_HOME`) |
 | Datenbank | `~/Library/Application Support/hud/hud.db` (WAL-Modus) |
 | Logs | `~/Library/Logs/hud/hud.log.YYYY-MM-DD`, 7 Tage aufbewahrt |
