@@ -180,8 +180,8 @@ impl Default for Settings {
             icons: IconPreference::default(),
             scan: ScanSettings::default(),
             workspaces: Vec::new(),
-            fetch_interval: Duration::from_secs(15 * 60),
-            update_check_interval: Duration::from_secs(6 * 60 * 60),
+            fetch_interval: Duration::from_mins(15),
+            update_check_interval: Duration::from_hours(6),
             auto_install: AutoInstallSettings::default(),
             skills: SkillsSettings::default(),
             claude: ProviderSettings {
@@ -241,7 +241,7 @@ mod tests {
     #[test]
     fn defaults_follow_the_documented_values() {
         let settings = Settings::default();
-        assert_eq!(settings.fetch_interval, Duration::from_secs(900));
+        assert_eq!(settings.fetch_interval, Duration::from_mins(15));
         assert_eq!(settings.update_check_interval, Duration::from_secs(21_600));
         assert_eq!(settings.auto_install, AutoInstallSettings::default());
         assert!(settings.claude.enabled);

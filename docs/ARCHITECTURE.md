@@ -44,7 +44,7 @@ Alle Diagramme liegen als Quelle in `docs/diagrams/*.html` und eingebettet als `
 | Randbedingung | Erläuterung |
 |---|---|
 | Plattform | macOS (Apple Silicon und Intel), beliebiges Terminal mit mindestens 16 Farben |
-| Sprache | Rust, Edition 2024, Toolchain fixiert per `rust-toolchain.toml` (1.94), `rust-version = "1.94"` |
+| Sprache | Rust, Edition 2024, Toolchain fixiert per `rust-toolchain.toml` (1.99), `rust-version = "1.99"` |
 | UI | Ratatui + Crossterm |
 | Nebenläufigkeit | Tokio (Multi-Thread-Runtime) |
 | Persistenz | SQLite (rusqlite, `bundled`) |
@@ -119,7 +119,7 @@ Rust-Konventionen nach Rust API Guidelines und den Projekt-Regeln in [AGENTS.md]
 
 ```
 Cargo.toml                 Workspace, [workspace.package], [workspace.dependencies], [workspace.lints]
-rust-toolchain.toml        1.94, Komponenten rustfmt + clippy
+rust-toolchain.toml        1.99, Komponenten rustfmt + clippy
 deny.toml                  cargo-deny: Advisories, Lizenzen der Abhängigkeiten, Duplikate, Quellen
 crates/
   hud-domain/              Entities, Value Objects, Regeln (reine Funktionen)
