@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Domain-Modell</title>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Serif:ital@0;1&amp;display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f2f3f1;
+      --color-ink:     #1c2128;
+      --color-muted:   #47505c;
+      --color-accent:  #b02a8a;
+      --font-sans:     'Chakra Petch', system-ui, sans-serif;
+      --font-serif:    'Chakra Petch', system-ui, sans-serif;
+      --font-mono:     'IBM Plex Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Bausteinsicht · UML class</p>
+    <h1>Domain-Modell</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 616" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="domain-model-title domain-model-desc">
+        <title id="domain-model-title">Domain-Modell</title>
+        <desc id="domain-model-desc">Kerntypen der hud-Domain: SyncDecision wird aus RepoStatus abgeleitet und enthält entweder einen FastForwardPermit oder einen SkipReason; InstallDecision prüft UpdateCandidate; Measured kennzeichnet Werte mit Genauigkeit.</desc>
+        <defs>
+<marker id="uml-triangle" markerWidth="16" markerHeight="12" refX="15" refY="6" orient="auto" markerUnits="userSpaceOnUse"><polygon points="0 0, 16 6, 0 12" fill="#f2f3f1" stroke="#1c2128" stroke-width="1"/></marker>
+<marker id="uml-diamond-filled" markerWidth="18" markerHeight="10" refX="0" refY="5" orient="auto" markerUnits="userSpaceOnUse"><polygon points="0 5, 9 0, 18 5, 9 10" fill="#1c2128"/></marker>
+<marker id="uml-diamond-hollow" markerWidth="18" markerHeight="10" refX="0" refY="5" orient="auto" markerUnits="userSpaceOnUse"><polygon points="0 5, 9 0, 18 5, 9 10" fill="#f2f3f1" stroke="#1c2128" stroke-width="1"/></marker>
+<marker id="uml-open" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,4 L0,8" fill="none" stroke="#47505c" stroke-width="1"/></marker>
+</defs>
+        <rect width="100%" height="100%" fill="#f2f3f1"/>
+        <line x1="360" y1="86" x2="282" y2="86" stroke="#47505c" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#uml-open)"/>
+        <rect x="302.0" y="66" width="36" height="12" rx="2" fill="#f2f3f1"/><text x="320" y="75" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">LIEST</text>
+        <line x1="600" y1="86" x2="680" y2="86" stroke="#1c2128" stroke-width="1" marker-start="url(#uml-diamond-filled)"/>
+        <rect x="646.0" y="67" width="28" height="12" rx="2" fill="#f2f3f1"/><text x="660" y="76" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">0..1</text>
+        <line x1="480" y1="132" x2="480" y2="228" stroke="#1c2128" stroke-width="1" marker-start="url(#uml-diamond-filled)"/>
+        <rect x="490.0" y="207" width="28" height="12" rx="2" fill="#f2f3f1"/><text x="504" y="216" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">0..1</text>
+        <line x1="360" y1="458" x2="282" y2="458" stroke="#47505c" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#uml-open)"/>
+        <rect x="302.0" y="438" width="36" height="12" rx="2" fill="#f2f3f1"/><text x="320" y="447" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PRÜFT</text>
+        <rect x="40" y="40" width="240" height="112" rx="6" fill="#f2f3f1"/>
+<rect x="40" y="40" width="240" height="112" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="160.0" y="59" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">RepoStatus</text>
+<line x1="40" y1="68" x2="280" y2="68" stroke="rgba(28,33,40,0.25)" stroke-width="0.8"/>
+<text x="52" y="86" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ head: Head</text>
+<text x="52" y="100" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ upstream: Option&lt;Upstream&gt;</text>
+<text x="52" y="114" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ ahead, behind: u32</text>
+<text x="52" y="128" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ tracked_changes: u32</text>
+<text x="52" y="142" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ operation: Option&lt;GitOperation&gt;</text>
+        <rect x="360" y="40" width="240" height="92" rx="6" fill="#f2f3f1"/>
+<rect x="360" y="40" width="240" height="92" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="480.0" y="54" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">«enum»</text>
+<text x="480.0" y="69" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">SyncDecision</text>
+<line x1="360" y1="76" x2="600" y2="76" stroke="rgba(28,33,40,0.25)" stroke-width="0.8"/>
+<text x="372" y="94" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">UpToDate</text>
+<text x="372" y="108" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">FastForward(FastForwardPermit)</text>
+<text x="372" y="122" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">Skip(SkipReason)</text>
+        <rect x="680" y="40" width="240" height="120" rx="6" fill="#f2f3f1"/>
+<rect x="680" y="40" width="240" height="120" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="800.0" y="54" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">«enum»</text>
+<text x="800.0" y="69" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">SkipReason</text>
+<line x1="680" y1="76" x2="920" y2="76" stroke="rgba(28,33,40,0.25)" stroke-width="0.8"/>
+<text x="692" y="94" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">TrackedChanges</text>
+<text x="692" y="108" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">Diverged { ahead, behind }</text>
+<text x="692" y="122" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">DetachedHead</text>
+<text x="692" y="136" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">NoUpstream</text>
+<text x="692" y="150" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">… +3 weitere</text>
+        <rect x="40" y="420" width="240" height="112" rx="6" fill="#f2f3f1"/>
+<rect x="40" y="420" width="240" height="112" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="160.0" y="439" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">UpdateCandidate</text>
+<line x1="40" y1="448" x2="280" y2="448" stroke="rgba(28,33,40,0.25)" stroke-width="0.8"/>
+<text x="52" y="466" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ source: SourceId</text>
+<text x="52" y="480" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ name: PackageName</text>
+<text x="52" y="494" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ current: Version</text>
+<text x="52" y="508" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ latest: Version</text>
+<text x="52" y="522" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ kind: PackageKind</text>
+        <rect x="360" y="420" width="240" height="76" rx="6" fill="#f2f3f1"/>
+<rect x="360" y="420" width="240" height="76" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="480.0" y="434" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">«enum»</text>
+<text x="480.0" y="449" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">InstallDecision</text>
+<line x1="360" y1="456" x2="600" y2="456" stroke="rgba(28,33,40,0.25)" stroke-width="0.8"/>
+<text x="372" y="474" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">Allowed(InstallPermit)</text>
+<text x="372" y="488" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">Denied(DenyReason)</text>
+        <rect x="680" y="420" width="240" height="84" rx="6" fill="#f2f3f1"/>
+<rect x="680" y="420" width="240" height="84" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="800.0" y="439" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Measured&lt;T&gt;</text>
+<line x1="680" y1="448" x2="920" y2="448" stroke="rgba(28,33,40,0.25)" stroke-width="0.8"/>
+<text x="692" y="466" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ value: T</text>
+<text x="692" y="480" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ accuracy: Accuracy</text>
+<text x="692" y="494" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ source: DataSource</text>
+        <rect x="360" y="228" width="240" height="160" rx="6" fill="#f2f3f1"/>
+<rect x="360" y="228" width="240" height="160" rx="6" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+<text x="480.0" y="242" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">«must_use»</text>
+<text x="480.0" y="257" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">FastForwardPermit</text>
+<line x1="360" y1="264" x2="600" y2="264" stroke="#b02a8a" stroke-width="0.8"/>
+<text x="372" y="282" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">- repo: RepoPath</text>
+<text x="372" y="296" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">- head_oid: CommitId</text>
+<text x="372" y="310" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">- target_oid: CommitId</text>
+<line x1="360" y1="318" x2="600" y2="318" stroke="#b02a8a" stroke-width="0.8"/>
+<text x="372" y="336" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">~ new(repo, head, target)</text>
+<text x="372" y="350" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ repo(): &amp;RepoPath</text>
+<text x="372" y="364" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ head_oid(): &amp;CommitId</text>
+<text x="372" y="378" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ target_oid(): &amp;CommitId</text>
+        <text x="920" y="272" fill="#b02a8a" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="end" font-style="italic">nur sync_decision erzeugt ihn,</text>
+        <text x="920" y="290" fill="#b02a8a" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="end" font-style="italic">GitPort::fast_forward verbraucht</text>
+        <text x="920" y="308" fill="#b02a8a" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="end" font-style="italic">ihn per Move (nicht Clone)</text>
+        <path d="M 676 300 Q 640 304 608 304" fill="none" stroke="rgba(176,42,138,0.50)" stroke-width="1" stroke-dasharray="4,3"/>
+        <circle cx="604" cy="304" r="2" fill="#b02a8a"/>
+        <line x1="40" y1="556" x2="920" y2="556" stroke="rgba(28,33,40,0.1)" stroke-width="0.8"/><text x="40" y="572" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">LEGENDE · BEZIEHUNGEN</text>
+        <line x1="40" y1="588" x2="68" y2="588" stroke="#1c2128" stroke-width="1" marker-end="url(#uml-triangle)"/>
+        <text x="76" y="592" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Vererbung</text>
+        <line x1="188" y1="588" x2="216" y2="588" stroke="#1c2128" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#uml-triangle)"/>
+        <text x="224" y="592" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Realisierung</text>
+        <line x1="336" y1="588" x2="364" y2="588" stroke="#1c2128" stroke-width="1" marker-start="url(#uml-diamond-filled)"/>
+        <text x="372" y="592" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Komposition, besitzt</text>
+        <line x1="484" y1="588" x2="512" y2="588" stroke="#1c2128" stroke-width="1" marker-start="url(#uml-diamond-hollow)"/>
+        <text x="520" y="592" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Aggregation, hat</text>
+        <line x1="632" y1="588" x2="660" y2="588" stroke="#47505c" stroke-width="1" marker-end="url(#uml-open)"/>
+        <text x="668" y="592" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Assoziation</text>
+        <line x1="780" y1="588" x2="808" y2="588" stroke="#47505c" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#uml-open)"/>
+        <text x="816" y="592" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Abhängigkeit, nutzt</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

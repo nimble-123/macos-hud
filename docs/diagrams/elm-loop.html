@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ereignisschleife (Elm-Architektur)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --paper: #f2f3f1; --ink: #1c2128; --muted: #47505c; --soft: #5a6470;
+      --accent: #b02a8a; --accent-tint: rgba(176,42,138,0.08); --link: #13738a;
+      --sans: 'Chakra Petch', system-ui, sans-serif; --mono: 'IBM Plex Mono', ui-monospace, monospace; --serif: 'IBM Plex Serif', serif;
+    }
+    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+    .frame { width: 100%; max-width: 1200px; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { margin-bottom: 0.5rem; color: var(--muted); font: 500 0.66rem var(--mono); letter-spacing: 0.18em; text-transform: uppercase; }
+    h1 { margin-bottom: 1.5rem; color: var(--ink); font: 600 clamp(1.5rem, 2.4vw + 0.75rem, 1.75rem)/1.15 var(--sans); letter-spacing: -0.01em; }
+    svg { width: 100%; min-width: 960px; display: block; }
+    .node-name { fill: var(--ink); font: 600 12px var(--sans); text-anchor: middle; }
+    .sublabel { fill: var(--soft); font: 400 9px var(--mono); text-anchor: middle; }
+    .arrow-label { fill: var(--soft); font: 400 8px var(--mono); letter-spacing: 0.06em; text-anchor: middle; }
+    .eyebrow-svg { fill: var(--muted); font: 500 8px var(--mono); letter-spacing: 0.14em; }
+    .legend { fill: var(--muted); font: 400 8px var(--mono); letter-spacing: 0.06em; }
+    .callout { fill: var(--ink); font: italic 400 14px var(--serif); }
+
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Loop · Laufzeitsicht 6.4</p>
+    <h1>Ereignisschleife (Elm-Architektur)</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="elm-loop-title elm-loop-desc">
+        <title id="elm-loop-title">Ereignisschleife (Elm-Architektur)</title>
+        <desc id="elm-loop-desc">Ereignisschleife der TUI nach Elm-Architektur: Msg geht an die reine Funktion update, die das Model schreibt und Commands erzeugt; der Job-Runner erledigt I/O und meldet AppEvents zurück, view rendert den Frame aus dem Model.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker>
+          <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker>
+          <marker id="arrow-soft" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#5a6470"/></marker>
+          <marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#47505c" stroke-width="1.2"/></marker>
+        </defs>
+        <rect width="960" height="720" fill="#f2f3f1"/>
+        <path d="M640.000 113.726 A240 240 0 0 1 773.784 230.930" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M795.932 296.000 A240 240 0 0 1 736.043 503.122" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M634.940 568.000 A240 240 0 0 1 486.201 568.372" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M384.774 504.000 A240 240 0 0 1 323.851 297.180" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M345.673 232.000 A240 240 0 0 1 478.870 114.129" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M708.0 282.2 L641.8 297.3" fill="none" stroke="#5a6470" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow-soft)"/>
+        <rect x="647" y="264" width="56" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="675" y="273" class="arrow-label">SCHREIBT</text>
+        <line x1="560" y1="356.0" x2="560" y2="395.0" stroke="#5a6470" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow-soft)"/>
+        <rect x="568" y="370.0" width="40" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="588" y="379.0" class="arrow-label">LIEST</text>
+        <line x1="256" y1="92" x2="480" y2="92" stroke="#13738a" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <rect x="316" y="74" width="104" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="368" y="83" class="arrow-label" style="fill:#13738a">TASTE, MAUS, TICK</text>
+        <rect x="480" y="68" width="160" height="64" rx="6" fill="#f2f3f1"/>
+        <rect x="480" y="68" width="160" height="64" rx="6" fill="#f2f3f1" stroke="#1c2128" stroke-width="1"/>
+        <text x="560" y="96" class="node-name">Msg</text>
+        <text x="560" y="114" class="sublabel">Eingabe oder AppEvent</text>
+        <rect x="708" y="232" width="160" height="64" rx="6" fill="#f2f3f1"/>
+        <rect x="708" y="232" width="160" height="64" rx="6" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1.2"/>
+        <text x="788" y="260" class="node-name" style="fill:#b02a8a">update(model, msg)</text>
+        <text x="788" y="278" class="sublabel">rein, ohne I/O</text>
+        <rect x="620" y="504" width="160" height="64" rx="6" fill="#f2f3f1"/>
+        <rect x="620" y="504" width="160" height="64" rx="6" fill="#f2f3f1" stroke="#1c2128" stroke-width="1"/>
+        <text x="700" y="532" class="node-name">Commands</text>
+        <text x="700" y="550" class="sublabel">Vec&lt;Command&gt;</text>
+        <rect x="340" y="504" width="160" height="64" rx="6" fill="#f2f3f1"/>
+        <rect x="340" y="504" width="160" height="64" rx="6" fill="#f2f3f1" stroke="#1c2128" stroke-width="1"/>
+        <text x="420" y="532" class="node-name">Job-Runner</text>
+        <text x="420" y="550" class="sublabel">Tokio-Tasks, I/O</text>
+        <rect x="252" y="232" width="160" height="64" rx="6" fill="#f2f3f1"/>
+        <rect x="252" y="232" width="160" height="64" rx="6" fill="#f2f3f1" stroke="#1c2128" stroke-width="1"/>
+        <text x="332" y="260" class="node-name">AppEvent</text>
+        <text x="332" y="278" class="sublabel">mpsc, begrenzt (256)</text>
+        <rect x="96" y="68" width="160" height="48" rx="6" fill="#f2f3f1"/>
+        <rect x="96" y="68" width="160" height="48" rx="6" fill="rgba(71,80,92,0.10)" stroke="#5a6470" stroke-width="1"/>
+        <text x="176" y="90" class="node-name">Terminal</text>
+        <text x="176" y="106" class="sublabel">crossterm EventStream</text>
+        <rect x="480" y="396.0" width="160" height="48" rx="6" fill="#f2f3f1"/>
+        <rect x="480" y="396.0" width="160" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="560" y="418.0" class="node-name">view(model)</text>
+        <text x="560" y="434.0" class="sublabel">Frame rendern, 250 ms</text>
+        <rect x="484" y="276" width="152" height="80" rx="8" fill="#1c2128"/>
+        <text x="560" y="314" fill="#f2f3f1" font-size="16" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Model</text>
+        <text x="560" y="332" fill="#f2f3f1" opacity="0.72" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">reiner UI-Zustand</text>
+        <line x1="40" y1="660" x2="920" y2="660" stroke="rgba(28,33,40,0.10)" stroke-width="0.8"/>
+        <text x="40" y="680" class="eyebrow-svg">LEGENDE</text>
+        <line x1="136" y1="677" x2="164" y2="677" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="172" y="680" class="legend">Ablauf</text>
+        <line x1="238" y1="677" x2="266" y2="677" stroke="#5a6470" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow-soft)"/>
+        <text x="274" y="680" class="legend">schreibt / liest Model</text>
+        <rect x="420" y="671" width="28" height="12" rx="2" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+        <text x="456" y="680" class="legend">reine Funktion</text>
+        <rect x="562" y="671" width="28" height="12" rx="2" fill="rgba(71,80,92,0.15)" stroke="#47505c" stroke-width="1"/>
+        <text x="598" y="680" class="legend">Außenwelt</text>
+
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verteilung auf dem Mac · hud</title>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Serif:ital@0;1&amp;display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f2f3f1;
+      --color-ink:     #1c2128;
+      --color-muted:   #47505c;
+      --color-accent:  #b02a8a;
+      --font-sans:     'Chakra Petch', system-ui, sans-serif;
+      --font-title:    'Chakra Petch', system-ui, sans-serif;
+      --font-mono:     'IBM Plex Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+      -webkit-font-smoothing: antialiased;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-title);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 1.75rem);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Verteilungssicht · hud</p>
+    <h1>Verteilung auf dem Mac</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="deployment-title deployment-desc">
+        <title id="deployment-title">Verteilung auf dem Mac</title>
+        <desc id="deployment-desc">Verteilungssicht: hud läuft als lokaler Prozess im Benutzerkonto, nutzt Config, SQLite-Datenbank und Logs, liest KI-Logs und startet git, brew und npm aus dem Login-PATH; nur diese Werkzeuge erreichen Git-Remotes und Paket-Registries im Netz.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker>
+          <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker>
+          <marker id="arrow-warn" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b42f25"/></marker>
+        </defs>
+        <rect width="100%" height="100%" fill="#f2f3f1"/>
+<rect x="24" y="56" width="640" height="448" rx="8" fill="rgba(28,33,40,0.02)" stroke="rgba(28,33,40,0.2)" stroke-width="0.8" stroke-dasharray="4,4"/>
+<rect x="36" y="60" width="116" height="12" rx="2" fill="#f2f3f1"/>
+<text x="94.0" y="69" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">MAC · BENUTZERKONTO</text>
+<rect x="696" y="56" width="240" height="448" rx="8" fill="rgba(28,33,40,0.02)" stroke="rgba(28,33,40,0.2)" stroke-width="0.8" stroke-dasharray="4,4"/>
+<rect x="708" y="60" width="104" height="12" rx="2" fill="#f2f3f1"/>
+<text x="760.0" y="69" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">EXTERN · NETZWERK</text>
+<path d="M 256,228 H 292 Q 300,228 300,220 V 164 Q 300,156 308,156 H 344" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 256,296 H 344" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 176,384 V 312" fill="none" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+<path d="M 624,320 H 728" fill="none" stroke="#13738a" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+<path d="M 624,392 H 728" fill="none" stroke="#13738a" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+<rect x="204" y="180" width="88" height="12" rx="2" fill="#f2f3f1"/>
+<text x="248.0" y="189" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">LIEST/SCHREIBT</text>
+<rect x="276.0" y="276" width="48" height="12" rx="2" fill="#f2f3f1"/>
+<text x="300" y="285" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">STARTET</text>
+<rect x="184" y="342" width="60" height="12" rx="2" fill="#f2f3f1"/>
+<text x="214.0" y="351" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NUR LESEN</text>
+<rect x="642.0" y="300" width="68" height="12" rx="2" fill="#f2f3f1"/>
+<text x="676" y="309" fill="#13738a" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">SSH · HTTPS</text>
+<rect x="658.0" y="372" width="36" height="12" rx="2" fill="#f2f3f1"/>
+<text x="676" y="381" fill="#13738a" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">HTTPS</text>
+<rect x="56" y="208" width="200" height="104" rx="6" fill="#f2f3f1"/>
+<rect x="56" y="208" width="200" height="104" rx="6" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+<rect x="64" y="214" width="48" height="12" rx="2" fill="transparent" stroke="rgba(176,42,138,0.5)" stroke-width="0.8"/>
+<text x="88.0" y="223" fill="#b02a8a" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">PROZESS</text>
+<text x="120" y="224" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">hud</text>
+<rect x="68" y="236" width="176" height="24" rx="4" fill="rgba(28,33,40,0.05)" stroke="#47505c" stroke-width="1"/>
+<text x="76" y="252" fill="#1c2128" font-size="11" font-weight="500" font-family="'IBM Plex Mono', ui-monospace, monospace">hud</text>
+<text x="236" y="252" fill="#5a6470" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">v0.1.0</text>
+<text x="68" y="292" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">~/.cargo/bin/hud</text>
+<rect x="344" y="88" width="280" height="136" rx="6" fill="#f2f3f1"/>
+<rect x="344" y="88" width="280" height="136" rx="6" fill="rgba(28,33,40,0.05)" stroke="#47505c" stroke-width="1"/>
+<rect x="352" y="94" width="36" height="12" rx="2" fill="transparent" stroke="rgba(71,80,92,0.5)" stroke-width="0.8"/>
+<text x="370.0" y="103" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">DATEN</text>
+<text x="396" y="104" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">Lokale Daten</text>
+<rect x="356" y="116" width="256" height="24" rx="4" fill="rgba(28,33,40,0.05)" stroke="#47505c" stroke-width="1"/>
+<text x="364" y="132" fill="#1c2128" font-size="11" font-weight="500" font-family="'IBM Plex Mono', ui-monospace, monospace">config.toml</text>
+<text x="604" y="132" fill="#5a6470" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">~/.config/hud</text>
+<rect x="356" y="148" width="256" height="24" rx="4" fill="rgba(28,33,40,0.05)" stroke="#47505c" stroke-width="1"/>
+<text x="364" y="164" fill="#1c2128" font-size="11" font-weight="500" font-family="'IBM Plex Mono', ui-monospace, monospace">hud.db</text>
+<text x="604" y="164" fill="#5a6470" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">App Support · WAL</text>
+<rect x="356" y="180" width="256" height="24" rx="4" fill="rgba(28,33,40,0.05)" stroke="#47505c" stroke-width="1"/>
+<text x="364" y="196" fill="#1c2128" font-size="11" font-weight="500" font-family="'IBM Plex Mono', ui-monospace, monospace">Logs</text>
+<text x="604" y="196" fill="#5a6470" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">~/Library/Logs/hud</text>
+<rect x="344" y="264" width="280" height="136" rx="6" fill="#f2f3f1"/>
+<rect x="344" y="264" width="280" height="136" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="352" y="270" width="28" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
+<text x="366.0" y="279" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">CLI</text>
+<text x="388" y="280" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">Werkzeuge aus Login-PATH</text>
+<rect x="356" y="292" width="256" height="24" rx="4" fill="rgba(28,33,40,0.05)" stroke="#47505c" stroke-width="1"/>
+<text x="364" y="308" fill="#1c2128" font-size="11" font-weight="500" font-family="'IBM Plex Mono', ui-monospace, monospace">git</text>
+<text x="604" y="308" fill="#5a6470" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">fetch · ff</text>
+<rect x="356" y="324" width="256" height="24" rx="4" fill="rgba(28,33,40,0.05)" stroke="#47505c" stroke-width="1"/>
+<text x="364" y="340" fill="#1c2128" font-size="11" font-weight="500" font-family="'IBM Plex Mono', ui-monospace, monospace">brew</text>
+<text x="604" y="340" fill="#5a6470" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">outdated · upgrade</text>
+<rect x="356" y="356" width="256" height="24" rx="4" fill="rgba(28,33,40,0.05)" stroke="#47505c" stroke-width="1"/>
+<text x="364" y="372" fill="#1c2128" font-size="11" font-weight="500" font-family="'IBM Plex Mono', ui-monospace, monospace">npm / npx</text>
+<text x="604" y="372" fill="#5a6470" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">nvm · skills</text>
+<rect x="56" y="384" width="240" height="104" rx="6" fill="#f2f3f1"/>
+<rect x="56" y="384" width="240" height="104" rx="6" fill="rgba(28,33,40,0.05)" stroke="#47505c" stroke-width="1"/>
+<rect x="64" y="390" width="32" height="12" rx="2" fill="transparent" stroke="rgba(71,80,92,0.5)" stroke-width="0.8"/>
+<text x="80.0" y="399" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">LOGS</text>
+<text x="104" y="400" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">KI-Logs (nur lesen)</text>
+<rect x="68" y="412" width="216" height="24" rx="4" fill="rgba(28,33,40,0.05)" stroke="#47505c" stroke-width="1"/>
+<text x="76" y="428" fill="#1c2128" font-size="11" font-weight="500" font-family="'IBM Plex Mono', ui-monospace, monospace">~/.claude/projects</text>
+<text x="276" y="428" fill="#5a6470" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">jsonl</text>
+<rect x="68" y="444" width="216" height="24" rx="4" fill="rgba(28,33,40,0.05)" stroke="#47505c" stroke-width="1"/>
+<text x="76" y="460" fill="#1c2128" font-size="11" font-weight="500" font-family="'IBM Plex Mono', ui-monospace, monospace">~/.codex/sessions</text>
+<text x="276" y="460" fill="#5a6470" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">optional</text>
+<rect x="728" y="288" width="184" height="64" rx="6" fill="#f2f3f1"/>
+<rect x="728" y="288" width="184" height="64" rx="6" fill="rgba(28,33,40,0.03)" stroke="rgba(28,33,40,0.3)" stroke-width="1"/>
+<rect x="736" y="294" width="40" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.22)" stroke-width="0.8"/>
+<text x="756.0" y="303" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">REMOTE</text>
+<text x="820.0" y="322.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Git-Remotes</text>
+<text x="820.0" y="338.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">GitHub · SSH-Agent</text>
+<rect x="728" y="360" width="184" height="64" rx="6" fill="#f2f3f1"/>
+<rect x="728" y="360" width="184" height="64" rx="6" fill="rgba(28,33,40,0.03)" stroke="rgba(28,33,40,0.3)" stroke-width="1"/>
+<rect x="736" y="366" width="52" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.22)" stroke-width="0.8"/>
+<text x="762.0" y="375" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">REGISTRY</text>
+<text x="820.0" y="394.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Paket-Registries</text>
+<text x="820.0" y="410.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Homebrew · npm</text>
+<line x1="40" y1="528" x2="920" y2="528" stroke="rgba(28,33,40,0.1)" stroke-width="0.8"/>
+<text x="40" y="544" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.18em">LEGENDE</text>
+<rect x="40" y="560" width="14" height="10" rx="2" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+<text x="60" y="568" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">hud-Prozess</text>
+<rect x="140.36" y="560" width="14" height="10" rx="2" fill="rgba(28,33,40,0.05)" stroke="#47505c" stroke-width="1"/>
+<text x="160.36" y="568" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">lokale Dateien</text>
+<rect x="255.0" y="560" width="14" height="10" rx="2" fill="rgba(28,33,40,0.05)" stroke="#47505c" stroke-width="1"/>
+<text x="275.0" y="568" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">Artefakt</text>
+<rect x="341.08" y="560" width="14" height="10" rx="2" fill="rgba(28,33,40,0.03)" stroke="rgba(28,33,40,0.3)" stroke-width="1"/>
+<text x="361.08" y="568" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">extern</text>
+<line x1="417.64" y1="565" x2="445.64" y2="565" stroke="#13738a" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+<text x="453.64" y="568" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">über Zonengrenze</text>
+<line x1="557.8" y1="565" x2="585.8" y2="565" stroke="#47505c" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+<text x="593.8" y="568" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">liest nur</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

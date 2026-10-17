@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lebenszyklus eines Jobs</title>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f2f3f1;
+      --color-ink:     #1c2128;
+      --color-muted:   #47505c;
+      --color-accent:  #b02a8a;
+      --font-sans:     'Chakra Petch', system-ui, sans-serif;
+      --font-serif:    'IBM Plex Serif', serif;
+      --font-mono:     'IBM Plex Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; min-width: 0; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: 'Chakra Petch', system-ui, sans-serif;
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 1040px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Lifecycle · hud</p>
+    <h1>Lebenszyklus eines Jobs</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 1040 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="job-lifecycle-title job-lifecycle-desc">
+        <title id="job-lifecycle-title">Lebenszyklus eines Jobs</title>
+        <desc id="job-lifecycle-desc">Ein Job wird geplant, wartet auf die Sperre seiner Ressource, läuft und endet erfolgreich, fehlgeschlagen oder abgebrochen; Taste q öffnet den Beenden-Dialog, der standardmäßig wartet oder per Abbruch die Kindprozesse beendet.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker>
+        </defs>
+        <rect width="100%" height="100%" fill="#f2f3f1"/>
+        <line x1="50" y1="256" x2="70" y2="256" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="222" y1="256" x2="320" y2="256" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="246" y="236" width="52" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="272" y="245" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ANFORDERN</text>
+        <line x1="472" y1="256" x2="570" y2="256" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="486" y="236" width="72" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="522" y="245" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">[SPERRE FREI]</text>
+        <line x1="722" y1="256" x2="820" y2="256" stroke="#b02a8a" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <rect x="752" y="236" width="40" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="772" y="245" fill="#b02a8a" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">EXIT 0</text>
+        <line x1="622" y1="220" x2="622" y2="138" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="570" y="173" width="44" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="592" y="182" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">TASTE Q</text>
+        <line x1="672" y1="136" x2="672" y2="218" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="680" y="173" width="40" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="700" y="182" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">WARTEN</text>
+        <line x1="722" y1="100" x2="820" y2="100" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="746" y="80" width="52" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="772" y="89" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ABBRECHEN</text>
+        <line x1="647" y1="292" x2="647" y2="398" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="655" y="341" width="80" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="695" y="350" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">FEHLER/TIMEOUT</text>
+        <path d="M972,100 H992 Q1000,100 1000,108 V428 Q1000,436 992,436 H974" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="920" y="341" width="72" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="956" y="350" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PROZESS ENDET</text>
+        <circle cx="44" cy="256" r="6" fill="#1c2128"/>
+        <text x="72" y="100" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.18em">UNTERBRECHUNG</text>
+        <text x="72" y="210" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.18em">FORTSCHRITT</text>
+        <text x="72" y="392" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.18em">ENDE</text>
+        <rect x="72" y="220" width="150" height="72" rx="8" fill="#f2f3f1"/>
+        <rect x="72" y="220" width="150" height="72" rx="8" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="147.0" y="255" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Geplant</text>
+        <text x="147.0" y="271" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">scheduler oder taste</text>
+        <rect x="322" y="220" width="150" height="72" rx="8" fill="#f2f3f1"/>
+        <rect x="322" y="220" width="150" height="72" rx="8" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="397.0" y="255" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Wartend</text>
+        <text x="397.0" y="271" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">sperre: brew · npm · repo</text>
+        <rect x="572" y="220" width="150" height="72" rx="8" fill="#f2f3f1"/>
+        <rect x="572" y="220" width="150" height="72" rx="8" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="647.0" y="255" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Läuft</text>
+        <text x="647.0" y="271" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">kindprozess mit timeout</text>
+        <rect x="822" y="220" width="150" height="72" rx="8" fill="#f2f3f1"/>
+        <rect x="822" y="220" width="150" height="72" rx="8" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+        <text x="897.0" y="255" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle"><tspan fill="#24774a">●</tspan> Erfolgreich</text>
+        <text x="897.0" y="271" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">protokolliert</text>
+        <rect x="572" y="64" width="150" height="72" rx="8" fill="#f2f3f1"/>
+        <rect x="572" y="64" width="150" height="72" rx="8" fill="#f2f3f1" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4"/>
+        <text x="647.0" y="99" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Beenden-Dialog</text>
+        <text x="647.0" y="115" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">default: warten</text>
+        <rect x="822" y="64" width="150" height="72" rx="8" fill="#f2f3f1"/>
+        <rect x="822" y="64" width="150" height="72" rx="8" fill="#f2f3f1" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4"/>
+        <text x="897.0" y="99" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Abbruch</text>
+        <text x="897.0" y="115" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">SIGTERM → 5 s → SIGKILL</text>
+        <rect x="572" y="400" width="150" height="72" rx="8" fill="#f2f3f1"/>
+        <rect x="572" y="400" width="150" height="72" rx="8" fill="#ffffff" stroke="#b42f25" stroke-width="1"/>
+        <text x="647.0" y="435" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle"><tspan fill="#b42f25">✖</tspan> Fehlgeschlagen</text>
+        <text x="647.0" y="451" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">exit ≠ 0 oder timeout</text>
+        <rect x="822" y="400" width="150" height="72" rx="8" fill="#f2f3f1"/>
+        <rect x="822" y="400" width="150" height="72" rx="8" fill="#ffffff" stroke="#8f6200" stroke-width="1"/>
+        <text x="897.0" y="435" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle"><tspan fill="#8f6200">▲</tspan> Abgebrochen</text>
+        <text x="897.0" y="451" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">CancellationToken</text>
+        <text x="72" y="420" fill="#47505c" font-size="13" font-style="italic" font-family="'IBM Plex Serif', serif">Nach „Warten“ startet der Scheduler keine</text>
+        <text x="72" y="437" fill="#47505c" font-size="13" font-style="italic" font-family="'IBM Plex Serif', serif">neuen Jobs; hud beendet sich, sobald</text>
+        <text x="72" y="454" fill="#47505c" font-size="13" font-style="italic" font-family="'IBM Plex Serif', serif">der letzte laufende Job endet.</text>
+        <line x1="40" y1="504" x2="1000" y2="504" stroke="rgba(28,33,40,0.10)" stroke-width="0.8"/>
+        <text x="40" y="520" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.18em">LEGENDE</text>
+        <rect x="120" y="510" width="24" height="12" rx="4" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="152" y="520" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">Phase</text>
+        <rect x="216" y="510" width="24" height="12" rx="4" fill="#f2f3f1" stroke="#47505c" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="248" y="520" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">Unterbrechung</text>
+        <line x1="346" y1="516" x2="372" y2="516" stroke="#b02a8a" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <text x="380" y="520" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">Erfolgspfad</text>
+        <line x1="470" y1="516" x2="496" y2="516" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <text x="504" y="520" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">Rückkehr</text>
+        <text x="580" y="521" fill="#24774a" font-size="11" font-family="'Chakra Petch', system-ui, sans-serif">●</text>
+        <text x="594" y="520" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">erfolgreich</text>
+        <text x="690" y="521" fill="#b42f25" font-size="11" font-family="'Chakra Petch', system-ui, sans-serif">✖</text>
+        <text x="704" y="520" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">Fehler</text>
+        <text x="780" y="521" fill="#8f6200" font-size="11" font-family="'Chakra Petch', system-ui, sans-serif">▲</text>
+        <text x="794" y="520" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">abgebrochen</text>
+
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

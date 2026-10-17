@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 720 808" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="startup-flow-title startup-flow-desc" id="startup-flow-root">
+        <title id="startup-flow-title">Start und Erststart</title>
+        <desc id="startup-flow-desc">Ablauf beim Start von hud: Terminal-Guard und Logging, Config lesen, bei fehlendem Workspace der Einrichtungsdialog, dann SQLite, Umgebungserkennung und die Composition Root, die Scheduler und Job-Runner startet.</desc>
+        <defs>
+      <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
+      #startup-flow-root { --color-paper:   #f2f3f1;
+      --color-ink:     #1c2128;
+      --color-muted:   #47505c;
+      --color-accent:  #b02a8a;
+      --font-sans:     'Chakra Petch', system-ui, sans-serif;
+      --font-serif:    'Chakra Petch', system-ui, sans-serif;
+      --font-mono:     'IBM Plex Mono', ui-monospace, monospace; }
+      #startup-flow-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #startup-flow-root .diagram-container { width: 100%; overflow-x: auto; }
+      #startup-flow-root .diagram-container { overflow-x: visible; }</style><marker id="startup-flow-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker><marker id="startup-flow-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker><marker id="startup-flow-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker></defs>
+        <rect width="100%" height="100%" fill="#f2f3f1"/>
+        <line x1="280" y1="64" x2="280" y2="94" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <line x1="280" y1="152" x2="280" y2="182" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <line x1="280" y1="240" x2="280" y2="270" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <line x1="352" y1="312" x2="438" y2="312" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <rect x="380.0" y="292" width="32" height="12" rx="2" fill="#f2f3f1"/><text x="396" y="301" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NEIN</text>
+        <line x1="280" y1="352" x2="280" y2="394" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <rect x="288" y="366" width="24" height="12" rx="2" fill="#f2f3f1"/><text x="300.0" y="375" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">JA</text>
+        <path d="M540 340 V392 Q540 400 532 400 H286" fill="none" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <line x1="280" y1="404" x2="280" y2="430" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <line x1="280" y1="488" x2="280" y2="518" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <line x1="280" y1="576" x2="280" y2="606" stroke="#b02a8a" stroke-width="1" marker-end="url(#startup-flow-arrow-accent)"/>
+        <line x1="280" y1="664" x2="280" y2="694" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <rect x="200" y="24" width="160" height="40" rx="20" fill="#f2f3f1"/><rect x="200" y="24" width="160" height="40" rx="20" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.05"/><text x="280.0" y="48.0" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">hud startet</text>
+        <rect x="180" y="96" width="200" height="56" rx="6" fill="#f2f3f1"/><rect x="180" y="96" width="200" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/><text x="280.0" y="120" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Terminal-Guard + Logging</text><text x="280.0" y="137" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Panic-Hook, ~/Library/Logs/hud</text>
+        <rect x="180" y="184" width="200" height="56" rx="6" fill="#f2f3f1"/><rect x="180" y="184" width="200" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/><text x="280.0" y="208" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Config lesen</text><text x="280.0" y="225" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">~/.config/hud/config.toml</text>
+        <polygon points="280,272 352,312 280,352 208,312" fill="#f2f3f1"/>
+        <polygon points="280,272 352,312 280,352 208,312" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="280" y="309" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Workspace</text>
+        <text x="280" y="323" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">vorhanden?</text>
+        <rect x="440" y="284" width="200" height="56" rx="6" fill="#f2f3f1"/><rect x="440" y="284" width="200" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/><text x="540.0" y="308" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Einrichtungsdialog</text><text x="540.0" y="325" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Pfade wählen, speichern</text>
+        <circle cx="280" cy="400" r="4" fill="#1c2128"/>
+        <rect x="180" y="432" width="200" height="56" rx="6" fill="#f2f3f1"/><rect x="180" y="432" width="200" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/><text x="280.0" y="456" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">SQLite öffnen</text><text x="280.0" y="473" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">hud.db, Migrationen</text>
+        <rect x="180" y="520" width="200" height="56" rx="6" fill="#f2f3f1"/><rect x="180" y="520" width="200" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/><text x="280.0" y="544" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Umgebung erkennen</text><text x="280.0" y="561" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Login-PATH, Theme, Sprache</text>
+        <rect x="180" y="608" width="200" height="56" rx="6" fill="#f2f3f1"/><rect x="180" y="608" width="200" height="56" rx="6" fill="#b02a8a" stroke="#b02a8a" stroke-width="1" fill-opacity="0.08"/><text x="280.0" y="632" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Composition Root</text><text x="280.0" y="649" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Scheduler + Job-Runner</text>
+        <rect x="180" y="696" width="200" height="40" rx="20" fill="#f2f3f1"/><rect x="180" y="696" width="200" height="40" rx="20" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.05"/><text x="280.0" y="720.0" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Cache + erster Scan</text>
+        <text x="684" y="628" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="end" font-style="italic">einzige Stelle, an der</text>
+        <text x="684" y="646" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="end" font-style="italic">Adapter erzeugt werden</text>
+        <path d="M 524 637 Q 440 640 388 636" fill="none" stroke="#1c2128" stroke-width="1" stroke-dasharray="4,3" stroke-opacity="0.4"/>
+        <circle cx="384" cy="636" r="2" fill="#1c2128"/>
+        <line x1="40" y1="760" x2="680" y2="760" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.1"/><text x="40" y="776" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">LEGENDE</text>
+        <rect x="128" y="768" width="28" height="14" rx="7" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.05"/>
+        <text x="164" y="779" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Start / Ende</text>
+        <rect x="252" y="768" width="28" height="14" rx="3" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="288" y="779" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Schritt</text>
+        <polygon points="362,767 376,775 362,783 348,775" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="384" y="779" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Entscheidung</text>
+        <circle cx="480" cy="775" r="4" fill="#1c2128"/>
+        <text x="492" y="779" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Zusammenführung</text>
+        <rect x="600" y="768" width="28" height="14" rx="3" fill="#b02a8a" stroke="#b02a8a" stroke-width="1" fill-opacity="0.08"/>
+        <text x="636" y="779" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Fokus</text>
+      </svg>

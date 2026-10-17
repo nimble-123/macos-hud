@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1040 784" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="seq-auto-ff-title seq-auto-ff-desc" id="seq-auto-ff-root">
+        <title id="seq-auto-ff-title">Automatischer Fast-Forward</title>
+        <desc id="seq-auto-ff-desc">Sequenz des automatischen Fast-Forward: Der Use Case holt Status per Git, die Domain erteilt einen Permit, der Adapter führt den Fast-Forward nur bei unverändertem HEAD aus, beide Schritte werden protokolliert und die TUI informiert.</desc>
+        <defs>
+      <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
+      #seq-auto-ff-root { --paper: #f2f3f1; --ink: #1c2128; --muted: #47505c; --soft: #5a6470;
+      --accent: #b02a8a; --accent-tint: rgba(176,42,138,0.08); --link: #13738a;
+      --sans: 'Chakra Petch', system-ui, sans-serif; --mono: 'IBM Plex Mono', ui-monospace, monospace; --serif: 'IBM Plex Serif', serif; }
+      #seq-auto-ff-root { color: var(--ink); font-family: var(--sans); }
+      #seq-auto-ff-root .diagram-container { width: 100%; overflow-x: auto; }
+      #seq-auto-ff-root .node-name { fill: var(--ink); font: 600 12px var(--sans); text-anchor: middle; }
+      #seq-auto-ff-root .sublabel { fill: var(--soft); font: 400 9px var(--mono); text-anchor: middle; }
+      #seq-auto-ff-root .arrow-label { fill: var(--soft); font: 400 8px var(--mono); letter-spacing: 0.06em; text-anchor: middle; }
+      #seq-auto-ff-root .eyebrow-svg { fill: var(--muted); font: 500 8px var(--mono); letter-spacing: 0.14em; }
+      #seq-auto-ff-root .legend { fill: var(--muted); font: 400 8px var(--mono); letter-spacing: 0.06em; }
+      #seq-auto-ff-root .callout { fill: var(--ink); font: italic 400 14px var(--serif); }
+      #seq-auto-ff-root .diagram-container { overflow-x: visible; }</style>
+          <marker id="seq-auto-ff-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker>
+          <marker id="seq-auto-ff-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker>
+          <marker id="seq-auto-ff-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker>
+          <marker id="seq-auto-ff-arrow-soft" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#5a6470"/></marker>
+          <marker id="seq-auto-ff-arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#47505c" stroke-width="1.2"/></marker>
+        </defs>
+        <rect width="1040" height="784" fill="#f2f3f1"/>
+        <line x1="120" y1="88" x2="120" y2="712" stroke="#1c2128" stroke-width="1" stroke-dasharray="3,3" stroke-opacity="0.22"/>
+        <line x1="320" y1="88" x2="320" y2="712" stroke="#1c2128" stroke-width="1" stroke-dasharray="3,3" stroke-opacity="0.22"/>
+        <line x1="520" y1="88" x2="520" y2="712" stroke="#1c2128" stroke-width="1" stroke-dasharray="3,3" stroke-opacity="0.22"/>
+        <line x1="720" y1="88" x2="720" y2="712" stroke="#1c2128" stroke-width="1" stroke-dasharray="3,3" stroke-opacity="0.22"/>
+        <line x1="920" y1="88" x2="920" y2="712" stroke="#1c2128" stroke-width="1" stroke-dasharray="3,3" stroke-opacity="0.22"/>
+        <rect x="64" y="436" width="604" height="176" rx="4" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.02" stroke-opacity="0.22"/>
+        <rect x="64" y="436" width="40" height="16" rx="2" fill="#f2f3f1" stroke="#1c2128" stroke-width="1" stroke-opacity="0.22"/>
+        <text x="84" y="448" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.12em">ALT</text>
+        <text x="136" y="448" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.04em">[HEAD == head_oid]</text>
+        <line x1="72" y1="560" x2="660" y2="560" stroke="#1c2128" stroke-width="1" stroke-dasharray="4,3" stroke-opacity="0.20"/>
+        <text x="136" y="576" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.04em">[sonst]</text>
+        <rect x="116" y="132" width="8" height="556" fill="#1c2128" stroke="#47505c" stroke-width="0.8" fill-opacity="0.06"/>
+        <rect x="516" y="192" width="8" height="44" fill="#1c2128" stroke="#47505c" stroke-width="0.8" fill-opacity="0.06"/>
+        <rect x="316" y="280" width="8" height="44" fill="#1c2128" stroke="#47505c" stroke-width="0.8" fill-opacity="0.06"/>
+        <rect x="516" y="416" width="8" height="180" fill="#1c2128" stroke="#47505c" stroke-width="0.8" fill-opacity="0.06"/>
+        <path d="M 124 140 L 160 140 L 160 164 L 124 164" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#seq-auto-ff-arrow)"/>
+        <line x1="124" y1="200" x2="516" y2="200" stroke="#47505c" stroke-width="1.2" marker-end="url(#seq-auto-ff-arrow)"/>
+        <line x1="516" y1="232" x2="124" y2="232" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#seq-auto-ff-arrow)"/>
+        <line x1="124" y1="288" x2="316" y2="288" stroke="#47505c" stroke-width="1.2" marker-end="url(#seq-auto-ff-arrow)"/>
+        <line x1="316" y1="320" x2="124" y2="320" stroke="#b02a8a" stroke-width="1.4" marker-end="url(#seq-auto-ff-arrow-accent)"/>
+        <line x1="124" y1="368" x2="720" y2="368" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#seq-auto-ff-arrow-open)"/>
+        <line x1="124" y1="408" x2="516" y2="408" stroke="#47505c" stroke-width="1.2" marker-end="url(#seq-auto-ff-arrow)"/>
+        <path d="M 524 476 L 560 476 L 560 500 L 524 500" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#seq-auto-ff-arrow)"/>
+        <line x1="516" y1="536" x2="124" y2="536" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#seq-auto-ff-arrow)"/>
+        <line x1="516" y1="596" x2="124" y2="596" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#seq-auto-ff-arrow)"/>
+        <line x1="124" y1="640" x2="720" y2="640" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#seq-auto-ff-arrow-open)"/>
+        <line x1="124" y1="684" x2="920" y2="684" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#seq-auto-ff-arrow-open)"/>
+        <rect x="168" y="146" width="76" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="206" y="155" class="arrow-label">TICK 15 MIN</text>
+        <rect x="380" y="182" width="80" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="420" y="191" class="arrow-label">FETCH+STATUS</text>
+        <rect x="386" y="214" width="68" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="420" y="223" class="arrow-label">REPOSTATUS</text>
+        <rect x="178" y="270" width="84" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="220" y="279" class="arrow-label">SYNC_DECISION</text>
+        <rect x="186" y="302" width="68" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="220" y="311" class="arrow-label" style="fill:#b02a8a">FF(PERMIT)</text>
+        <rect x="582" y="350" width="76" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="620" y="359" class="arrow-label">LOG STARTED</text>
+        <rect x="380" y="390" width="80" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="420" y="399" class="arrow-label">FAST_FORWARD</text>
+        <rect x="568" y="482" width="80" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="608" y="491" class="arrow-label">MERGE FF-ONLY</text>
+        <rect x="392" y="518" width="56" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="420" y="527" class="arrow-label">ADVANCED</text>
+        <rect x="380" y="578" width="80" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="420" y="587" class="arrow-label">STATECHANGED</text>
+        <rect x="580" y="622" width="80" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="620" y="631" class="arrow-label">LOG FINISHED</text>
+        <rect x="786" y="666" width="68" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="820" y="675" class="arrow-label">REPOSYNCED</text>
+        <rect x="40" y="40" width="160" height="48" rx="6" fill="#f2f3f1"/>
+        <rect x="40" y="40" width="160" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="120" y="62" class="node-name">SyncRepositories</text>
+        <text x="120" y="77" class="sublabel">Use Case</text>
+        <rect x="240" y="40" width="160" height="48" rx="6" fill="#f2f3f1"/>
+        <rect x="240" y="40" width="160" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="320" y="62" class="node-name">Domain</text>
+        <text x="320" y="77" class="sublabel">sync_decision</text>
+        <rect x="440" y="40" width="160" height="48" rx="6" fill="#f2f3f1"/>
+        <rect x="440" y="40" width="160" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="520" y="62" class="node-name">GitCli</text>
+        <text x="520" y="77" class="sublabel">GitPort-Adapter</text>
+        <rect x="640" y="40" width="160" height="48" rx="6" fill="#f2f3f1"/>
+        <rect x="640" y="40" width="160" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="720" y="62" class="node-name">ActionLog</text>
+        <text x="720" y="77" class="sublabel">SQLite</text>
+        <rect x="840" y="40" width="160" height="48" rx="6" fill="#f2f3f1"/>
+        <rect x="840" y="40" width="160" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="920" y="62" class="node-name">TUI</text>
+        <text x="920" y="77" class="sublabel">Elm-Schleife</text>
+        <text x="900" y="710" class="callout" text-anchor="end">zeigt ● ok für 30 s</text>
+        <path d="M 904 705 Q 911 703 917 702" fill="none" stroke="#1c2128" stroke-width="1" stroke-dasharray="4,3" stroke-opacity="0.40"/>
+        <circle cx="920" cy="702" r="2" fill="#1c2128"/>
+        <line x1="40" y1="724" x2="1000" y2="724" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.10"/>
+        <text x="40" y="744" class="eyebrow-svg">LEGENDE</text>
+        <line x1="136" y1="741" x2="164" y2="741" stroke="#47505c" stroke-width="1.2" marker-end="url(#seq-auto-ff-arrow)"/>
+        <text x="172" y="744" class="legend">Aufruf</text>
+        <line x1="238" y1="741" x2="266" y2="741" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#seq-auto-ff-arrow)"/>
+        <text x="274" y="744" class="legend">Antwort</text>
+        <line x1="345" y1="741" x2="373" y2="741" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#seq-auto-ff-arrow-open)"/>
+        <text x="381" y="744" class="legend">asynchron</text>
+        <line x1="462" y1="741" x2="490" y2="741" stroke="#b02a8a" stroke-width="1.4" marker-end="url(#seq-auto-ff-arrow-accent)"/>
+        <text x="498" y="744" class="legend">Permit erteilt</text>
+
+      </svg>

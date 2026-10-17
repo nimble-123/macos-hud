@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 840 356" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ingest-flow-title ingest-flow-desc" id="ingest-flow-root">
+        <title id="ingest-flow-title">KI-Nutzung einlesen</title>
+        <desc id="ingest-flow-desc">Datenfluss der KI-Nutzung: Claude- und Codex-Logs werden ab gespeichertem Offset gelesen, tolerant geparst, dedupliziert, in ai_usage gespeichert, pro Zeitraum mit Preistabelle ausgewertet und im KI-Tab angezeigt.</desc>
+        <defs>
+      <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
+      #ingest-flow-root { --color-paper:   #f2f3f1;
+      --color-ink:     #1c2128;
+      --color-muted:   #47505c;
+      --color-accent:  #b02a8a;
+      --font-sans:     'Chakra Petch', system-ui, sans-serif;
+      --font-serif:    'Chakra Petch', system-ui, sans-serif;
+      --font-mono:     'IBM Plex Mono', ui-monospace, monospace; }
+      #ingest-flow-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #ingest-flow-root .diagram-container { width: 100%; overflow-x: auto; }
+      #ingest-flow-root .diagram-container { overflow-x: visible; }</style>
+<marker id="ingest-flow-arr-muted" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#47505c"/></marker>
+<marker id="ingest-flow-arr-accent" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#b02a8a"/></marker>
+<marker id="ingest-flow-arr-link" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#13738a"/></marker>
+</defs>
+        <rect width="100%" height="100%" fill="#f2f3f1"/>
+        <rect x="0" y="196" width="840" height="80" fill="#1c2128" fill-opacity="0.018"/>
+        <line x1="0" y1="36" x2="840" y2="36" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.12"/>
+        <line x1="0" y1="116" x2="840" y2="116" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.12"/>
+        <line x1="0" y1="196" x2="840" y2="196" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.12"/>
+        <line x1="0" y1="276" x2="840" y2="276" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.12"/>
+        <line x1="140" y1="36" x2="140" y2="276" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.12"/>
+        <rect x="180" y="6" width="32" height="16" rx="8" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="196" y="17" fill="#1c2128" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">01</text>
+        <text x="196" y="31" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.12em">LESEN</text>
+        <rect x="292" y="6" width="32" height="16" rx="8" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="308" y="17" fill="#1c2128" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">02</text>
+        <text x="308" y="31" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.12em">PARSEN</text>
+        <rect x="404" y="6" width="32" height="16" rx="8" fill="#b02a8a" fill-opacity="0.20"/>
+        <text x="420" y="17" fill="#b02a8a" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">03</text>
+        <text x="420" y="31" fill="#b02a8a" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.12em">DEDUPLIZIEREN</text>
+        <rect x="516" y="6" width="32" height="16" rx="8" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="532" y="17" fill="#1c2128" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">04</text>
+        <text x="532" y="31" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.12em">SPEICHERN</text>
+        <rect x="628" y="6" width="32" height="16" rx="8" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="644" y="17" fill="#1c2128" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">05</text>
+        <text x="644" y="31" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.12em">ABFRAGEN</text>
+        <rect x="740" y="6" width="32" height="16" rx="8" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="756" y="17" fill="#1c2128" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">06</text>
+        <text x="756" y="31" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.12em">ANZEIGEN</text>
+        <text x="70" y="72" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="500" letter-spacing="0.18em">CLAUDE</text>
+        <text x="70" y="84" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="500" letter-spacing="0.18em">LOGS</text>
+        <text x="70" y="152" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="500" letter-spacing="0.18em">CODEX</text>
+        <text x="70" y="164" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="500" letter-spacing="0.18em">LOGS</text>
+        <text x="70" y="232" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="500" letter-spacing="0.18em">HUD</text>
+        <text x="70" y="244" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="500" letter-spacing="0.18em">KERN</text>
+        <line x1="246" y1="76" x2="257" y2="76" stroke="#47505c" stroke-width="1" marker-end="url(#ingest-flow-arr-muted)"/>
+        <line x1="246" y1="156" x2="257" y2="156" stroke="#47505c" stroke-width="1" marker-end="url(#ingest-flow-arr-muted)"/>
+        <path d="M358 76 H429 Q437 76 437 84 V203" fill="none" stroke="#b02a8a" stroke-width="1.2" marker-end="url(#ingest-flow-arr-accent)"/>
+        <rect x="379.0" y="56" width="36" height="12" rx="2" fill="#f2f3f1"/>
+        <text x="397" y="65" fill="#b02a8a" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">USAGE</text>
+        <path d="M358 156 H395 Q403 156 403 164 V203" fill="none" stroke="#47505c" stroke-width="1" marker-end="url(#ingest-flow-arr-muted)"/>
+        <line x1="470" y1="236" x2="481" y2="236" stroke="#47505c" stroke-width="1" marker-end="url(#ingest-flow-arr-muted)"/>
+        <line x1="582" y1="236" x2="593" y2="236" stroke="#47505c" stroke-width="1" marker-end="url(#ingest-flow-arr-muted)"/>
+        <line x1="694" y1="236" x2="705" y2="236" stroke="#13738a" stroke-width="1" marker-end="url(#ingest-flow-arr-link)"/>
+        <rect x="146" y="44" width="100" height="64" rx="6" fill="#f2f3f1"/>
+        <rect x="146" y="44" width="100" height="64" rx="6" fill="#f2f3f1" stroke="#1c2128" stroke-width="1" stroke-opacity="0.25"/>
+        <rect x="150" y="48" width="18" height="10" rx="3" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="159" y="55" fill="#1c2128" font-size="6" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">CLA</text>
+        <text x="196" y="69" fill="#1c2128" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Offset-Leser</text>
+        <text x="196" y="81" fill="#47505c" font-size="6.5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">nur ganze Zeilen</text>
+        <text x="196" y="92" fill="#5a6470" font-size="6.5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">~/.claude/projects</text>
+        <rect x="226" y="98" width="16" height="8" rx="3" fill="#5e7a9b"/>
+        <text x="234" y="104" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">DB</text>
+        <rect x="258" y="44" width="100" height="64" rx="6" fill="#f2f3f1"/>
+        <rect x="258" y="44" width="100" height="64" rx="6" fill="#f2f3f1" stroke="#1c2128" stroke-width="1" stroke-opacity="0.25"/>
+        <rect x="262" y="48" width="18" height="10" rx="3" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="271" y="55" fill="#1c2128" font-size="6" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">CLA</text>
+        <text x="308" y="69" fill="#1c2128" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Parser</text>
+        <text x="308" y="81" fill="#47505c" font-size="6.5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">nur usage-Felder</text>
+        <text x="308" y="92" fill="#5a6470" font-size="6.5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">kaputt → Partial</text>
+        <rect x="262" y="98" width="16" height="8" rx="3" fill="#5e7a9b"/>
+        <text x="270" y="104" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">DB</text>
+        <rect x="338" y="98" width="16" height="8" rx="3" fill="#4a7c59"/>
+        <text x="346" y="104" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">LS</text>
+        <rect x="146" y="124" width="100" height="64" rx="6" fill="#f2f3f1"/>
+        <rect x="146" y="124" width="100" height="64" rx="6" fill="#f2f3f1" stroke="#1c2128" stroke-width="1" stroke-opacity="0.25"/>
+        <rect x="150" y="128" width="18" height="10" rx="3" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="159" y="135" fill="#1c2128" font-size="6" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">COD</text>
+        <text x="196" y="149" fill="#1c2128" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Offset-Leser</text>
+        <text x="196" y="161" fill="#47505c" font-size="6.5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">nur ganze Zeilen</text>
+        <text x="196" y="172" fill="#5a6470" font-size="6.5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">~/.codex/sessions</text>
+        <rect x="226" y="178" width="16" height="8" rx="3" fill="#5e7a9b"/>
+        <text x="234" y="184" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">DB</text>
+        <rect x="258" y="124" width="100" height="64" rx="6" fill="#f2f3f1"/>
+        <rect x="258" y="124" width="100" height="64" rx="6" fill="#f2f3f1" stroke="#1c2128" stroke-width="1" stroke-opacity="0.25"/>
+        <rect x="262" y="128" width="18" height="10" rx="3" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="271" y="135" fill="#1c2128" font-size="6" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">COD</text>
+        <text x="308" y="149" fill="#1c2128" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Parser</text>
+        <text x="308" y="161" fill="#47505c" font-size="6.5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">token_count-Events</text>
+        <text x="308" y="172" fill="#5a6470" font-size="6.5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">kaputt → Partial</text>
+        <rect x="262" y="178" width="16" height="8" rx="3" fill="#5e7a9b"/>
+        <text x="270" y="184" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">DB</text>
+        <rect x="338" y="178" width="16" height="8" rx="3" fill="#4a7c59"/>
+        <text x="346" y="184" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">LS</text>
+        <rect x="370" y="204" width="100" height="64" rx="6" fill="#f2f3f1"/>
+        <rect x="370" y="204" width="100" height="64" rx="6" fill="#b02a8a" stroke="#b02a8a" stroke-width="1" fill-opacity="0.07"/>
+        <rect x="374" y="208" width="18" height="10" rx="3" fill="#b02a8a" fill-opacity="0.20"/>
+        <text x="383" y="215" fill="#b02a8a" font-size="6" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">HUD</text>
+        <text x="420" y="229" fill="#1c2128" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Deduplizierung</text>
+        <text x="420" y="241" fill="#47505c" font-size="6.5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">message.id+requestId</text>
+        <text x="420" y="252" fill="#5a6470" font-size="6.5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">session_id+ordinal</text>
+        <rect x="374" y="258" width="16" height="8" rx="3" fill="#4a7c59"/>
+        <text x="382" y="264" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">LS</text>
+        <rect x="450" y="258" width="16" height="8" rx="3" fill="#b8915a"/>
+        <text x="458" y="264" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">TB</text>
+        <rect x="482" y="204" width="100" height="64" rx="6" fill="#f2f3f1"/>
+        <rect x="482" y="204" width="100" height="64" rx="6" fill="#f2f3f1" stroke="#1c2128" stroke-width="1" stroke-opacity="0.25"/>
+        <rect x="486" y="208" width="18" height="10" rx="3" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="495" y="215" fill="#1c2128" font-size="6" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">HUD</text>
+        <text x="532" y="229" fill="#1c2128" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">UsageStore</text>
+        <text x="532" y="241" fill="#47505c" font-size="6.5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Tabelle ai_usage</text>
+        <text x="532" y="252" fill="#5a6470" font-size="6.5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">SQLite, WAL</text>
+        <rect x="486" y="258" width="16" height="8" rx="3" fill="#b8915a"/>
+        <text x="494" y="264" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">TB</text>
+        <rect x="562" y="258" width="16" height="8" rx="3" fill="#b8915a"/>
+        <text x="570" y="264" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">TB</text>
+        <rect x="594" y="204" width="100" height="64" rx="6" fill="#f2f3f1"/>
+        <rect x="594" y="204" width="100" height="64" rx="6" fill="#f2f3f1" stroke="#1c2128" stroke-width="1" stroke-opacity="0.25"/>
+        <rect x="598" y="208" width="18" height="10" rx="3" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="607" y="215" fill="#1c2128" font-size="6" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">HUD</text>
+        <text x="644" y="229" fill="#1c2128" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">QueryUsage</text>
+        <text x="644" y="241" fill="#47505c" font-size="6.5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">5 Zeiträume</text>
+        <text x="644" y="252" fill="#5a6470" font-size="6.5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Preistabelle → ≈</text>
+        <rect x="598" y="258" width="16" height="8" rx="3" fill="#b8915a"/>
+        <text x="606" y="264" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">TB</text>
+        <rect x="674" y="258" width="16" height="8" rx="3" fill="#9c6b50"/>
+        <text x="682" y="264" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">FL</text>
+        <rect x="706" y="204" width="100" height="64" rx="6" fill="#f2f3f1"/>
+        <rect x="706" y="204" width="100" height="64" rx="6" fill="#f2f3f1" stroke="#1c2128" stroke-width="1" stroke-opacity="0.25"/>
+        <rect x="710" y="208" width="18" height="10" rx="3" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="719" y="215" fill="#1c2128" font-size="6" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">HUD</text>
+        <text x="756" y="229" fill="#1c2128" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">KI-Tab</text>
+        <text x="756" y="241" fill="#47505c" font-size="6.5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Accuracy-Badges</text>
+        <text x="756" y="252" fill="#5a6470" font-size="6.5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">hud-tui</text>
+        <rect x="710" y="258" width="16" height="8" rx="3" fill="#9c6b50"/>
+        <text x="718" y="264" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">FL</text>
+        <text x="24" y="295" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">SCHRITTE</text>
+        <text x="24" y="316" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">DATENTYP</text>
+        <text x="24" y="338" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">FLUSS</text>
+        <rect x="144" y="286" width="20" height="12" rx="6" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="154" y="295" fill="#1c2128" font-size="6" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">01</text>
+        <text x="168" y="295" fill="#47505c" font-size="7.5" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">lesen</text>
+        <rect x="248" y="286" width="20" height="12" rx="6" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="258" y="295" fill="#1c2128" font-size="6" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">02</text>
+        <text x="272" y="295" fill="#47505c" font-size="7.5" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">parsen</text>
+        <rect x="352" y="286" width="20" height="12" rx="6" fill="#b02a8a" fill-opacity="0.20"/>
+        <text x="362" y="295" fill="#b02a8a" font-size="6" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">03</text>
+        <text x="376" y="295" fill="#b02a8a" font-size="7.5" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">deduplizieren</text>
+        <rect x="456" y="286" width="20" height="12" rx="6" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="466" y="295" fill="#1c2128" font-size="6" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">04</text>
+        <text x="480" y="295" fill="#47505c" font-size="7.5" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">speichern</text>
+        <rect x="560" y="286" width="20" height="12" rx="6" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="570" y="295" fill="#1c2128" font-size="6" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">05</text>
+        <text x="584" y="295" fill="#47505c" font-size="7.5" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">abfragen</text>
+        <rect x="664" y="286" width="20" height="12" rx="6" fill="#1c2128" fill-opacity="0.12"/>
+        <text x="674" y="295" fill="#1c2128" font-size="6" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="600">06</text>
+        <text x="688" y="295" fill="#47505c" font-size="7.5" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">anzeigen</text>
+        <rect x="144" y="309" width="16" height="8" rx="3" fill="#5e7a9b"/>
+        <text x="152" y="315" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">DB</text>
+        <text x="166" y="316" fill="#47505c" font-size="7.5" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">JSONL-Datei</text>
+        <rect x="248" y="309" width="16" height="8" rx="3" fill="#4a7c59"/>
+        <text x="256" y="315" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">LS</text>
+        <text x="270" y="316" fill="#47505c" font-size="7.5" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Nutzungs-Ereignis</text>
+        <rect x="352" y="309" width="16" height="8" rx="3" fill="#b8915a"/>
+        <text x="360" y="315" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">TB</text>
+        <text x="374" y="316" fill="#47505c" font-size="7.5" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Tabelle</text>
+        <rect x="456" y="309" width="16" height="8" rx="3" fill="#9c6b50"/>
+        <text x="464" y="315" fill="#ffffff" font-size="5" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">FL</text>
+        <text x="478" y="316" fill="#47505c" font-size="7.5" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Auswertung</text>
+        <text x="568" y="316" fill="#5a6470" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">links = Eingang, rechts = Ausgang</text>
+        <line x1="144" y1="335" x2="168" y2="335" stroke="#47505c" stroke-width="1" marker-end="url(#ingest-flow-arr-muted)"/>
+        <text x="174" y="338" fill="#47505c" font-size="7.5" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Übergabe</text>
+        <line x1="264" y1="335" x2="288" y2="335" stroke="#b02a8a" stroke-width="1.2" marker-end="url(#ingest-flow-arr-accent)"/>
+        <text x="294" y="338" fill="#47505c" font-size="7.5" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Fokus-Übergabe</text>
+        <line x1="384" y1="335" x2="408" y2="335" stroke="#13738a" stroke-width="1" marker-end="url(#ingest-flow-arr-link)"/>
+        <text x="414" y="338" fill="#47505c" font-size="7.5" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Anzeige</text>
+      </svg>

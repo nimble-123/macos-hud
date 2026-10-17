@@ -1,0 +1,47 @@
+name: Fehler melden
+description: Etwas funktioniert nicht wie erwartet
+labels: ["bug"]
+body:
+  - type: textarea
+    id: was
+    attributes:
+      label: Was ist passiert?
+      description: Beobachtetes Verhalten, möglichst mit Fehlermeldung.
+    validations:
+      required: true
+  - type: textarea
+    id: erwartet
+    attributes:
+      label: Was hast du erwartet?
+    validations:
+      required: true
+  - type: textarea
+    id: schritte
+    attributes:
+      label: Schritte zum Nachstellen
+      placeholder: |
+        1. hud starten
+        2. Tab Workspaces öffnen
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: hud-Version
+      placeholder: "hud --version"
+    validations:
+      required: true
+  - type: input
+    id: umgebung
+    attributes:
+      label: macOS-Version und Terminal
+      placeholder: "macOS 27.0, Ghostty 1.2"
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log-Auszug
+      description: Aus ~/Library/Logs/hud/. Keine Zugangsdaten oder Prompt-Inhalte einfügen.
+      render: text

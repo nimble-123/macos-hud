@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crate-Schichten · hud</title>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Serif:ital@0;1&amp;display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f2f3f1;
+      --color-ink:     #1c2128;
+      --color-muted:   #47505c;
+      --color-accent:  #b02a8a;
+      --font-sans:     'Chakra Petch', system-ui, sans-serif;
+      --font-title:    'Chakra Petch', system-ui, sans-serif;
+      --font-mono:     'IBM Plex Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+      -webkit-font-smoothing: antialiased;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-title);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 1.75rem);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Abhängigkeitsgraph · hud</p>
+    <h1>Crate-Schichten</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 580" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="layers-title layers-desc">
+        <title id="layers-title">Crate-Schichten</title>
+        <desc id="layers-desc">Abhängigkeitsgraph der fünf Crates: hud hängt von hud-tui, hud-infrastructure und hud-application ab, beide Außenschichten hängen von hud-application und hud-domain ab, alle Abhängigkeiten zeigen nach innen und hud-tui darf hud-infrastructure nicht kennen.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker>
+          <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker>
+          <marker id="arrow-warn" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b42f25"/></marker>
+        </defs>
+        <rect width="100%" height="100%" fill="#f2f3f1"/>
+<path d="M 400,76 H 264 Q 256,76 256,84 V 176" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 560,76 H 696 Q 704,76 704,84 V 176" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 480,112 V 296" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 256,232 V 308 Q 256,316 264,316 H 400" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 216,232 V 436 Q 216,444 224,444 H 400" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 704,232 V 308 Q 704,316 696,316 H 560" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 744,232 V 436 Q 744,444 736,444 H 560" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 480,352 V 416" fill="none" stroke="#b02a8a" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+<path d="M 336,204 H 472 a 8,8 0 0,1 16,0 H 624" fill="none" stroke="#b42f25" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow-warn)"/>
+<rect x="372.0" y="184" width="64" height="12" rx="2" fill="#f2f3f1"/>
+<text x="404" y="193" fill="#b42f25" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">✖ VERBOTEN</text>
+<rect x="400" y="56" width="160" height="56" rx="6" fill="#f2f3f1"/>
+<rect x="400" y="56" width="160" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="408" y="62" width="28" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
+<text x="422.0" y="71" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">BIN</text>
+<text x="480.0" y="86.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">hud</text>
+<text x="480.0" y="102.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Composition Root</text>
+<rect x="520" y="62" width="32" height="12" rx="2" fill="#f2f3f1" stroke="rgba(28,33,40,0.22)" stroke-width="0.8"/>
+<text x="536.0" y="71" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">0 in</text>
+<rect x="176" y="176" width="160" height="56" rx="6" fill="#f2f3f1"/>
+<rect x="176" y="176" width="160" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="184" y="182" width="28" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
+<text x="198.0" y="191" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">LIB</text>
+<text x="256.0" y="206.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">hud-tui</text>
+<text x="256.0" y="222.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Ratatui · Elm · i18n</text>
+<rect x="296" y="182" width="32" height="12" rx="2" fill="#f2f3f1" stroke="rgba(28,33,40,0.22)" stroke-width="0.8"/>
+<text x="312.0" y="191" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">1 in</text>
+<rect x="624" y="176" width="160" height="56" rx="6" fill="#f2f3f1"/>
+<rect x="624" y="176" width="160" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="632" y="182" width="28" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
+<text x="646.0" y="191" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">LIB</text>
+<text x="704.0" y="206.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">hud-infrastructure</text>
+<text x="704.0" y="222.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Adapter · Prozesse</text>
+<rect x="744" y="182" width="32" height="12" rx="2" fill="#f2f3f1" stroke="rgba(28,33,40,0.22)" stroke-width="0.8"/>
+<text x="760.0" y="191" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">1 in</text>
+<rect x="400" y="296" width="160" height="56" rx="6" fill="#f2f3f1"/>
+<rect x="400" y="296" width="160" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="408" y="302" width="28" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
+<text x="422.0" y="311" fill="#1c2128" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">LIB</text>
+<text x="480.0" y="326.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">hud-application</text>
+<text x="480.0" y="342.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Use Cases · Ports</text>
+<rect x="520" y="302" width="32" height="12" rx="2" fill="#f2f3f1" stroke="rgba(28,33,40,0.22)" stroke-width="0.8"/>
+<text x="536.0" y="311" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">3 in</text>
+<rect x="400" y="416" width="160" height="56" rx="6" fill="#f2f3f1"/>
+<rect x="400" y="416" width="160" height="56" rx="6" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+<rect x="408" y="422" width="28" height="12" rx="2" fill="transparent" stroke="rgba(176,42,138,0.5)" stroke-width="0.8"/>
+<text x="422.0" y="431" fill="#b02a8a" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">LIB</text>
+<text x="480.0" y="446.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">hud-domain</text>
+<text x="480.0" y="462.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Regeln · ohne I/O</text>
+<rect x="520" y="422" width="32" height="12" rx="2" fill="#f2f3f1" stroke="rgba(28,33,40,0.22)" stroke-width="0.8"/>
+<text x="536.0" y="431" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">3 in</text>
+<line x1="40" y1="504" x2="920" y2="504" stroke="rgba(28,33,40,0.1)" stroke-width="0.8"/>
+<text x="40" y="520" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.18em">LEGENDE</text>
+<rect x="40" y="536" width="14" height="10" rx="2" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+<text x="60" y="544" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">Domain (Kern)</text>
+<line x1="149.88" y1="541" x2="177.88" y2="541" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
+<text x="185.88" y="544" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">hängt ab von</text>
+<line x1="271.0" y1="541" x2="299.0" y2="541" stroke="#b42f25" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow-warn)"/>
+<text x="307.0" y="544" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">verbotene Abhängigkeit</text>
+<rect x="439.72" y="535" width="28" height="12" rx="2" fill="#f2f3f1" stroke="rgba(28,33,40,0.22)" stroke-width="0.8"/>
+<text x="453.72" y="544" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">n in</text>
+<text x="473.72" y="544" fill="#47505c" font-size="8.5" font-family="'Chakra Petch', system-ui, sans-serif">abhängige Crates</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>
