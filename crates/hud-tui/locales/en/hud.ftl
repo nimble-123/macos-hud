@@ -222,7 +222,7 @@ key-t = t
 ai-active-time = Active time
 ai-active-user = input
 ai-active-cli = Claude
-ai-telemetry-note = (telemetry, only while hud runs)
+ai-telemetry-note = only while hud runs
 ai-code = Code
 ai-lines = +{ $added } / −{ $removed } lines
 ai-commits = { $count ->
@@ -261,3 +261,45 @@ overview-calm-since = All up to date. Last check { $minutes } min ago.
 overview-checking = First check running …
 overview-ai-today = AI today
 overview-calm-now = All up to date. Checked just now.
+ai-files-read = { $files } log files in { $ms } ms
+kpi-today = today
+kpi-7-days = 7 d
+kpi-30-days = 30 d
+kpi-output-today = output today
+kpi-cache-hit = cache hit
+kpi-models = Models
+kpi-effort = Effort
+kpi-subagents = subagents
+kpi-of-fresh = of fresh tokens
+kpi-thinking = thinking
+kpi-of-output = of output
+kpi-activity = Activity
+kpi-sessions = { $count ->
+    [one] 1 session
+   *[other] { $count } sessions
+}
+kpi-sessions-30 = { $count } sessions in 30 d
+kpi-responses = { $count ->
+    [one] 1 response
+   *[other] { $count } responses
+}
+kpi-tool-calls = { $count ->
+    [one] 1 tool call
+   *[other] { $count } tool calls
+}
+kpi-context = Context
+kpi-projects = Projects
+kpi-just-now = just now
+kpi-minutes-ago = { $count } min ago
+kpi-hours-ago = { $count } h ago
+kpi-days-ago = { $count } d ago
+ai-token-kinds = Token kinds
+kpi-consumption = Consumption
+kpi-today-label = Today
+kpi-details = Details
+kpi-now = current
+kpi-totals = Total
+kpi-axis-midnight = 0:00
+kpi-axis-day-end = 24:00
+kpi-axis-month-start = start of month
+kpi-axis-month-end = end of month

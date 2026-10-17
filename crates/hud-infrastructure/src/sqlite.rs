@@ -105,6 +105,20 @@ fn migrations() -> Migrations<'static> {
             );
             CREATE INDEX otel_metric_at ON otel_metric (at_ms);",
         ),
+        // The new columns are filled from the logs: read everything once more.
+        M::up(
+            "ALTER TABLE ai_usage ADD COLUMN project TEXT;
+            ALTER TABLE ai_usage ADD COLUMN subagent INTEGER NOT NULL DEFAULT 0;
+            ALTER TABLE ai_usage ADD COLUMN thinking INTEGER NOT NULL DEFAULT 0;
+            CREATE TABLE ai_tool_call (
+                provider TEXT NOT NULL,
+                call_id TEXT NOT NULL,
+                at_ms INTEGER NOT NULL,
+                PRIMARY KEY (provider, call_id)
+            );
+            CREATE INDEX ai_tool_call_at ON ai_tool_call (at_ms);
+            DELETE FROM ingest_offset;",
+        ),
     ])
 }
 
@@ -407,9 +421,13 @@ impl UsageStore for SqliteStore {
                 // Lines of the same answer repeat with growing counts: keep the highest.
                 let mut insert = transaction.prepare(
                     "INSERT INTO ai_usage (provider, message_key, session, model, at_ms, input, output,
-                         cache_write_5m, cache_write_1h, cache_read, reasoning, speed, geo)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+                         cache_write_5m, cache_write_1h, cache_read, reasoning, speed, geo,
+                         project, subagent, thinking)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
                      ON CONFLICT (provider, message_key) DO UPDATE SET
+                         project = coalesce(excluded.project, project),
+                         subagent = max(subagent, excluded.subagent),
+                         thinking = max(thinking, excluded.thinking),
                          input = max(input, excluded.input),
                          output = max(output, excluded.output),
                          cache_write_5m = max(cache_write_5m, excluded.cache_write_5m),
@@ -433,7 +451,16 @@ impl UsageStore for SqliteStore {
                         tokens.reasoning.map(int),
                         speed_str(record.speed),
                         geo_str(record.geo),
+                        record.project,
+                        record.subagent,
+                        int(record.thinking),
                     ])?;
+                }
+                let mut call = transaction.prepare(
+                    "INSERT OR IGNORE INTO ai_tool_call (provider, call_id, at_ms) VALUES (?1, ?2, ?3)",
+                )?;
+                for tool_call in &batch.tool_calls {
+                    call.execute(params![name, tool_call.id, tool_call.at.as_millisecond()])?;
                 }
                 transaction.execute("DELETE FROM ingest_offset WHERE provider = ?1", params![name])?;
                 let mut cursor = transaction.prepare(
@@ -463,7 +490,7 @@ impl UsageStore for SqliteStore {
         self.call(move |db| {
             let mut query = db.prepare(
                 "SELECT provider, message_key, session, model, at_ms, input, output, cache_write_5m,
-                        cache_write_1h, cache_read, reasoning, speed, geo
+                        cache_write_1h, cache_read, reasoning, speed, geo, project, subagent, thinking
                  FROM ai_usage WHERE at_ms >= ?1 AND at_ms < ?2",
             )?;
             let rows =
@@ -497,9 +524,23 @@ impl UsageStore for SqliteStore {
                         } else {
                             Geo::Global
                         },
+                        project: row.get(13)?,
+                        subagent: row.get(14)?,
+                        thinking: get_u64(row, 15)?,
                     })
                 })?;
             rows.collect()
+        })
+        .await
+    }
+
+    async fn tool_calls(&self, from: Timestamp, to: Timestamp) -> Result<u64, StoreError> {
+        self.call(move |db| {
+            db.query_row(
+                "SELECT count(*) FROM ai_tool_call WHERE at_ms >= ?1 AND at_ms < ?2",
+                params![from.as_millisecond(), to.as_millisecond()],
+                |row| get_u64(row, 0),
+            )
         })
         .await
     }
@@ -934,6 +975,14 @@ mod tests {
             },
             speed: Speed::Fast,
             geo: Geo::Global,
+            project: Some("hud".into()),
+            subagent: true,
+            thinking: 30,
+        };
+        let tool_call = |id: &str| hud_domain::usage::ToolCall {
+            provider: Provider::Claude,
+            id: id.to_owned(),
+            at: ts("2026-10-17T08:00:00Z"),
         };
         let cursor = |offset| FileCursor {
             size: offset,
@@ -945,6 +994,11 @@ mod tests {
             Provider::Claude,
             UsageBatch {
                 records: vec![record(40), record(120)],
+                tool_calls: vec![
+                    tool_call("toolu_1"),
+                    tool_call("toolu_1"),
+                    tool_call("toolu_2"),
+                ],
                 cursors: Cursors::from([("a.jsonl".to_owned(), cursor(10))]),
             },
         )
@@ -955,6 +1009,7 @@ mod tests {
             Provider::Claude,
             UsageBatch {
                 records: vec![record(90)],
+                tool_calls: vec![tool_call("toolu_2")],
                 cursors: Cursors::from([("a.jsonl".to_owned(), cursor(20))]),
             },
         )
@@ -968,6 +1023,14 @@ mod tests {
         assert_eq!(records.len(), 1);
         assert_eq!(records[0].tokens.output, 120, "the highest count wins");
         assert_eq!(records[0].speed, Speed::Fast);
+        assert_eq!(records[0].project.as_deref(), Some("hud"));
+        assert!(records[0].subagent);
+        assert_eq!(records[0].thinking, 30);
+        let calls = store
+            .tool_calls(ts("2026-10-17T00:00:00Z"), ts("2026-10-18T00:00:00Z"))
+            .await
+            .expect("BUG");
+        assert_eq!(calls, 2, "repeated ids count once");
         let cursors = store.cursors(Provider::Claude).await.expect("BUG");
         assert_eq!(cursors["a.jsonl"].offset, 20);
         assert!(

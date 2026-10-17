@@ -5,7 +5,7 @@ use hud_application::ports::usage::UsageError;
 use hud_application::settings::Billing;
 use hud_application::usecases::telemetry::TelemetryStatus;
 use hud_application::usecases::usage::{ModelUsage, PeriodUsage, SourceState};
-use hud_domain::usage::{Accuracy, CostEstimate, Measured, Period, Provider, TelemetryTotals};
+use hud_domain::usage::{CostEstimate, Period, Provider, TelemetryTotals};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Modifier, Style};
@@ -25,6 +25,7 @@ const NUMBER_WIDTH: usize = 13;
 pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
     let language = model.settings.language;
     let theme = &model.theme;
+    // The period applies to the whole tab, so it comes first.
     let mut lines = vec![period_bar(model), Line::raw("")];
     let Some(report) = &model.usage else {
         lines.push(Line::styled(
@@ -34,7 +35,7 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         frame.render_widget(Paragraph::new(lines), area);
         return;
     };
-    // TODO(#31): totals cover all providers; split them once Codex is read too.
+    // TODO(#31): sections cover all providers; split them once Codex is read too.
     for source in &report.sources {
         lines.push(source_heading(model, source));
         if source.provider == Provider::Claude {
@@ -44,12 +45,9 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
             lines.push(source_error(model, error));
             continue;
         }
-        let Some(usage) = report.periods.iter().find(|p| p.period == model.ai_period) else {
-            continue;
-        };
-        lines.extend(totals(model, usage, source.provider));
-        lines.push(Line::raw(""));
-        lines.extend(model_table(model, usage, source.provider));
+        if let Some(usage) = report.periods.iter().find(|p| p.period == model.ai_period) {
+            lines.extend(super::ai_kpis::lines(model, usage, report.context.as_ref()));
+        }
         if source.unreadable > 0 {
             lines.push(Line::raw(""));
             let count = u32::try_from(source.unreadable).unwrap_or(u32::MAX);
@@ -120,7 +118,15 @@ fn source_heading<'a>(model: &Model, source: &SourceState) -> Line<'a> {
         ),
         Span::styled(
             format!(
-                "   {}",
+                "   {}   {}",
+                t_args(
+                    model.settings.language,
+                    "ai-files-read",
+                    &[
+                        ("files", &source.files.to_string()),
+                        ("ms", &source.read_ms.to_string())
+                    ]
+                ),
                 t_args(
                     model.settings.language,
                     "ai-prices-as-of",
@@ -150,67 +156,8 @@ fn source_error<'a>(model: &Model, error: &UsageError) -> Line<'a> {
     )
 }
 
-fn totals<'a>(model: &Model, usage: &PeriodUsage, provider: Provider) -> Vec<Line<'a>> {
-    let language = model.settings.language;
-    let theme = &model.theme;
-    let label = |key: &str| {
-        Span::styled(
-            fit(&t(language, key), LABEL_WIDTH),
-            Style::new().fg(theme.soft),
-        )
-    };
-    let value = |text: String| Span::styled(text, Style::new().fg(theme.ink));
-    let responses: u64 = usage
-        .models
-        .iter()
-        .filter(|m| m.provider == provider)
-        .map(|m| m.responses)
-        .sum();
-    let tokens = usage.tokens.value;
-    let mut lines = vec![
-        Line::from(vec![
-            label("ai-sessions"),
-            value(measured(usage.sessions, |n| count(n, language))),
-        ]),
-        Line::from(vec![
-            label("ai-responses"),
-            value(count(responses, language)),
-        ]),
-        Line::from(vec![
-            label("ai-tokens"),
-            value(measured(usage.tokens, |t| compact(t.total(), language))),
-            Span::styled(
-                format!(
-                    "   {} {}   {} {}   {} {}   {} {}",
-                    t(language, "ai-input"),
-                    compact(tokens.input, language),
-                    t(language, "ai-output"),
-                    compact(tokens.output, language),
-                    t(language, "ai-cache-write"),
-                    compact(tokens.cache_write_5m + tokens.cache_write_1h, language),
-                    t(language, "ai-cache-read"),
-                    compact(tokens.cache_read, language),
-                ),
-                Style::new().fg(theme.muted),
-            ),
-        ]),
-        Line::from(vec![
-            label("ai-cost"),
-            cost_span(model, usage.cost),
-            Span::styled(
-                format!("   {}", billing_label(model)),
-                Style::new().fg(theme.soft),
-            ),
-        ]),
-    ];
-    if provider == Provider::Claude && shows_telemetry(model, usage) {
-        lines.extend(telemetry_totals(model, usage));
-    }
-    lines
-}
-
 /// Telemetry rows appear once Claude Code sends, or data from earlier exists.
-fn shows_telemetry(model: &Model, usage: &PeriodUsage) -> bool {
+pub(super) fn shows_telemetry(model: &Model, usage: &PeriodUsage) -> bool {
     let sending = model
         .telemetry
         .as_ref()
@@ -218,16 +165,11 @@ fn shows_telemetry(model: &Model, usage: &PeriodUsage) -> bool {
     sending || usage.telemetry.value != TelemetryTotals::default()
 }
 
-fn telemetry_totals<'a>(model: &Model, usage: &PeriodUsage) -> Vec<Line<'a>> {
+pub(super) fn telemetry_totals<'a>(model: &Model, usage: &PeriodUsage) -> Vec<Line<'a>> {
     let language = model.settings.language;
     let theme = &model.theme;
     let totals = usage.telemetry.value;
-    let label = |key: &str| {
-        Span::styled(
-            fit(&t(language, key), LABEL_WIDTH),
-            Style::new().fg(theme.soft),
-        )
-    };
+    let label = |key: &str| super::ai_kpis::label(model, key);
     let partial = |text: String| Span::styled(format!("~ {text}"), Style::new().fg(theme.ink));
     let muted = |text: String| Span::styled(text, Style::new().fg(theme.muted));
     let active = totals.active_user_ms + totals.active_cli_ms;
@@ -242,10 +184,6 @@ fn telemetry_totals<'a>(model: &Model, usage: &PeriodUsage) -> Vec<Line<'a>> {
                 t(language, "ai-active-cli"),
                 duration(totals.active_cli_ms),
             )),
-            Span::styled(
-                format!("   {}", t(language, "ai-telemetry-note")),
-                Style::new().fg(theme.soft),
-            ),
         ]),
         Line::from(vec![
             label("ai-code"),
@@ -297,7 +235,11 @@ fn duration(ms: u64) -> String {
     }
 }
 
-fn model_table<'a>(model: &Model, usage: &PeriodUsage, provider: Provider) -> Vec<Line<'a>> {
+pub(super) fn model_table<'a>(
+    model: &Model,
+    usage: &PeriodUsage,
+    provider: Provider,
+) -> Vec<Line<'a>> {
     let language = model.settings.language;
     let theme = &model.theme;
     let rows: Vec<&ModelUsage> = usage
@@ -353,36 +295,8 @@ fn model_table<'a>(model: &Model, usage: &PeriodUsage, provider: Provider) -> Ve
     lines
 }
 
-/// `≈` for estimates, `~` for partial values, `—` for unavailable ones.
-fn measured<T: Copy>(value: Measured<T>, format: impl Fn(T) -> String) -> String {
-    match value.accuracy {
-        Accuracy::Exact => format(value.value),
-        Accuracy::Estimated => format!("≈ {}", format(value.value)),
-        Accuracy::Partial => format!("~ {}", format(value.value)),
-        Accuracy::Unavailable => "—".to_owned(),
-    }
-}
-
-fn cost_span<'a>(model: &Model, cost: Measured<CostEstimate>) -> Span<'a> {
-    let language = model.settings.language;
-    let text = match cost.accuracy {
-        Accuracy::Partial => format!(
-            "~ {} ({})",
-            money(cost.value, language),
-            t(language, "ai-partial")
-        ),
-        _ => measured(cost, |c| money(c, language)),
-    };
-    Span::styled(
-        text,
-        Style::new()
-            .fg(model.theme.ink)
-            .add_modifier(Modifier::BOLD),
-    )
-}
-
 /// Subscription costs are what the same usage would cost via the API.
-fn billing_label(model: &Model) -> String {
+pub(super) fn billing_label(model: &Model) -> String {
     let billing = model
         .preferences
         .as_ref()
@@ -407,7 +321,7 @@ pub(crate) fn money(cost: CostEstimate, language: Language) -> String {
 }
 
 /// Thousands grouped: `19 863` style per language.
-fn count(value: u64, language: Language) -> String {
+pub(super) fn count(value: u64, language: Language) -> String {
     group(
         value,
         match language {
