@@ -240,7 +240,7 @@ pub enum Outcome { Succeeded, Failed(String), Skipped(String), Cancelled, TimedO
 | `ManageWorkspaces` | hinzufügen, entfernen, Opt-out umschalten → `SettingsStore` |
 | `ManageSettings` | Opt-ins, Sprache, Theme → `SettingsStore` |
 | `WorkspaceAgent` | führt die Workspace-Use-Cases aus: beim Start Cache, dann lokaler Scan, danach `SyncRepositories` mit Fetch im Fetch-Intervall und auf `Command::SyncNow`; `Command::FastForward` startet `FastForwardRepo`; sendet `AppEvent::Workspaces`, `SyncStarted`, `RepoUpdated`; stoppt über `CancellationToken` |
-| `UpdatesAgent` | prüft alle Update-Quellen beim Start, im Prüf-Intervall (6 h) und auf `UpdateCommand::CheckNow`; führt `UpdateCommand::Install` als Job aus (`JobState`: Queued, Running, Succeeded, NeedsInteraction, Denied, Failed, TimedOut) mit `install_decision` und `ActionLog`; Prüfungen und Jobs laufen als eigene Tasks unter der Sperre ihrer Quelle; sendet `AppEvent::Updates`, `SourceUpdated`, `Job` |
+| `UpdatesAgent` | prüft alle Update-Quellen beim Start, im Prüf-Intervall (6 h) und auf `UpdateCommand::CheckNow`; führt `UpdateCommand::Install` als Job aus (`JobState`: Queued, Running, Succeeded, NeedsInteraction, Denied, Failed, TimedOut) mit `install_decision` und `ActionLog`; installiert nach jeder Prüfung die Kandidaten, die `install_decision(…, InstallRequest::Auto, …)` mit den Opt-ins erlaubt, nacheinander und ohne zweiten Lauf parallel; schreibt jedes Paketergebnis in die `InstallHistory`; Prüfungen und Jobs laufen als eigene Tasks unter der Sperre ihrer Quelle; sendet `AppEvent::Updates`, `SourceUpdated`, `Job` |
 | `Scheduler` | treibt periodische Use Cases (Fetch 15 min, Updates 6 h, Ingest 60 s, System 2 s) |
 | `JobRunner` | führt verändernde Use Cases als Jobs aus, verwaltet Status, Sperren und Abbruch |
 
@@ -292,10 +292,10 @@ Protokolliert werden jeder Fast-Forward und jeder fehlgeschlagene Fetch. Erfolgr
 ### 6.3 Update-Prüfung und Installation
 
 1. `CheckUpdates` ruft alle `UpdateSource`s parallel auf (`futures::future::join_all`); ein Fehler in einer Quelle betrifft die anderen nicht.
-2. Bei aktivem Opt-in erzeugt `install_decision(…, Trigger::Auto, …)` Permits für erlaubte Kandidaten (PRD, Abbildung 3).
-3. Manuelle Installation: Die TUI zeigt einen Bestätigungsdialog mit dem genauen Befehl und warnt bei Major-Updates; erst nach `Enter` sendet sie `UpdateCommand::Install { confirmed: true }`, und erst danach wird `install_decision(…, Trigger::Manual { confirmed: true }, …)` aufgerufen.
+2. Bei aktivem Opt-in erzeugt `install_decision(…, InstallRequest::Auto, …)` nach jeder Prüfung Permits für erlaubte Kandidaten (PRD, Abbildung 3); `needed_interaction_before` kommt aus der `InstallHistory` (letztes Ergebnis je Quelle und Paket; ist der Verlauf nicht lesbar, gilt der Kandidat als „Passwort nötig“). Abgelehnte Kandidaten erzeugen keinen Job. Das `ActionLog` vermerkt den Auslöser `auto`.
+3. Manuelle Installation: Die TUI zeigt einen Bestätigungsdialog mit dem genauen Befehl und warnt bei Major-Updates; erst nach `Enter` sendet sie `UpdateCommand::Install { confirmed: true }`, und erst danach wird `install_decision(…, InstallRequest::Manual { confirmed: true }, …)` aufgerufen.
 4. `InstallUpdates` übernimmt die Sperre der Quelle (nie zwei `brew`- oder `npm -g`-Prozesse gleichzeitig) und installiert sequenziell.
-5. Bricht ein Cask mit einer Passwortabfrage ab (stdin ist geschlossen, `sudo` meldet „a terminal is required“), wird er als `NeedsInteraction` im Verlauf markiert und künftig nicht automatisch versucht.
+5. Bricht ein Cask mit einer Passwortabfrage ab (stdin ist geschlossen, `sudo` meldet „a terminal is required“), wird er als `NeedsInteraction` in `install_history` markiert und nicht mehr automatisch versucht, bis ein späteres Ergebnis für dasselbe Paket etwas anderes zeigt.
 
 ### 6.4 Ereignisschleife (Elm-Architektur)
 
@@ -445,7 +445,7 @@ Alle Fremdwerkzeuge laufen über den internen `ProcessRunner`:
 | `action_log` | Protokoll aller Aktionen | `id` |
 | `repo_cache` | letzter Status je Repo für schnellen Start (Branch, Upstream, Ahead/Behind, Änderungen, Entscheidung) | `path` |
 | `update_cache` | letzte Update-Kandidaten je Quelle | `source`, `name` |
-| `install_history` | Installationsergebnisse, inkl. „Passwort nötig“ | `source`, `name`, `version` |
+| `install_history` | Installationsergebnis je Paket und Version (`installed`, `needs_interaction`, `failed`) | `id`, Index auf `source`, `name` |
 | `ingest_offset` | Lesefortschritt je JSONL-Datei | `file` |
 | `ai_usage` | Nutzung je Antwort bzw. Token-Ereignis | `provider`, `message_key` |
 

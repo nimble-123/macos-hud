@@ -1,10 +1,11 @@
-//! Persistence ports: action log and scan cache.
+//! Persistence ports: action log, scan cache and install history.
 
 use std::future::Future;
 use std::sync::Arc;
 
 use hud_domain::action::{ActionId, ActionKind, ActionRecord, Outcome, Trigger};
 use hud_domain::git::{RepoPath, RepoStatus};
+use hud_domain::update::{PackageName, SourceId, UpdateCandidate};
 use jiff::Timestamp;
 
 /// Why the store could not be used.
@@ -65,6 +66,36 @@ pub trait ScanCache: Send + Sync {
     fn retain(&self, repos: Vec<RepoPath>) -> impl Future<Output = Result<(), StoreError>> + Send;
 }
 
+/// How an installation of one package ended.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InstallResult {
+    /// Installed.
+    Installed,
+    /// The tool asked for a password; nothing was installed.
+    NeedsInteraction,
+    /// The tool failed or took too long.
+    Failed,
+}
+
+/// Remembers installation results per package, so a cask that asked for a
+/// password is not tried again automatically.
+pub trait InstallHistory: Send + Sync {
+    /// Records the result of installing `candidate.latest`.
+    fn record(
+        &self,
+        at: Timestamp,
+        candidate: &UpdateCandidate,
+        result: InstallResult,
+    ) -> impl Future<Output = Result<(), StoreError>> + Send;
+
+    /// Whether the most recent installation of the package asked for a password.
+    fn needed_interaction(
+        &self,
+        source: SourceId,
+        name: &PackageName,
+    ) -> impl Future<Output = Result<bool, StoreError>> + Send;
+}
+
 /// Current time; a port so use cases are testable with a fixed clock.
 pub trait Clock: Send + Sync {
     /// Now.
@@ -111,5 +142,24 @@ impl<T: ScanCache> ScanCache for Arc<T> {
 
     fn retain(&self, repos: Vec<RepoPath>) -> impl Future<Output = Result<(), StoreError>> + Send {
         (**self).retain(repos)
+    }
+}
+
+impl<T: InstallHistory> InstallHistory for Arc<T> {
+    fn record(
+        &self,
+        at: Timestamp,
+        candidate: &UpdateCandidate,
+        result: InstallResult,
+    ) -> impl Future<Output = Result<(), StoreError>> + Send {
+        (**self).record(at, candidate, result)
+    }
+
+    fn needed_interaction(
+        &self,
+        source: SourceId,
+        name: &PackageName,
+    ) -> impl Future<Output = Result<bool, StoreError>> + Send {
+        (**self).needed_interaction(source, name)
     }
 }

@@ -21,8 +21,11 @@ use jiff::Timestamp;
 
 use crate::ports::discovery::{DiscoveryError, RepoDiscovery};
 use crate::ports::git::{FfOutcome, GitError, GitPort};
-use crate::ports::store::{ActionLog, CachedRepo, Clock, ScanCache, StoreError};
+use crate::ports::store::{
+    ActionLog, CachedRepo, Clock, InstallHistory, InstallResult, ScanCache, StoreError,
+};
 use crate::settings::{ScanSettings, WorkspaceSettings};
+use hud_domain::update::{PackageName, SourceId, UpdateCandidate};
 
 pub(crate) fn repo(path: &str) -> RepoPath {
     RepoPath::try_from(PathBuf::from(path)).expect("BUG: absolute path")
@@ -213,6 +216,39 @@ impl ScanCache for FakeCache {
             .expect("BUG")
             .retain(|e| repos.contains(&e.repo));
         Ok(())
+    }
+}
+
+#[derive(Default)]
+pub(crate) struct FakeHistory {
+    pub entries: Mutex<Vec<(SourceId, PackageName, InstallResult)>>,
+}
+
+impl InstallHistory for FakeHistory {
+    async fn record(
+        &self,
+        _at: Timestamp,
+        candidate: &UpdateCandidate,
+        result: InstallResult,
+    ) -> Result<(), StoreError> {
+        self.entries
+            .lock()
+            .expect("BUG")
+            .push((candidate.source, candidate.name.clone(), result));
+        Ok(())
+    }
+
+    async fn needed_interaction(
+        &self,
+        source: SourceId,
+        name: &PackageName,
+    ) -> Result<bool, StoreError> {
+        let entries = self.entries.lock().expect("BUG");
+        Ok(entries
+            .iter()
+            .rev()
+            .find(|(s, n, _)| *s == source && n == name)
+            .is_some_and(|(_, _, result)| *result == InstallResult::NeedsInteraction))
     }
 }
 

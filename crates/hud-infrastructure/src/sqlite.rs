@@ -4,11 +4,14 @@ use std::path::Path;
 use std::str::FromStr;
 use std::time::Duration;
 
-use hud_application::ports::store::{ActionLog, CachedRepo, ScanCache, StoreError};
+use hud_application::ports::store::{
+    ActionLog, CachedRepo, InstallHistory, InstallResult, ScanCache, StoreError,
+};
 use hud_domain::action::{ActionId, ActionKind, ActionRecord, Outcome, Trigger};
 use hud_domain::git::{BranchName, CommitId, GitOperation, Head, RepoPath, RepoStatus, Upstream};
+use hud_domain::update::{PackageName, SourceId, UpdateCandidate};
 use jiff::Timestamp;
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use rusqlite_migration::{M, Migrations};
 use tokio::sync::{mpsc, oneshot};
 
@@ -18,8 +21,9 @@ const QUEUE: usize = 64;
 const ACTION_LOG_RETENTION: Duration = Duration::from_hours(2160);
 
 fn migrations() -> Migrations<'static> {
-    Migrations::new(vec![M::up(
-        "CREATE TABLE action_log (
+    Migrations::new(vec![
+        M::up(
+            "CREATE TABLE action_log (
             id INTEGER PRIMARY KEY,
             started_at TEXT NOT NULL,
             finished_at TEXT,
@@ -44,7 +48,19 @@ fn migrations() -> Migrations<'static> {
             operation TEXT,
             scanned_at TEXT NOT NULL
         );",
-    )])
+        ),
+        M::up(
+            "CREATE TABLE install_history (
+                id INTEGER PRIMARY KEY,
+                at TEXT NOT NULL,
+                source TEXT NOT NULL,
+                name TEXT NOT NULL,
+                version TEXT NOT NULL,
+                result TEXT NOT NULL
+            );
+            CREATE INDEX install_history_package ON install_history (source, name);",
+        ),
+    ])
 }
 
 type Job = Box<dyn FnOnce(&mut Connection) + Send>;
@@ -273,6 +289,63 @@ impl ScanCache for SqliteStore {
             transaction.commit()
         })
         .await
+    }
+}
+
+impl InstallHistory for SqliteStore {
+    async fn record(
+        &self,
+        at: Timestamp,
+        candidate: &UpdateCandidate,
+        result: InstallResult,
+    ) -> Result<(), StoreError> {
+        let source = source_str(candidate.source);
+        let name = candidate.name.to_string();
+        let version = candidate.latest.to_string();
+        self.call(move |db| {
+            db.execute(
+                "INSERT INTO install_history (at, source, name, version, result) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![at.to_string(), source, name, version, result_str(result)],
+            )?;
+            Ok(())
+        })
+        .await
+    }
+
+    async fn needed_interaction(
+        &self,
+        source: SourceId,
+        name: &PackageName,
+    ) -> Result<bool, StoreError> {
+        let source = source_str(source);
+        let name = name.to_string();
+        self.call(move |db| {
+            let latest: Option<String> = db
+                .query_row(
+                    "SELECT result FROM install_history WHERE source = ?1 AND name = ?2 ORDER BY id DESC LIMIT 1",
+                    params![source, name],
+                    |row| row.get(0),
+                )
+                .optional()?;
+            Ok(latest.as_deref() == Some(result_str(InstallResult::NeedsInteraction)))
+        })
+        .await
+    }
+}
+
+fn source_str(source: SourceId) -> &'static str {
+    match source {
+        SourceId::Homebrew => "homebrew",
+        SourceId::Npm => "npm",
+        SourceId::Skills => "skills",
+    }
+}
+
+fn result_str(result: InstallResult) -> &'static str {
+    match result {
+        InstallResult::Installed => "installed",
+        InstallResult::NeedsInteraction => "needs_interaction",
+        InstallResult::Failed => "failed",
     }
 }
 
@@ -516,5 +589,32 @@ mod tests {
         assert_eq!(cached.len(), 1);
         assert_eq!(cached[0].repo, repo("/repos/b"));
         assert_eq!(cached[0].status, status());
+    }
+
+    #[tokio::test]
+    async fn install_history_remembers_the_latest_result_per_package() {
+        use hud_domain::update::{PackageKind, Version};
+        let store = SqliteStore::in_memory(ts("2026-10-17T10:00:00Z")).expect("BUG");
+        let firefox = UpdateCandidate {
+            source: SourceId::Homebrew,
+            kind: PackageKind::Cask,
+            name: PackageName::try_from("firefox".to_owned()).expect("BUG"),
+            current: Version::new("118.0"),
+            latest: Version::new("119.0"),
+            pinned: false,
+        };
+        let at = ts("2026-10-17T10:00:00Z");
+        let asked = || store.needed_interaction(SourceId::Homebrew, &firefox.name);
+        assert!(!asked().await.expect("BUG"));
+        store
+            .record(at, &firefox, InstallResult::NeedsInteraction)
+            .await
+            .expect("BUG");
+        assert!(asked().await.expect("BUG"));
+        store
+            .record(at, &firefox, InstallResult::Installed)
+            .await
+            .expect("BUG");
+        assert!(!asked().await.expect("BUG"));
     }
 }

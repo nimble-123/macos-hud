@@ -17,7 +17,7 @@ use std::sync::Arc;
 
 use hud_application::ports::updates::UpdateSource;
 use hud_application::usecases::agent::{WorkspaceAgent, WorkspaceConfig};
-use hud_application::usecases::updates::UpdatesAgent;
+use hud_application::usecases::updates::{UpdatesAgent, UpdatesConfig};
 use hud_application::{AppEvent, Command, UpdateCommand, WorkspaceCommand};
 use hud_infrastructure::clock::SystemClock;
 use hud_infrastructure::config::TomlSettings;
@@ -186,9 +186,13 @@ fn start_background(
     let (update_commands, update_rx) = mpsc::channel::<UpdateCommand>(COMMAND_CAPACITY);
     let updates = UpdatesAgent::new(
         sources,
+        store.clone(),
         store,
         SystemClock,
-        preferences.update_check_interval,
+        UpdatesConfig {
+            interval: preferences.update_check_interval,
+            policy: preferences.auto_install.into(),
+        },
         events_tx.clone(),
     );
     let cancel = CancellationToken::new();
