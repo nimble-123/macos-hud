@@ -90,6 +90,16 @@ pub struct AutoInstallSettings {
     pub npm: bool,
 }
 
+impl From<AutoInstallSettings> for hud_domain::update::AutoInstallPolicy {
+    fn from(settings: AutoInstallSettings) -> Self {
+        Self {
+            brew_formulae: settings.brew_formulae,
+            brew_casks: settings.brew_casks,
+            npm: settings.npm,
+        }
+    }
+}
+
 /// Skills CLI.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SkillsSettings {

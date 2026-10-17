@@ -73,24 +73,22 @@
 <rect x="688" y="50" width="36" height="12" rx="2" fill="none" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.4"/>
 <text x="706" y="59" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">TABLE</text>
 <text x="732" y="61" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start" font-weight="600">main.install_history</text>
-<line x1="680" y1="72" x2="920" y2="72" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.25"/>
-<text x="692" y="88" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">source</text>
-<rect x="820" y="78" width="20" height="12" rx="2" fill="none" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.4"/><text x="830.0" y="87" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PK</text>
-<text x="908" y="88" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text</text>
-<rect x="681" y="96" width="238" height="24" fill="#1c2128" fill-opacity="0.02"/>
-<text x="692" y="112" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">name</text>
-<rect x="820" y="102" width="20" height="12" rx="2" fill="none" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.4"/><text x="830.0" y="111" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PK</text>
+<line x1="680" y1="72" x2="920" y2="72" stroke="rgba(28,33,40,0.25)" stroke-width="0.8"/>
+<text x="692" y="88" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">id</text>
+<rect x="820" y="78" width="20" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/><text x="830.0" y="87" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PK</text>
+<text x="908" y="88" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">integer</text>
+<rect x="681" y="96" width="238" height="24" fill="rgba(28,33,40,0.02)"/>
+<text x="692" y="112" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">at</text>
 <text x="908" y="112" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text</text>
-<text x="692" y="136" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">version</text>
-<rect x="820" y="126" width="20" height="12" rx="2" fill="none" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.4"/><text x="830.0" y="135" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PK</text>
+<text x="692" y="136" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">source</text>
 <text x="908" y="136" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text</text>
-<rect x="681" y="144" width="238" height="24" fill="#1c2128" fill-opacity="0.02"/>
-<text x="692" y="160" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">result</text>
+<rect x="681" y="144" width="238" height="24" fill="rgba(28,33,40,0.02)"/>
+<text x="692" y="160" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">name</text>
 <text x="908" y="160" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text</text>
-<text x="692" y="184" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">needs_interaction</text>
-<text x="908" y="184" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">integer</text>
-<rect x="681" y="192" width="238" height="24" fill="#1c2128" fill-opacity="0.02"/>
-<text x="692" y="208" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">at</text>
+<text x="692" y="184" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">version</text>
+<text x="908" y="184" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text</text>
+<rect x="681" y="192" width="238" height="24" fill="rgba(28,33,40,0.02)"/>
+<text x="692" y="208" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">result</text>
 <text x="908" y="208" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text</text>
         <rect x="40" y="312" width="240" height="128" rx="6" fill="#f2f3f1"/>
 <rect x="40" y="312" width="240" height="128" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
