@@ -224,11 +224,26 @@ Projekte
 
 Telemetrie   nur solange hud läuft
   Aktive Zeit, Code, Kosten laut Claude
+
+
+Codex   165 Logdateien in 84 ms   Preise Stand 2026-10-17
+
+Verbrauch
+  Token               10,0 M   Input 1,2 M   Output 40,0 k   Cache lesen 8,8 M   Reasoning 25,0 k
+  …                                                                   Modelle, Aufwand, Aktivität wie oben
+Aufwand
+  Reasoning           39 % vom Output
+
+Abo-Auslastung   Plan Plus, Stand vor 3 min
+  5 Stunden           ███████░░░░░░░░░░░░░░░░░░░░░░░   13 %   neu ab 14:14
+  7 Tage              █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    3 %   neu ab 21.10. 12:00
 ```
 
-- Die Zeitraumauswahl steht ganz oben und gilt für alle Abschnitte; jede Kennzahl zeigt genau einen Wert. Nur „Kontext“ zeigt den aktuellen Stand und trägt den Hinweis „aktuell“.
+- Die Zeitraumauswahl steht ganz oben und gilt für alle Abschnitte; jede Kennzahl zeigt genau einen Wert. Nur „Kontext“ und „Abo-Auslastung“ zeigen den aktuellen Stand.
+- Jede Quelle hat einen eigenen Block mit eigener Überschrift; zwischen den Blöcken stehen zwei Leerzeilen. Telemetrie gibt es nur bei Claude Code.
+- Codex: Statt „Cache schr.“ steht „Reasoning“ in Verbrauch und Modelltabelle; „Aufwand“ zeigt nur den Reasoning-Anteil. „Abo-Auslastung“ zeigt je Limit-Fenster einen Balken mit Prozent und lokalem Rücksetzzeitpunkt (mit Datum, wenn nicht heute), ab 90 % in `caution`. Ist ein Fenster schon zurückgesetzt, steht dort nur, seit wann, bis Codex den neuen Stand meldet.
 - Abschnitte haben eine fette Überschrift und eine Leerzeile davor; der Tab nutzt die Höhe. Token und Kosten stehen nur unter „Verbrauch“ und in der Modelltabelle, nie doppelt.
-- „Neue Token“ sind alle außer Cache-Lesen. Modell- und Projektanteile beziehen sich darauf, Thinking auf den Output, Cache-Hit auf alle Prompt-Token.
+- „Neue Token“ sind alle außer Cache-Lesen. Modell- und Projektanteile beziehen sich darauf, Thinking und Reasoning auf den gesamten Output, Cache-Hit auf alle Prompt-Token.
 - Balken nutzen `█` und `░`; die drei größten Modelle bekommen `advisory`, `focus` und `caution`, der Rest `muted`. Ab 80 % Kontext wird der Kontextbalken `caution`.
 - Die Aktivität zeigt bei „Heute“ die 24 Stunden, sonst die Tage des Zeitraums, mit Beschriftung von Anfang und Ende.
 - Kennzeichnung nach Genauigkeit: `≈` geschätzt, `~` unvollständig, `—` nicht verfügbar. Kosten tragen „API-Äquivalent“ oder „Schätzung“ und das Stand-Datum der Preistabelle.

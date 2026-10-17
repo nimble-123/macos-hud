@@ -13,8 +13,8 @@ use hud_domain::action::{ActionId, ActionKind, ActionRecord, Outcome, Trigger};
 use hud_domain::git::{BranchName, CommitId, GitOperation, Head, RepoPath, RepoStatus, Upstream};
 use hud_domain::update::{PackageName, SourceId, UpdateCandidate};
 use hud_domain::usage::{
-    Geo, ModelId, Provider, Speed, TelemetryMetric, TelemetryPoint, TelemetryTotals, TokenUsage,
-    UsageRecord,
+    Geo, ModelId, PlanUsage, PlanWindow, Provider, Speed, TelemetryMetric, TelemetryPoint,
+    TelemetryTotals, TokenUsage, UsageRecord,
 };
 use jiff::Timestamp;
 use rusqlite::{Connection, OptionalExtension, params};
@@ -119,8 +119,23 @@ fn migrations() -> Migrations<'static> {
             CREATE INDEX ai_tool_call_at ON ai_tool_call (at_ms);
             DELETE FROM ingest_offset;",
         ),
+        M::up(PLAN_USAGE),
     ])
 }
+
+/// Codex reports its context window and subscription usage.
+const PLAN_USAGE: &str = "ALTER TABLE ai_usage ADD COLUMN context_window INTEGER;
+    CREATE TABLE ai_plan_usage (
+        provider TEXT PRIMARY KEY,
+        at_ms INTEGER NOT NULL,
+        plan TEXT,
+        primary_permille INTEGER,
+        primary_minutes INTEGER,
+        primary_resets_ms INTEGER,
+        secondary_permille INTEGER,
+        secondary_minutes INTEGER,
+        secondary_resets_ms INTEGER
+    );";
 
 type Job = Box<dyn FnOnce(&mut Connection) + Send>;
 
@@ -422,10 +437,11 @@ impl UsageStore for SqliteStore {
                 let mut insert = transaction.prepare(
                     "INSERT INTO ai_usage (provider, message_key, session, model, at_ms, input, output,
                          cache_write_5m, cache_write_1h, cache_read, reasoning, speed, geo,
-                         project, subagent, thinking)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
+                         project, subagent, thinking, context_window)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
                      ON CONFLICT (provider, message_key) DO UPDATE SET
                          project = coalesce(excluded.project, project),
+                         context_window = coalesce(excluded.context_window, context_window),
                          subagent = max(subagent, excluded.subagent),
                          thinking = max(thinking, excluded.thinking),
                          input = max(input, excluded.input),
@@ -454,6 +470,7 @@ impl UsageStore for SqliteStore {
                         record.project,
                         record.subagent,
                         int(record.thinking),
+                        record.context_window.map(int),
                     ])?;
                 }
                 let mut call = transaction.prepare(
@@ -476,6 +493,9 @@ impl UsageStore for SqliteStore {
                         int(position.unreadable)
                     ])?;
                 }
+                if let Some(plan) = &batch.plan {
+                    save_plan(&transaction, name, plan)?;
+                }
             }
             transaction.commit()
         })
@@ -490,7 +510,8 @@ impl UsageStore for SqliteStore {
         self.call(move |db| {
             let mut query = db.prepare(
                 "SELECT provider, message_key, session, model, at_ms, input, output, cache_write_5m,
-                        cache_write_1h, cache_read, reasoning, speed, geo, project, subagent, thinking
+                        cache_write_1h, cache_read, reasoning, speed, geo, project, subagent, thinking,
+                        context_window
                  FROM ai_usage WHERE at_ms >= ?1 AND at_ms < ?2",
             )?;
             let rows =
@@ -527,6 +548,10 @@ impl UsageStore for SqliteStore {
                         project: row.get(13)?,
                         subagent: row.get(14)?,
                         thinking: get_u64(row, 15)?,
+                        context_window: row
+                            .get::<_, Option<i64>>(16)?
+                            .map(|v| u64::try_from(v).map_err(|e| conversion(16, e)))
+                            .transpose()?,
                     })
                 })?;
             rows.collect()
@@ -551,16 +576,108 @@ impl UsageStore for SqliteStore {
         .await
     }
 
-    async fn tool_calls(&self, from: Timestamp, to: Timestamp) -> Result<u64, StoreError> {
+    async fn tool_calls(
+        &self,
+        provider: Provider,
+        from: Timestamp,
+        to: Timestamp,
+    ) -> Result<u64, StoreError> {
         self.call(move |db| {
             db.query_row(
-                "SELECT count(*) FROM ai_tool_call WHERE at_ms >= ?1 AND at_ms < ?2",
-                params![from.as_millisecond(), to.as_millisecond()],
+                "SELECT count(*) FROM ai_tool_call
+                 WHERE provider = ?1 AND at_ms >= ?2 AND at_ms < ?3",
+                params![
+                    provider_str(provider),
+                    from.as_millisecond(),
+                    to.as_millisecond()
+                ],
                 |row| get_u64(row, 0),
             )
         })
         .await
     }
+
+    async fn plan(&self, provider: Provider) -> Result<Option<PlanUsage>, StoreError> {
+        self.call(move |db| {
+            db.query_row(
+                "SELECT at_ms, plan, primary_permille, primary_minutes, primary_resets_ms,
+                        secondary_permille, secondary_minutes, secondary_resets_ms
+                 FROM ai_plan_usage WHERE provider = ?1",
+                params![provider_str(provider)],
+                |row| {
+                    Ok(PlanUsage {
+                        at: Timestamp::from_millisecond(row.get(0)?)
+                            .map_err(|e| conversion(0, e))?,
+                        plan: row.get(1)?,
+                        primary: plan_window(row, 2)?,
+                        secondary: plan_window(row, 5)?,
+                    })
+                },
+            )
+            .optional()
+        })
+        .await
+    }
+}
+
+/// Keeps the plan usage only if it is at least as new as the stored one,
+/// because files are not read in the order they were written.
+fn save_plan(
+    transaction: &rusqlite::Transaction<'_>,
+    provider: &str,
+    plan: &PlanUsage,
+) -> rusqlite::Result<()> {
+    let window = |window: Option<PlanWindow>| {
+        (
+            window.map(|w| w.used_permille),
+            window.and_then(|w| w.minutes),
+            window.map(|w| w.resets_at.as_millisecond()),
+        )
+    };
+    let (primary_permille, primary_minutes, primary_resets) = window(plan.primary);
+    let (secondary_permille, secondary_minutes, secondary_resets) = window(plan.secondary);
+    transaction.execute(
+        "INSERT INTO ai_plan_usage (provider, at_ms, plan, primary_permille, primary_minutes,
+             primary_resets_ms, secondary_permille, secondary_minutes, secondary_resets_ms)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+         ON CONFLICT (provider) DO UPDATE SET
+             at_ms = excluded.at_ms,
+             plan = excluded.plan,
+             primary_permille = excluded.primary_permille,
+             primary_minutes = excluded.primary_minutes,
+             primary_resets_ms = excluded.primary_resets_ms,
+             secondary_permille = excluded.secondary_permille,
+             secondary_minutes = excluded.secondary_minutes,
+             secondary_resets_ms = excluded.secondary_resets_ms
+         WHERE excluded.at_ms >= ai_plan_usage.at_ms",
+        params![
+            provider,
+            plan.at.as_millisecond(),
+            plan.plan,
+            primary_permille,
+            primary_minutes,
+            primary_resets,
+            secondary_permille,
+            secondary_minutes,
+            secondary_resets
+        ],
+    )?;
+    Ok(())
+}
+
+/// A window from three columns starting at `first`; incomplete means none.
+fn plan_window(row: &rusqlite::Row<'_>, first: usize) -> rusqlite::Result<Option<PlanWindow>> {
+    let permille: Option<u16> = row.get(first)?;
+    let minutes: Option<u32> = row.get(first + 1)?;
+    let resets: Option<i64> = row.get(first + 2)?;
+    let (Some(used_permille), Some(resets)) = (permille, resets) else {
+        return Ok(None);
+    };
+    Ok(Some(PlanWindow {
+        minutes,
+        used_permille,
+        resets_at: Timestamp::from_millisecond(resets).map_err(|e| conversion(first + 2, e))?,
+    }))
 }
 
 /// SQLite stores integers as `i64`; token counts never get near the limit.
@@ -995,6 +1112,7 @@ mod tests {
             project: Some("hud".into()),
             subagent: true,
             thinking: 30,
+            context_window: None,
         };
         let tool_call = |id: &str| hud_domain::usage::ToolCall {
             provider: Provider::Claude,
@@ -1017,6 +1135,7 @@ mod tests {
                     tool_call("toolu_2"),
                 ],
                 cursors: Cursors::from([("a.jsonl".to_owned(), cursor(10))]),
+                plan: None,
             },
         )
         .await
@@ -1028,6 +1147,7 @@ mod tests {
                 records: vec![record(90)],
                 tool_calls: vec![tool_call("toolu_2")],
                 cursors: Cursors::from([("a.jsonl".to_owned(), cursor(20))]),
+                plan: None,
             },
         )
         .await
@@ -1044,10 +1164,23 @@ mod tests {
         assert!(records[0].subagent);
         assert_eq!(records[0].thinking, 30);
         let calls = store
-            .tool_calls(ts("2026-10-17T00:00:00Z"), ts("2026-10-18T00:00:00Z"))
+            .tool_calls(
+                Provider::Claude,
+                ts("2026-10-17T00:00:00Z"),
+                ts("2026-10-18T00:00:00Z"),
+            )
             .await
             .expect("BUG");
         assert_eq!(calls, 2, "repeated ids count once");
+        let codex_calls = store
+            .tool_calls(
+                Provider::Codex,
+                ts("2026-10-17T00:00:00Z"),
+                ts("2026-10-18T00:00:00Z"),
+            )
+            .await
+            .expect("BUG");
+        assert_eq!(codex_calls, 0, "tool calls are counted per provider");
         let times = store
             .answer_times(ts("2026-10-17T00:00:00Z"), ts("2026-10-18T00:00:00Z"))
             .await
@@ -1063,6 +1196,37 @@ mod tests {
                 .is_empty(),
             "the range end is exclusive and filters by time"
         );
+    }
+
+    #[tokio::test]
+    async fn only_newer_plan_usage_replaces_the_stored_one() {
+        let store = SqliteStore::in_memory(ts("2026-10-17T10:00:00Z")).expect("BUG");
+        let plan = |at: &str, permille| PlanUsage {
+            at: ts(at),
+            plan: Some("plus".into()),
+            primary: Some(PlanWindow {
+                minutes: Some(300),
+                used_permille: permille,
+                resets_at: ts("2026-10-17T12:00:00Z"),
+            }),
+            secondary: None,
+        };
+        let save = |plan| {
+            UsageStore::save(
+                &store,
+                Provider::Codex,
+                UsageBatch {
+                    plan: Some(plan),
+                    ..UsageBatch::default()
+                },
+            )
+        };
+        assert_eq!(store.plan(Provider::Codex).await.expect("BUG"), None);
+        save(plan("2026-10-17T09:00:00Z", 120)).await.expect("BUG");
+        save(plan("2026-10-17T08:00:00Z", 50)).await.expect("BUG");
+        let stored = store.plan(Provider::Codex).await.expect("BUG");
+        assert_eq!(stored, Some(plan("2026-10-17T09:00:00Z", 120)));
+        assert_eq!(store.plan(Provider::Claude).await.expect("BUG"), None);
     }
 
     #[tokio::test]

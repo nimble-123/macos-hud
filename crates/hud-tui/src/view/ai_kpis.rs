@@ -1,7 +1,10 @@
 //! Key figures on top of the AI tab: fixed horizons, no switching.
 
-use hud_application::usecases::usage::{ContextUse, PeriodKpis, PeriodUsage};
-use hud_domain::usage::{Accuracy, ModelId, Provider};
+use hud_application::usecases::usage::{
+    ContextUse, PeriodKpis, PeriodUsage, SourceUsage, UsageReport,
+};
+use hud_domain::usage::{Accuracy, ModelId, PlanUsage, PlanWindow, Provider};
+use jiff::Timestamp;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 
@@ -17,12 +20,14 @@ const BAR_WIDTH: usize = 60;
 const BLOCKS: [char; 8] = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
 const INDENT: &str = "  ";
 
-/// All sections for the selected period; only the context is current.
+/// All sections for the selected period; only context and plan usage are current.
 pub(super) fn lines<'a>(
     model: &Model,
+    source: &SourceUsage,
     usage: &PeriodUsage,
-    context: Option<&ContextUse>,
+    report: &UsageReport,
 ) -> Vec<Line<'a>> {
+    let provider = source.state.provider;
     let kpis = &usage.kpis;
     let mut lines = Vec::new();
     let mut section = |heading: Line<'a>, body: Vec<Line<'a>>| {
@@ -32,18 +37,24 @@ pub(super) fn lines<'a>(
     };
     section(
         heading(model, "kpi-consumption", None),
-        consumption(model, usage),
+        consumption(model, usage, provider),
     );
     let mut models = bar_and_legend(model, kpis);
     models.push(Line::raw(""));
-    models.extend(super::ai::model_table(model, usage, Provider::Claude));
+    models.extend(super::ai::model_table(model, usage, provider));
     section(heading(model, "kpi-models", None), models);
     section(
         heading(model, "kpi-effort", None),
-        vec![effort(model, kpis)],
+        vec![effort(model, kpis, provider)],
     );
     section(heading(model, "kpi-activity", None), activity(model, usage));
-    if let Some(context) = context {
+    if let Some(plan) = &source.plan {
+        section(
+            plan_heading(model, plan, report.at),
+            plan_lines(model, plan, report.at),
+        );
+    }
+    if let Some(context) = &source.context {
         section(
             heading(model, "kpi-context", Some("kpi-now")),
             context_lines(model, context),
@@ -55,7 +66,7 @@ pub(super) fn lines<'a>(
             vec![projects(model, kpis)],
         );
     }
-    if super::ai::shows_telemetry(model, usage) {
+    if provider == Provider::Claude && super::ai::shows_telemetry(model, usage) {
         section(
             heading(model, "telemetry", Some("ai-telemetry-note")),
             super::ai::telemetry_totals(model, usage),
@@ -79,11 +90,12 @@ fn heading<'a>(model: &Model, key: &str, note: Option<&str>) -> Line<'a> {
 }
 
 pub(super) fn label<'a>(model: &Model, key: &str) -> Span<'a> {
+    label_text(model, &t(model.settings.language, key))
+}
+
+fn label_text<'a>(model: &Model, text: &str) -> Span<'a> {
     Span::styled(
-        format!(
-            "{INDENT}{}",
-            fit(&t(model.settings.language, key), LABEL_WIDTH)
-        ),
+        format!("{INDENT}{}", fit(text, LABEL_WIDTH)),
         Style::new().fg(model.theme.soft),
     )
 }
@@ -110,9 +122,10 @@ fn marker(accuracy: Accuracy) -> &'static str {
     }
 }
 
-fn consumption<'a>(model: &Model, usage: &PeriodUsage) -> Vec<Line<'a>> {
+fn consumption<'a>(model: &Model, usage: &PeriodUsage, provider: Provider) -> Vec<Line<'a>> {
     let language = model.settings.language;
     let tokens = usage.tokens.value;
+    let reasoning = tokens.reasoning.map(|value| ("ai-reasoning", value));
     let mut token_line = vec![
         label(model, "ai-tokens"),
         strong(
@@ -132,7 +145,12 @@ fn consumption<'a>(model: &Model, usage: &PeriodUsage) -> Vec<Line<'a>> {
             tokens.cache_write_5m + tokens.cache_write_1h,
         ),
         ("ai-cache-read", tokens.cache_read),
-    ] {
+    ]
+    .into_iter()
+    // Codex does not write to the cache; it reports reasoning instead.
+    .filter(|(key, _)| !(provider == Provider::Codex && *key == "ai-cache-write"))
+    .chain(reasoning)
+    {
         token_line.push(soft(model, format!("   {} ", t(language, key))));
         token_line.push(Span::styled(
             compact(value, language),
@@ -149,7 +167,10 @@ fn consumption<'a>(model: &Model, usage: &PeriodUsage) -> Vec<Line<'a>> {
             model,
             format!("{cost_marker}{}", money(usage.cost.value, language)),
         ),
-        soft(model, format!("      {}", super::ai::billing_label(model))),
+        soft(
+            model,
+            format!("      {}", super::ai::billing_label(model, provider)),
+        ),
     ];
     let mut hit_line = vec![label(model, "kpi-cache-hit")];
     match usage.kpis.cache_hit {
@@ -210,9 +231,17 @@ fn bar_and_legend<'a>(model: &Model, kpis: &PeriodKpis) -> Vec<Line<'a>> {
     vec![Line::from(bar), Line::from(legend)]
 }
 
-fn effort<'a>(model: &Model, kpis: &PeriodKpis) -> Line<'a> {
+fn effort<'a>(model: &Model, kpis: &PeriodKpis, provider: Provider) -> Line<'a> {
     let language = model.settings.language;
     let value = |share: Option<u16>| share.map_or_else(|| "—".to_owned(), percent);
+    // Codex logs say nothing about subagents.
+    if provider == Provider::Codex {
+        return Line::from(vec![
+            label(model, "kpi-reasoning"),
+            strong(model, value(kpis.thinking)),
+            soft(model, format!(" {}", t(language, "kpi-of-output"))),
+        ]);
+    }
     Line::from(vec![
         label(model, "kpi-subagents"),
         strong(model, value(kpis.subagents)),
@@ -327,6 +356,117 @@ fn context_lines<'a>(model: &Model, context: &ContextUse) -> Vec<Line<'a>> {
     ]
 }
 
+/// `Abo-Auslastung   Plan Plus, Stand vor 3 min`.
+fn plan_heading<'a>(model: &Model, plan: &PlanUsage, now: Timestamp) -> Line<'a> {
+    let language = model.settings.language;
+    let ago = ago(seconds_between(plan.at, now), language);
+    let note = match &plan.plan {
+        Some(name) => t_args(
+            language,
+            "kpi-plan-note",
+            &[("plan", &title_case(name)), ("ago", &ago)],
+        ),
+        None => t_args(language, "kpi-plan-as-of", &[("ago", &ago)]),
+    };
+    Line::from(vec![
+        Span::styled(
+            t(language, "kpi-plan"),
+            Style::new()
+                .fg(model.theme.ink)
+                .add_modifier(Modifier::BOLD),
+        ),
+        soft(model, format!("   {note}")),
+    ])
+}
+
+/// One bar per rate-limit window; a window past its reset only says so.
+fn plan_lines<'a>(model: &Model, plan: &PlanUsage, now: Timestamp) -> Vec<Line<'a>> {
+    let language = model.settings.language;
+    [
+        (plan.primary, "plan-window-primary"),
+        (plan.secondary, "plan-window-secondary"),
+    ]
+    .into_iter()
+    .filter_map(|(window, fallback)| window.map(|window| (window, fallback)))
+    .map(|(window, fallback)| {
+        let name = label_text(model, &window_name(language, &window, fallback));
+        let time = clock(model, window.resets_at, now);
+        if !window.is_current(now) {
+            return Line::from(vec![
+                name,
+                soft(
+                    model,
+                    t_args(language, "plan-reset-done", &[("time", &time)]),
+                ),
+            ]);
+        }
+        let used = window.used_permille.min(1000);
+        let filled = usize::from(used) * BAR_WIDTH / 1000;
+        let color = if used >= 900 {
+            model.theme.status(Status::Caution)
+        } else {
+            model.theme.status(Status::Advisory)
+        };
+        Line::from(vec![
+            name,
+            Span::styled("█".repeat(filled), Style::new().fg(color)),
+            Span::styled(
+                "░".repeat(BAR_WIDTH - filled),
+                Style::new().fg(model.theme.rule),
+            ),
+            Span::styled(
+                format!("   {}", percent(used)),
+                Style::new().fg(color).add_modifier(Modifier::BOLD),
+            ),
+            soft(
+                model,
+                format!("   {}", t_args(language, "plan-resets", &[("time", &time)])),
+            ),
+        ])
+    })
+    .collect()
+}
+
+/// `5 Stunden`, `7 Tage`; without a length the window's role.
+fn window_name(language: Language, window: &PlanWindow, fallback: &str) -> String {
+    match window.minutes {
+        Some(minutes) if minutes > 0 && minutes % 1440 == 0 => {
+            t_count(language, "plan-window-days", "count", minutes / 1440)
+        }
+        Some(minutes) if minutes > 0 && minutes % 60 == 0 => {
+            t_count(language, "plan-window-hours", "count", minutes / 60)
+        }
+        Some(minutes) if minutes > 0 => t_count(language, "plan-window-minutes", "count", minutes),
+        _ => t(language, fallback),
+    }
+}
+
+/// Local time; with the date when it is not the day of `now`.
+fn clock(model: &Model, at: Timestamp, now: Timestamp) -> String {
+    let local = at.to_zoned(model.time_zone.clone());
+    let today = now.to_zoned(model.time_zone.clone()).date();
+    if local.date() == today {
+        return local.strftime("%H:%M").to_string();
+    }
+    match model.settings.language {
+        Language::De => local.strftime("%d.%m. %H:%M").to_string(),
+        Language::En => local.strftime("%m/%d %H:%M").to_string(),
+    }
+}
+
+fn seconds_between(earlier: Timestamp, later: Timestamp) -> u64 {
+    u64::try_from(later.duration_since(earlier).as_secs()).unwrap_or(0)
+}
+
+/// `plus` → `Plus`.
+fn title_case(text: &str) -> String {
+    let mut chars = text.chars();
+    chars
+        .next()
+        .map(|first| first.to_uppercase().chain(chars).collect())
+        .unwrap_or_default()
+}
+
 fn projects<'a>(model: &Model, kpis: &PeriodKpis) -> Line<'a> {
     let mut spans = vec![Span::raw(INDENT)];
     for (index, (name, share)) in kpis.projects.iter().take(5).enumerate() {
@@ -337,8 +477,19 @@ fn projects<'a>(model: &Model, kpis: &PeriodKpis) -> Line<'a> {
     Line::from(spans)
 }
 
-/// `Opus 5.5` from `claude-opus-5-5`, `Haiku 4.5` from `claude-haiku-4-5-20251001`.
+/// `Opus 5.5` from `claude-opus-5-5`, `Haiku 4.5` from `claude-haiku-4-5-20251001`,
+/// `GPT-5.6 Luna` from `gpt-5.6-luna`.
 fn family(model: &ModelId) -> String {
+    if let Some(rest) = model.as_str().strip_prefix("gpt-") {
+        let mut parts = rest.split('-');
+        let version = parts.next().unwrap_or_default();
+        let words: Vec<String> = parts.map(title_case).collect();
+        return [format!("GPT-{version}")]
+            .into_iter()
+            .chain(words)
+            .collect::<Vec<_>>()
+            .join(" ");
+    }
     let mut parts = model.as_str().trim_start_matches("claude-").split('-');
     let name = parts.next().unwrap_or_default();
     let mut title = name.chars();
@@ -418,6 +569,26 @@ mod tests {
 
     fn id(text: &str) -> ModelId {
         ModelId::try_from(text.to_owned()).expect("BUG")
+    }
+
+    #[test]
+    fn openai_families_keep_their_version_and_name() {
+        assert_eq!(family(&id("gpt-5.6-luna")), "GPT-5.6 Luna");
+        assert_eq!(family(&id("gpt-5-codex")), "GPT-5 Codex");
+    }
+
+    #[test]
+    fn plan_windows_are_named_by_their_length() {
+        let window = |minutes| PlanWindow {
+            minutes,
+            used_permille: 0,
+            resets_at: Timestamp::UNIX_EPOCH,
+        };
+        let name = |minutes| window_name(Language::De, &window(minutes), "plan-window-primary");
+        assert_eq!(name(Some(300)), "5 Stunden");
+        assert_eq!(name(Some(10_080)), "7 Tage");
+        assert_eq!(name(Some(90)), "90 min");
+        assert_eq!(name(None), "Hauptfenster");
     }
 
     #[test]

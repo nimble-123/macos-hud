@@ -5,8 +5,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use hud_domain::usage::{
-    Accuracy, CostEstimate, Measured, ModelId, PRICES_AS_OF, Period, PriceTable, Provider,
-    TelemetryTotals, TokenUsage, UsageRecord, context_window,
+    Accuracy, CostEstimate, Measured, ModelId, PRICES_AS_OF, Period, PlanUsage, PriceTable,
+    Provider, TelemetryTotals, TokenUsage, UsageRecord, context_window,
 };
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
@@ -99,7 +99,8 @@ pub struct PeriodKpis {
     pub models: Vec<(ModelId, u16)>,
     /// Subagents' share of fresh tokens.
     pub subagents: Option<u16>,
-    /// Thinking's share of output.
+    /// Thinking's share of output; with reasoning reported separately
+    /// (Codex), reasoning's share of output and reasoning together.
     pub thinking: Option<u16>,
     /// Responses per bucket, oldest first: hours for today, days otherwise.
     pub activity: Vec<u64>,
@@ -140,11 +141,12 @@ pub fn period_kpis(
         }
     }
     let fresh = totals.fresh();
+    let reasoning = totals.reasoning.unwrap_or(0);
     PeriodKpis {
         cache_hit: share(totals.cache_read, totals.prompt()),
         models: ranked(models, fresh),
         subagents: share(subagent, fresh),
-        thinking: share(thinking, totals.output),
+        thinking: share(thinking + reasoning, totals.output + reasoning),
         activity: buckets
             .iter()
             .map(|&(start, end)| {
@@ -173,7 +175,7 @@ pub fn latest_context(records: &[UsageRecord], now: Timestamp) -> Option<Context
             model: r.model.clone(),
             project: r.project.clone(),
             prompt: r.tokens.prompt(),
-            window: context_window(&r.model),
+            window: r.context_window.unwrap_or_else(|| context_window(&r.model)),
             at: r.at,
             idle: now.duration_since(r.at).unsigned_abs(),
         })
@@ -201,17 +203,36 @@ fn ranked<K>(amounts: BTreeMap<K, u64>, total: u64) -> Vec<(K, u16)> {
 
 pub use hud_domain::activity::{ActivityCalendar, CALENDAR_WEEKS, calendar, calendar_start};
 
+/// Everything the AI tab shows about one source.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceUsage {
+    /// State of the last read.
+    pub state: SourceState,
+    /// One entry per period, in [`Period::ALL`] order.
+    pub periods: Vec<PeriodUsage>,
+    /// Context of the latest main answer; independent of the period.
+    pub context: Option<ContextUse>,
+    /// Subscription usage as last reported (Codex).
+    pub plan: Option<PlanUsage>,
+}
+
+impl SourceUsage {
+    /// Usage within `period`.
+    #[must_use]
+    pub fn period(&self, period: Period) -> Option<&PeriodUsage> {
+        self.periods.iter().find(|usage| usage.period == period)
+    }
+}
+
 /// Everything the AI tab shows.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UsageReport {
-    /// One entry per period, in [`Period::ALL`] order.
-    pub periods: Vec<PeriodUsage>,
     /// Sources in configured order.
-    pub sources: Vec<SourceState>,
-    /// Context of the latest main answer; independent of the period.
-    pub context: Option<ContextUse>,
-    /// Answers per day over the last weeks.
+    pub sources: Vec<SourceUsage>,
+    /// Answers of all sources per day over the last weeks.
     pub calendar: ActivityCalendar,
+    /// When the report was made; relative times refer to it.
+    pub at: Timestamp,
 }
 
 /// Summarises `records` for every period. `unreadable` lines make token and
@@ -399,9 +420,9 @@ impl<S: UsageStore + TelemetryStore, C: Clock> UsageAgent<S, C> {
     }
 
     async fn cycle(&mut self) -> UsageReport {
-        let mut sources = Vec::with_capacity(self.sources.len());
+        let mut states = Vec::with_capacity(self.sources.len());
         for source in &self.sources {
-            sources.push(self.ingest(source.as_ref()).await);
+            states.push(self.ingest(source.as_ref()).await);
         }
         let now = self.clock.now().to_zoned(self.time_zone.clone());
         let ranges: Vec<_> = Period::ALL
@@ -417,23 +438,12 @@ impl<S: UsageStore + TelemetryStore, C: Clock> UsageAgent<S, C> {
             }
         };
         let prices = PriceTable::new(self.settings.borrow_and_update().prices.clone());
-        let unreadable = sources.iter().map(|s| s.unreadable).sum();
-        let mut periods = summarize(&records, &ranges, &prices, unreadable);
-        for (usage, &(period, from, to)) in periods.iter_mut().zip(&ranges) {
-            match self.store.totals(from, to).await {
-                Ok(totals) => usage.telemetry.value = totals,
-                Err(error) => tracing::warn!(%error, "could not read telemetry"),
-            }
-            let tool_calls = self
-                .store
-                .tool_calls(from, to)
-                .await
-                .unwrap_or_else(|error| {
-                    tracing::warn!(%error, "could not count tool calls");
-                    0
-                });
-            let buckets = buckets(period, from, to, &self.time_zone);
-            usage.kpis = period_kpis(&records, (from, to), &buckets, tool_calls);
+        let mut sources = Vec::with_capacity(states.len());
+        for state in states {
+            sources.push(
+                self.source_usage(state, &records, &ranges, &prices, now.timestamp())
+                    .await,
+            );
         }
         let today = now.date();
         let first = calendar_start(today)
@@ -448,10 +458,55 @@ impl<S: UsageStore + TelemetryStore, C: Clock> UsageAgent<S, C> {
                 Vec::new()
             });
         UsageReport {
-            context: latest_context(&records, now.timestamp()),
             calendar: calendar(&times, today, &self.time_zone),
-            periods,
             sources,
+            at: now.timestamp(),
+        }
+    }
+
+    /// Summarises the records of one source; telemetry exists only for Claude Code.
+    async fn source_usage(
+        &self,
+        state: SourceState,
+        all: &[UsageRecord],
+        ranges: &[(Period, Timestamp, Timestamp)],
+        prices: &PriceTable,
+        now: Timestamp,
+    ) -> SourceUsage {
+        let provider = state.provider;
+        let records: Vec<UsageRecord> = all
+            .iter()
+            .filter(|r| r.provider == provider)
+            .cloned()
+            .collect();
+        let mut periods = summarize(&records, ranges, prices, state.unreadable);
+        for (usage, &(period, from, to)) in periods.iter_mut().zip(ranges) {
+            if provider == Provider::Claude {
+                match self.store.totals(from, to).await {
+                    Ok(totals) => usage.telemetry.value = totals,
+                    Err(error) => tracing::warn!(%error, "could not read telemetry"),
+                }
+            }
+            let tool_calls = self
+                .store
+                .tool_calls(provider, from, to)
+                .await
+                .unwrap_or_else(|error| {
+                    tracing::warn!(%error, "could not count tool calls");
+                    0
+                });
+            let buckets = buckets(period, from, to, &self.time_zone);
+            usage.kpis = period_kpis(&records, (from, to), &buckets, tool_calls);
+        }
+        let plan = self.store.plan(provider).await.unwrap_or_else(|error| {
+            tracing::warn!(%error, "could not read plan usage");
+            None
+        });
+        SourceUsage {
+            context: latest_context(&records, now),
+            periods,
+            plan,
+            state,
         }
     }
 
@@ -542,6 +597,7 @@ mod tests {
             project: Some("hud".into()),
             subagent: false,
             thinking: 0,
+            context_window: None,
         }
     }
 
@@ -648,6 +704,23 @@ mod tests {
     }
 
     #[test]
+    fn reasoning_counts_as_thinking_against_all_output() {
+        let mut answer = record("a", "s", "gpt-6-luna", "2026-10-17T08:00:00Z", 300);
+        answer.tokens.reasoning = Some(100);
+        let range = (at("2026-10-17T00:00:00Z"), at("2026-10-17T12:00:00Z"));
+        let kpis = period_kpis(&[answer], range, &hours(), 0);
+        assert_eq!(kpis.thinking, Some(250), "100 of 400 output");
+    }
+
+    #[test]
+    fn a_reported_context_window_wins_over_the_model_table() {
+        let mut answer = record("a", "s", "gpt-6-luna", "2026-10-17T08:00:00Z", 1);
+        answer.context_window = Some(258_400);
+        let context = latest_context(&[answer], at("2026-10-17T09:00:00Z")).expect("BUG");
+        assert_eq!(context.window, 258_400);
+    }
+
+    #[test]
     fn the_calendar_starts_on_a_monday_and_ends_today() {
         let today = jiff::civil::date(2026, 10, 17); // a Saturday
         let times = [
@@ -714,18 +787,27 @@ mod tests {
         assert_eq!(summary.cost.accuracy, Accuracy::Partial);
     }
 
-    struct FakeSource;
+    struct FakeSource(Provider);
 
     impl UsageSource for FakeSource {
         fn provider(&self) -> Provider {
-            Provider::Claude
+            self.0
         }
 
         fn read(&self, cursors: Cursors) -> BoxFuture<'_, Result<UsageBatch, UsageError>> {
+            let provider = self.0;
             Box::pin(async move {
                 let mut cursors = cursors;
+                let mut answer = record(
+                    &format!("{provider:?}"),
+                    "s",
+                    "claude-opus-5-5",
+                    "2026-10-17T11:00:00Z",
+                    1_000_000,
+                );
+                answer.provider = provider;
                 cursors.insert(
-                    "log.jsonl".into(),
+                    format!("{provider:?}.jsonl"),
                     FileCursor {
                         size: 10,
                         offset: 10,
@@ -733,15 +815,15 @@ mod tests {
                     },
                 );
                 Ok(UsageBatch {
-                    records: vec![record(
-                        "a",
-                        "s",
-                        "claude-opus-5-5",
-                        "2026-10-17T11:00:00Z",
-                        1_000_000,
-                    )],
+                    records: vec![answer],
                     tool_calls: Vec::new(),
                     cursors,
+                    plan: (provider == Provider::Codex).then(|| PlanUsage {
+                        at: at("2026-10-17T11:00:00Z"),
+                        plan: Some("plus".into()),
+                        primary: None,
+                        secondary: None,
+                    }),
                 })
             })
         }
@@ -751,6 +833,7 @@ mod tests {
     struct FakeStore {
         records: Mutex<Vec<UsageRecord>>,
         cursors: Mutex<Cursors>,
+        plan: Mutex<Option<PlanUsage>>,
     }
 
     #[expect(
@@ -758,14 +841,30 @@ mod tests {
         reason = "the fake answers immediately; the trait still needs async signatures"
     )]
     impl UsageStore for FakeStore {
-        async fn cursors(&self, _provider: Provider) -> Result<Cursors, StoreError> {
-            Ok(self.cursors.lock().expect("BUG").clone())
+        async fn cursors(&self, provider: Provider) -> Result<Cursors, StoreError> {
+            let name = format!("{provider:?}.jsonl");
+            let cursors = self.cursors.lock().expect("BUG");
+            Ok(cursors
+                .iter()
+                .filter(|(file, _)| **file == name)
+                .map(|(file, cursor)| (file.clone(), *cursor))
+                .collect())
         }
 
         async fn save(&self, _provider: Provider, batch: UsageBatch) -> Result<(), StoreError> {
             self.records.lock().expect("BUG").extend(batch.records);
-            *self.cursors.lock().expect("BUG") = batch.cursors;
+            self.cursors.lock().expect("BUG").extend(batch.cursors);
+            if batch.plan.is_some() {
+                *self.plan.lock().expect("BUG") = batch.plan;
+            }
             Ok(())
+        }
+
+        async fn plan(&self, provider: Provider) -> Result<Option<PlanUsage>, StoreError> {
+            Ok(match provider {
+                Provider::Codex => self.plan.lock().expect("BUG").clone(),
+                Provider::Claude => None,
+            })
         }
 
         async fn answer_times(
@@ -781,8 +880,16 @@ mod tests {
                 .collect())
         }
 
-        async fn tool_calls(&self, _from: Timestamp, _to: Timestamp) -> Result<u64, StoreError> {
-            Ok(7)
+        async fn tool_calls(
+            &self,
+            provider: Provider,
+            _from: Timestamp,
+            _to: Timestamp,
+        ) -> Result<u64, StoreError> {
+            Ok(match provider {
+                Provider::Claude => 7,
+                Provider::Codex => 3,
+            })
         }
 
         async fn records(
@@ -828,7 +935,10 @@ mod tests {
         let store = Arc::new(FakeStore::default());
         let (_settings, watched) = watch::channel(Settings::default());
         let agent = UsageAgent::new(
-            vec![Arc::new(FakeSource)],
+            vec![
+                Arc::new(FakeSource(Provider::Claude)),
+                Arc::new(FakeSource(Provider::Codex)),
+            ],
             Arc::clone(&store),
             FakeClock,
             TimeZone::UTC,
@@ -842,17 +952,41 @@ mod tests {
         let Some(AppEvent::Usage(report)) = events.recv().await else {
             panic!("expected a usage report")
         };
-        assert_eq!(report.periods.len(), Period::ALL.len());
-        assert_eq!(report.periods[0].tokens.value.output, 1_000_000);
-        assert_eq!(report.sources[0].unreadable, 1);
-        assert_eq!(report.periods[0].tokens.accuracy, Accuracy::Partial);
-        assert_eq!(store.cursors.lock().expect("BUG")["log.jsonl"].offset, 10);
-        assert_eq!(report.periods[0].telemetry.value.commits, 2);
-        assert_eq!(report.periods[0].kpis.tool_calls, 7);
-        assert_eq!(report.calendar.days.last(), Some(&1), "today's answer");
-        assert_eq!(report.periods[0].kpis.activity.len(), 24);
-        assert_eq!(report.sources[0].files, 1);
-        assert_eq!(report.periods[0].telemetry.accuracy, Accuracy::Partial);
+        let [claude, codex] = &report.sources[..] else {
+            panic!("expected two sources")
+        };
+        assert_eq!(claude.periods.len(), Period::ALL.len());
+        assert_eq!(
+            claude.periods[0].tokens.value.output, 1_000_000,
+            "only Claude's own answer"
+        );
+        assert_eq!(claude.state.unreadable, 1);
+        assert_eq!(claude.periods[0].tokens.accuracy, Accuracy::Partial);
+        assert_eq!(
+            store.cursors.lock().expect("BUG")["Claude.jsonl"].offset,
+            10
+        );
+        assert_eq!(claude.periods[0].telemetry.value.commits, 2);
+        assert_eq!(claude.periods[0].kpis.tool_calls, 7);
+        assert_eq!(
+            report.calendar.days.last(),
+            Some(&2),
+            "both sources answered today"
+        );
+        assert_eq!(claude.periods[0].kpis.activity.len(), 24);
+        assert_eq!(claude.state.files, 1);
+        assert_eq!(claude.periods[0].telemetry.accuracy, Accuracy::Partial);
+        assert_eq!(claude.plan, None);
+        assert_eq!(
+            codex.periods[0].telemetry.value,
+            TelemetryTotals::default(),
+            "telemetry belongs to Claude Code"
+        );
+        assert_eq!(codex.periods[0].kpis.tool_calls, 3);
+        assert_eq!(
+            codex.plan.as_ref().and_then(|plan| plan.plan.as_deref()),
+            Some("plus")
+        );
         cancel.cancel();
         task.await.expect("BUG");
     }

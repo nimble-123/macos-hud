@@ -5,7 +5,7 @@ use std::future::Future;
 use std::sync::Arc;
 
 use futures::future::BoxFuture;
-use hud_domain::usage::{Provider, ToolCall, UsageRecord};
+use hud_domain::usage::{PlanUsage, Provider, ToolCall, UsageRecord};
 use jiff::Timestamp;
 
 use crate::ports::store::StoreError;
@@ -33,6 +33,8 @@ pub struct UsageBatch {
     pub tool_calls: Vec<ToolCall>,
     /// Cursors of every file after reading.
     pub cursors: Cursors,
+    /// The newest subscription usage in the new lines, if the source reports it.
+    pub plan: Option<PlanUsage>,
 }
 
 /// Why a source could not be read.
@@ -67,7 +69,8 @@ pub trait UsageStore: Send + Sync {
     ) -> impl Future<Output = Result<Cursors, StoreError>> + Send;
 
     /// Stores a batch: records are merged by key, keeping the highest count
-    /// of each kind of token, and the cursors are replaced, all at once.
+    /// of each kind of token, the cursors are replaced and the plan usage is
+    /// kept if it is newer than the stored one, all at once.
     fn save(
         &self,
         provider: Provider,
@@ -88,12 +91,19 @@ pub trait UsageStore: Send + Sync {
         to: Timestamp,
     ) -> impl Future<Output = Result<Vec<Timestamp>, StoreError>> + Send;
 
-    /// Distinct tool calls in `[from, to)`.
+    /// Distinct tool calls of `provider` in `[from, to)`.
     fn tool_calls(
         &self,
+        provider: Provider,
         from: Timestamp,
         to: Timestamp,
     ) -> impl Future<Output = Result<u64, StoreError>> + Send;
+
+    /// The newest subscription usage `provider` reported.
+    fn plan(
+        &self,
+        provider: Provider,
+    ) -> impl Future<Output = Result<Option<PlanUsage>, StoreError>> + Send;
 }
 
 impl<T: UsageStore> UsageStore for Arc<T> {
@@ -122,10 +132,18 @@ impl<T: UsageStore> UsageStore for Arc<T> {
 
     fn tool_calls(
         &self,
+        provider: Provider,
         from: Timestamp,
         to: Timestamp,
     ) -> impl Future<Output = Result<u64, StoreError>> + Send {
-        (**self).tool_calls(from, to)
+        (**self).tool_calls(provider, from, to)
+    }
+
+    fn plan(
+        &self,
+        provider: Provider,
+    ) -> impl Future<Output = Result<Option<PlanUsage>, StoreError>> + Send {
+        (**self).plan(provider)
     }
 
     fn answer_times(

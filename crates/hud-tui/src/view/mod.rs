@@ -551,7 +551,9 @@ mod tests {
     }
 
     fn sample_usage() -> hud_application::usecases::usage::UsageReport {
-        use hud_application::usecases::usage::{ModelUsage, PeriodUsage, SourceState, UsageReport};
+        use hud_application::usecases::usage::{
+            ModelUsage, PeriodUsage, SourceState, SourceUsage, UsageReport,
+        };
         use hud_domain::usage::{
             Accuracy, CostEstimate, Measured, ModelId, PRICES_AS_OF, Period, Provider, TokenUsage,
         };
@@ -624,16 +626,131 @@ mod tests {
             })
             .collect();
         UsageReport {
-            periods,
-            sources: vec![SourceState {
-                provider: Provider::Claude,
+            sources: vec![
+                SourceUsage {
+                    state: SourceState {
+                        provider: Provider::Claude,
+                        error: None,
+                        unreadable: 0,
+                        files: 474,
+                        read_ms: 239,
+                    },
+                    periods,
+                    context: Some(sample_context()),
+                    plan: None,
+                },
+                sample_codex(),
+            ],
+            calendar: sample_calendar(),
+            at: sample_now(),
+        }
+    }
+
+    fn sample_now() -> jiff::Timestamp {
+        "2026-10-17T12:00:00Z".parse().expect("BUG: timestamp")
+    }
+
+    /// Codex with reasoning tokens and a plan that is used a little.
+    fn sample_codex() -> hud_application::usecases::usage::SourceUsage {
+        use hud_application::usecases::usage::{
+            ModelUsage, PeriodKpis, PeriodUsage, SourceState, SourceUsage,
+        };
+        use hud_domain::usage::{
+            Accuracy, CostEstimate, Measured, ModelId, PRICES_AS_OF, Period, PlanUsage, PlanWindow,
+            Provider, TokenUsage,
+        };
+        let luna = ModelId::try_from("gpt-6-luna".to_owned()).expect("BUG: model id");
+        let tokens = TokenUsage {
+            input: 1_200_000,
+            output: 40_000,
+            cache_write_5m: 0,
+            cache_write_1h: 0,
+            cache_read: 8_800_000,
+            reasoning: Some(25_000),
+        };
+        let cost = CostEstimate {
+            micro_usd: 240_500,
+            prices_as_of: PRICES_AS_OF,
+        };
+        let periods = Period::ALL
+            .iter()
+            .map(|&period| PeriodUsage {
+                period,
+                models: vec![ModelUsage {
+                    provider: Provider::Codex,
+                    model: luna.clone(),
+                    responses: 212,
+                    sessions: 3,
+                    tokens,
+                    cost: Some(cost),
+                }],
+                sessions: Measured {
+                    value: 3,
+                    accuracy: Accuracy::Exact,
+                },
+                tokens: Measured {
+                    value: tokens,
+                    accuracy: Accuracy::Exact,
+                },
+                cost: Measured {
+                    value: cost,
+                    accuracy: Accuracy::Estimated,
+                },
+                telemetry: Measured {
+                    value: hud_domain::usage::TelemetryTotals::default(),
+                    accuracy: Accuracy::Partial,
+                },
+                kpis: PeriodKpis {
+                    cache_hit: Some(880),
+                    models: vec![(luna.clone(), 1000)],
+                    subagents: Some(0),
+                    thinking: Some(385),
+                    activity: vec![
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 30, 41, 8, 0, 25, 40, 36, 20, 0, 0, 0, 0, 0,
+                        0,
+                    ],
+                    responses: 212,
+                    tool_calls: 96,
+                    projects: vec![("macos-hud".into(), 1000)],
+                },
+            })
+            .collect();
+        let now = sample_now();
+        let later = |minutes: i64| {
+            now.checked_add(jiff::SignedDuration::from_mins(minutes))
+                .expect("BUG: timestamp")
+        };
+        SourceUsage {
+            state: SourceState {
+                provider: Provider::Codex,
                 error: None,
                 unreadable: 0,
-                files: 474,
-                read_ms: 239,
-            }],
-            context: Some(sample_context()),
-            calendar: sample_calendar(),
+                files: 165,
+                read_ms: 84,
+            },
+            periods,
+            context: Some(hud_application::usecases::usage::ContextUse {
+                model: luna,
+                project: Some("macos-hud".into()),
+                prompt: 64_000,
+                window: 258_400,
+                at: later(-20),
+                idle: std::time::Duration::from_mins(20),
+            }),
+            plan: Some(PlanUsage {
+                at: later(-3),
+                plan: Some("plus".into()),
+                primary: Some(PlanWindow {
+                    minutes: Some(300),
+                    used_permille: 125,
+                    resets_at: later(134),
+                }),
+                secondary: Some(PlanWindow {
+                    minutes: Some(10_080),
+                    used_permille: 30,
+                    resets_at: later(4 * 1440),
+                }),
+            }),
         }
     }
 
@@ -691,6 +808,33 @@ mod tests {
     #[test]
     fn ai_tab_in_english() {
         insta::assert_snapshot!(render_wide(&ai_tab(Language::En)).backend());
+    }
+
+    fn codex_only(language: Language) -> Terminal<TestBackend> {
+        use hud_application::AppEvent;
+        let mut model = Model::new(UiSettings {
+            language,
+            ..UiSettings::default()
+        });
+        model.tab = Tab::Ai;
+        let mut report = sample_usage();
+        report.sources.remove(0);
+        update(&mut model, Msg::App(AppEvent::Usage(Box::new(report))));
+        let mut terminal = Terminal::new(TestBackend::new(115, 36)).expect("BUG: test backend");
+        terminal
+            .draw(|frame| view(&model, frame))
+            .expect("BUG: test draw");
+        terminal
+    }
+
+    #[test]
+    fn codex_section_with_plan_usage_in_german() {
+        insta::assert_snapshot!(codex_only(Language::De).backend());
+    }
+
+    #[test]
+    fn codex_section_with_plan_usage_in_english() {
+        insta::assert_snapshot!(codex_only(Language::En).backend());
     }
 
     #[test]

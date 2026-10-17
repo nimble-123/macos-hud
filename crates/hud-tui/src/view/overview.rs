@@ -251,20 +251,42 @@ fn calm_line<'a>(model: &Model) -> Line<'a> {
     Line::styled(text, Style::new().fg(model.theme.soft))
 }
 
-/// `KI heute  1,2 M Token  ≈ 4,10 $ API-Äquivalent`.
+/// `KI heute  1,2 M Token  ≈ 4,10 $ API-Äquivalent`, all sources together.
 fn ai_today<'a>(model: &Model) -> Option<Line<'a>> {
     let language = model.settings.language;
     let theme = &model.theme;
-    let today = model
-        .usage
-        .as_ref()?
-        .periods
+    let report = model.usage.as_ref()?;
+    let today: Vec<_> = report
+        .sources
         .iter()
-        .find(|p| p.period == Period::Today)?;
+        .filter_map(|source| source.period(Period::Today))
+        .collect();
+    if today.is_empty() {
+        return None;
+    }
+    let tokens: u64 = today.iter().map(|usage| usage.tokens.value.total()).sum();
+    let cost = hud_domain::usage::CostEstimate {
+        micro_usd: today.iter().map(|usage| usage.cost.value.micro_usd).sum(),
+        prices_as_of: hud_domain::usage::PRICES_AS_OF,
+    };
+    // Only a pure API setup pays what the estimate says.
     let billing = model
         .preferences
         .as_ref()
-        .map_or(Billing::Subscription, |p| p.claude.billing);
+        .map_or(Billing::Subscription, |p| {
+            let api = report.sources.iter().all(|source| {
+                let billing = match source.state.provider {
+                    hud_domain::usage::Provider::Claude => p.claude.billing,
+                    hud_domain::usage::Provider::Codex => p.codex.billing,
+                };
+                billing == Billing::Api
+            });
+            if api {
+                Billing::Api
+            } else {
+                Billing::Subscription
+            }
+        });
     let basis = t(
         language,
         match billing {
@@ -280,9 +302,9 @@ fn ai_today<'a>(model: &Model) -> Option<Line<'a>> {
         Span::styled(
             format!(
                 "{} {}   ≈ {}",
-                super::ai::compact(today.tokens.value.total(), language),
+                super::ai::compact(tokens, language),
                 t(language, "ai-tokens"),
-                super::ai::money(today.cost.value, language)
+                super::ai::money(cost, language)
             ),
             Style::new().fg(theme.ink).add_modifier(Modifier::BOLD),
         ),
