@@ -1,29 +1,87 @@
 //! State transitions.
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use hud_application::Command;
+use hud_application::{AppEvent, Command};
 
-use crate::{Model, Msg};
+use crate::model::OK_HIGHLIGHT;
+use crate::{Model, Msg, Tab};
 
 /// Applies a message to the model and returns the commands to run.
 ///
 /// Pure: no I/O and no clock, so every transition is unit-testable.
 pub fn update(model: &mut Model, msg: Msg) -> Vec<Command> {
     match msg {
-        Msg::Key(key) => on_key(model, key),
-        Msg::App(event) => match event {},
-        Msg::Mouse(_) | Msg::Resize | Msg::Tick => {}
+        Msg::Key(key) => return on_key(model, key),
+        Msg::App(event) => on_app_event(model, event),
+        Msg::Tick(now) => {
+            model.now = Some(now);
+            model
+                .recent_ok
+                .retain(|_, at| now.duration_since(*at) < OK_HIGHLIGHT);
+        }
+        Msg::Mouse(_) | Msg::Resize => {}
     }
     Vec::new()
 }
 
-fn on_key(model: &mut Model, key: KeyEvent) {
+fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
     match key.code {
         KeyCode::Tab => model.tab = model.tab.next(),
         KeyCode::BackTab => model.tab = model.tab.previous(),
         KeyCode::Char('q') => model.quit = true,
         KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => model.quit = true,
+        KeyCode::Char('r') if !model.syncing => return vec![Command::SyncNow],
+        KeyCode::Down | KeyCode::Char('j') if model.tab == Tab::Workspaces => {
+            move_selection(model, 1);
+        }
+        KeyCode::Up | KeyCode::Char('k') if model.tab == Tab::Workspaces => {
+            move_selection(model, -1);
+        }
+        KeyCode::Char('f') if model.tab == Tab::Workspaces => {
+            if let Some(report) = model.selected_repo() {
+                return vec![Command::FastForward(report.repo.clone())];
+            }
+        }
         _ => {}
+    }
+    Vec::new()
+}
+
+fn move_selection(model: &mut Model, delta: isize) {
+    let count = model.repo_rows().count();
+    if count == 0 {
+        return;
+    }
+    model.selected = model.selected.saturating_add_signed(delta).min(count - 1);
+}
+
+fn on_app_event(model: &mut Model, event: AppEvent) {
+    match event {
+        AppEvent::Workspaces { reports, source: _ } => {
+            let finished: Vec<_> = reports
+                .iter()
+                .filter_map(|w| w.repos.clone())
+                .flatten()
+                .collect();
+            model.workspaces = reports;
+            model.syncing = false;
+            model.mark_fast_forwards(&finished);
+            let count = model.repo_rows().count();
+            model.selected = model.selected.min(count.saturating_sub(1));
+        }
+        AppEvent::SyncStarted => model.syncing = true,
+        AppEvent::RepoUpdated(report) => {
+            model.mark_fast_forwards(std::slice::from_ref(&report));
+            let slot = model
+                .workspaces
+                .iter_mut()
+                .filter_map(|w| w.repos.as_mut())
+                .flatten()
+                .find(|r| r.repo == report.repo);
+            if let Some(slot) = slot {
+                *slot = report;
+            }
+        }
     }
 }
 
@@ -75,10 +133,149 @@ mod tests {
     }
 
     #[test]
-    fn tick_changes_nothing() {
+    fn tick_changes_neither_tab_nor_quit() {
         let mut model = Model::default();
-        update(&mut model, Msg::Tick);
+        update(&mut model, Msg::Tick(Instant::now()));
         assert_eq!(model.tab(), Tab::Overview);
         assert!(!model.should_quit());
+    }
+
+    use std::path::PathBuf;
+    use std::time::{Duration, Instant};
+
+    use hud_application::ReportSource;
+    use hud_application::usecases::workspaces::{RepoReport, RepoState, WorkspaceReport};
+    use hud_domain::WorkspacePath;
+    use hud_domain::git::RepoPath;
+
+    fn report(path: &str, state: RepoState) -> RepoReport {
+        RepoReport {
+            repo: RepoPath::try_from(PathBuf::from(path)).expect("BUG"),
+            status: None,
+            state,
+        }
+    }
+
+    fn workspaces(repos: Vec<RepoReport>) -> AppEvent {
+        AppEvent::Workspaces {
+            reports: vec![WorkspaceReport {
+                workspace: WorkspacePath::try_from(PathBuf::from("/ws")).expect("BUG"),
+                auto_fast_forward: true,
+                repos: Some(repos),
+                unavailable: None,
+            }],
+            source: ReportSource::Sync,
+        }
+    }
+
+    fn on_workspaces_tab() -> Model {
+        let mut model = Model::default();
+        update(&mut model, key(KeyCode::Tab));
+        model
+    }
+
+    #[test]
+    fn r_requests_a_sync_unless_one_is_running() {
+        let mut model = Model::default();
+        assert_eq!(
+            update(&mut model, key(KeyCode::Char('r'))),
+            vec![Command::SyncNow]
+        );
+        update(&mut model, Msg::App(AppEvent::SyncStarted));
+        assert_eq!(update(&mut model, key(KeyCode::Char('r'))), Vec::new());
+    }
+
+    #[test]
+    fn f_fast_forwards_the_selected_repository() {
+        let mut model = on_workspaces_tab();
+        update(
+            &mut model,
+            Msg::App(workspaces(vec![
+                report("/ws/a", RepoState::UpToDate),
+                report("/ws/b", RepoState::Behind(2)),
+            ])),
+        );
+        update(&mut model, key(KeyCode::Down));
+        let commands = update(&mut model, key(KeyCode::Char('f')));
+        assert_eq!(
+            commands,
+            vec![Command::FastForward(
+                RepoPath::try_from(PathBuf::from("/ws/b")).expect("BUG")
+            )]
+        );
+    }
+
+    #[test]
+    fn selection_stays_within_the_list() {
+        let mut model = on_workspaces_tab();
+        update(
+            &mut model,
+            Msg::App(workspaces(vec![report("/ws/a", RepoState::UpToDate)])),
+        );
+        update(&mut model, key(KeyCode::Down));
+        update(&mut model, key(KeyCode::Down));
+        assert_eq!(model.selected, 0);
+        update(&mut model, key(KeyCode::Up));
+        assert_eq!(model.selected, 0);
+    }
+
+    #[test]
+    fn f_outside_the_workspaces_tab_does_nothing() {
+        let mut model = Model::default();
+        update(
+            &mut model,
+            Msg::App(workspaces(vec![report("/ws/a", RepoState::Behind(1))])),
+        );
+        assert_eq!(update(&mut model, key(KeyCode::Char('f'))), Vec::new());
+    }
+
+    #[test]
+    fn fast_forward_highlight_expires_after_thirty_seconds() {
+        let mut model = Model::default();
+        let start = Instant::now();
+        update(&mut model, Msg::Tick(start));
+        update(
+            &mut model,
+            Msg::App(workspaces(vec![report(
+                "/ws/a",
+                RepoState::FastForwarded(3),
+            )])),
+        );
+        let repo = RepoPath::try_from(PathBuf::from("/ws/a")).expect("BUG");
+        assert!(model.is_recent_ok(&repo));
+        update(&mut model, Msg::Tick(start + Duration::from_secs(31)));
+        assert!(!model.is_recent_ok(&repo));
+    }
+
+    #[test]
+    fn workspace_report_ends_the_sync_indicator() {
+        let mut model = Model::default();
+        update(&mut model, Msg::App(AppEvent::SyncStarted));
+        update(&mut model, Msg::App(workspaces(vec![])));
+        assert!(!model.syncing);
+    }
+
+    #[test]
+    fn manual_result_replaces_only_that_repository() {
+        let mut model = Model::default();
+        update(
+            &mut model,
+            Msg::App(workspaces(vec![
+                report("/ws/a", RepoState::Behind(1)),
+                report("/ws/b", RepoState::Behind(2)),
+            ])),
+        );
+        update(
+            &mut model,
+            Msg::App(AppEvent::RepoUpdated(report(
+                "/ws/a",
+                RepoState::FastForwarded(1),
+            ))),
+        );
+        let states: Vec<_> = model.repo_rows().map(|r| r.state.clone()).collect();
+        assert_eq!(
+            states,
+            vec![RepoState::FastForwarded(1), RepoState::Behind(2)]
+        );
     }
 }

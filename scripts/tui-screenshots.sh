@@ -24,7 +24,7 @@ uv run -q --with resvg-py python -I - "$out" "$fonts" <<'PY'
 import sys, pathlib, resvg_py
 out, fonts = pathlib.Path(sys.argv[1]), sys.argv[2]
 for svg in sorted(out.glob("*.svg")):
-    png = resvg_py.svg_to_bytes(svg_path=str(svg), font_dirs=[fonts], skip_system_fonts=True)
+    png = resvg_py.svg_to_bytes(svg_path=str(svg), font_dirs=[fonts])
     svg.with_suffix(".png").write_bytes(bytes(png))
     print(svg.with_suffix(".png"))
 PY

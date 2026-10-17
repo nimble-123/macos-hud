@@ -49,8 +49,18 @@ impl Tab {
     }
 }
 
+use std::collections::HashMap;
+use std::time::{Duration, Instant};
+
+use hud_application::usecases::workspaces::{RepoReport, RepoState, WorkspaceReport};
+use hud_domain::git::RepoPath;
+
 use crate::settings::UiSettings;
 use crate::theme::Theme;
+
+/// How long a finished fast-forward stays highlighted before it returns to
+/// the quiet normal state (`docs/DESIGN.md` §6).
+pub(crate) const OK_HIGHLIGHT: Duration = Duration::from_secs(30);
 
 /// Complete UI state. Changed only by [`crate::update`].
 #[derive(Debug)]
@@ -59,6 +69,14 @@ pub struct Model {
     pub(crate) theme: Theme,
     pub(crate) tab: Tab,
     pub(crate) quit: bool,
+    /// Time of the last tick; the only clock `update` knows.
+    pub(crate) now: Option<Instant>,
+    pub(crate) workspaces: Vec<WorkspaceReport>,
+    pub(crate) syncing: bool,
+    /// Index into [`Model::repo_rows`].
+    pub(crate) selected: usize,
+    /// Repositories fast-forwarded recently, with the time it happened.
+    pub(crate) recent_ok: HashMap<RepoPath, Instant>,
 }
 
 impl Default for Model {
@@ -76,6 +94,41 @@ impl Model {
             settings,
             tab: Tab::default(),
             quit: false,
+            now: None,
+            workspaces: Vec::new(),
+            syncing: false,
+            selected: 0,
+            recent_ok: HashMap::new(),
+        }
+    }
+
+    /// All repositories in display order, across workspaces.
+    pub(crate) fn repo_rows(&self) -> impl Iterator<Item = &RepoReport> {
+        self.workspaces
+            .iter()
+            .filter_map(|w| w.repos.as_ref())
+            .flatten()
+    }
+
+    /// The selected repository, if any.
+    pub(crate) fn selected_repo(&self) -> Option<&RepoReport> {
+        self.repo_rows().nth(self.selected)
+    }
+
+    /// Whether a repository was fast-forwarded within [`OK_HIGHLIGHT`].
+    pub(crate) fn is_recent_ok(&self, repo: &RepoPath) -> bool {
+        match (self.recent_ok.get(repo), self.now) {
+            (Some(at), Some(now)) => now.duration_since(*at) < OK_HIGHLIGHT,
+            _ => false,
+        }
+    }
+
+    pub(crate) fn mark_fast_forwards(&mut self, reports: &[RepoReport]) {
+        let Some(now) = self.now else { return };
+        for report in reports {
+            if matches!(report.state, RepoState::FastForwarded(_)) {
+                self.recent_ok.insert(report.repo.clone(), now);
+            }
         }
     }
 

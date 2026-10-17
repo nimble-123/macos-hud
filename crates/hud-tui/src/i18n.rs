@@ -44,6 +44,14 @@ pub fn t_args(language: Language, message: &str, args: &[(&'static str, &str)]) 
     LOCALES.lookup_with_args(id(language), message, &args)
 }
 
+/// Text for a message id with one numeric argument, used for plural rules.
+#[must_use]
+pub fn t_count(language: Language, message: &str, name: &'static str, count: u32) -> String {
+    let args: HashMap<Cow<'static, str>, FluentValue<'_>> =
+        HashMap::from([(Cow::Borrowed(name), FluentValue::from(count))]);
+    LOCALES.lookup_with_args(id(language), message, &args)
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeSet;
@@ -69,6 +77,22 @@ mod tests {
     fn german_text_differs_from_english() {
         assert_eq!(t(Language::De, "tab-settings"), "Einstellungen");
         assert_eq!(t(Language::En, "tab-settings"), "Settings");
+    }
+
+    #[test]
+    fn plural_rules_pick_singular_and_plural() {
+        assert_eq!(
+            t_count(Language::De, "state-fast-forwarded", "count", 1),
+            "Fast-Forward: 1 Commit"
+        );
+        assert_eq!(
+            t_count(Language::De, "state-fast-forwarded", "count", 3),
+            "Fast-Forward: 3 Commits"
+        );
+        assert_eq!(
+            t_count(Language::En, "skip-ahead", "count", 2),
+            "2 local commits not pushed"
+        );
     }
 
     #[test]

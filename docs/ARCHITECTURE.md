@@ -237,6 +237,7 @@ pub enum Outcome { Succeeded, Failed(String), Skipped(String), Cancelled, TimedO
 | `QueryUsage` | Aggregation pro `Period`, Provider, Modell → `Measured<…>` |
 | `ManageWorkspaces` | hinzufügen, entfernen, Opt-out umschalten → `SettingsStore` |
 | `ManageSettings` | Opt-ins, Sprache, Theme → `SettingsStore` |
+| `WorkspaceAgent` | führt die Workspace-Use-Cases aus: beim Start Cache, dann lokaler Scan, danach `SyncRepositories` mit Fetch im Fetch-Intervall und auf `Command::SyncNow`; `Command::FastForward` startet `FastForwardRepo`; sendet `AppEvent::Workspaces`, `SyncStarted`, `RepoUpdated`; stoppt über `CancellationToken` |
 | `Scheduler` | treibt periodische Use Cases (Fetch 15 min, Updates 6 h, Ingest 60 s, System 2 s) |
 | `JobRunner` | führt verändernde Use Cases als Jobs aus, verwaltet Status, Sperren und Abbruch |
 
@@ -247,7 +248,7 @@ Jeder Use Case ist eine Struct mit Abhängigkeiten im Konstruktor und einer Meth
 | Modul | Inhalt |
 |---|---|
 | `model` | `Model`: aktiver Tab, Auswahl, Scroll-Offsets, Dialoge, zuletzt empfangene Daten, Klickflächen |
-| `msg` | `Msg`: `Key`, `Mouse`, `Resize`, `Tick`, `App(AppEvent)` |
+| `msg` | `Msg`: `Key`, `Mouse`, `Resize`, `Tick(Instant)`, `App(AppEvent)`; der Tick trägt die Zeit, damit `update` ohne Uhr auskommt |
 | `update` | `fn update(model: &mut Model, msg: Msg) -> Vec<Command>`, rein, ohne I/O |
 | `view` | `fn view(model: &Model, frame: &mut Frame)`, rein; je Tab ein Untermodul |
 | `theme` | Palette aus [DESIGN.md](DESIGN.md), Farbtiefe, hell/dunkel |
@@ -301,7 +302,7 @@ loop {
     let msg = tokio::select! {
         Some(ev) = input.next()      => Msg::from(ev?),        // crossterm EventStream, cancel-safe
         Some(ev) = app_events.recv() => Msg::App(ev),          // mpsc, cancel-safe
-        _ = render_tick.tick()       => Msg::Tick,             // 250 ms, cancel-safe
+        _ = render_tick.tick()       => Msg::Tick(Instant::now()), // 250 ms, cancel-safe
     };
     for cmd in update(&mut model, msg) { commands.send(cmd).await?; }
     if model.should_quit() { break; }

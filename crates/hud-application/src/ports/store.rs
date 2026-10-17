@@ -1,6 +1,7 @@
 //! Persistence ports: action log and scan cache.
 
 use std::future::Future;
+use std::sync::Arc;
 
 use hud_domain::action::{ActionId, ActionKind, ActionRecord, Outcome, Trigger};
 use hud_domain::git::{RepoPath, RepoStatus};
@@ -68,4 +69,47 @@ pub trait ScanCache: Send + Sync {
 pub trait Clock: Send + Sync {
     /// Now.
     fn now(&self) -> Timestamp;
+}
+
+impl<T: ActionLog> ActionLog for Arc<T> {
+    fn start(
+        &self,
+        at: Timestamp,
+        kind: ActionKind,
+        target: &str,
+        trigger: Trigger,
+    ) -> impl Future<Output = Result<ActionId, StoreError>> + Send {
+        (**self).start(at, kind, target, trigger)
+    }
+
+    fn finish(
+        &self,
+        id: ActionId,
+        at: Timestamp,
+        outcome: Outcome,
+        summary: Option<String>,
+    ) -> impl Future<Output = Result<(), StoreError>> + Send {
+        (**self).finish(id, at, outcome, summary)
+    }
+
+    fn recent(
+        &self,
+        limit: u32,
+    ) -> impl Future<Output = Result<Vec<ActionRecord>, StoreError>> + Send {
+        (**self).recent(limit)
+    }
+}
+
+impl<T: ScanCache> ScanCache for Arc<T> {
+    fn save(&self, entry: CachedRepo) -> impl Future<Output = Result<(), StoreError>> + Send {
+        (**self).save(entry)
+    }
+
+    fn load_all(&self) -> impl Future<Output = Result<Vec<CachedRepo>, StoreError>> + Send {
+        (**self).load_all()
+    }
+
+    fn retain(&self, repos: Vec<RepoPath>) -> impl Future<Output = Result<(), StoreError>> + Send {
+        (**self).retain(repos)
+    }
 }
