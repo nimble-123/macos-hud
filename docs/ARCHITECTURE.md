@@ -241,8 +241,7 @@ pub enum Outcome { Succeeded, Failed(String), Skipped(String), Cancelled, TimedO
 | `FastForwardRepo` | manueller FF für ein Repo (ignoriert Opt-out, nicht die übrigen Regeln) |
 | `CheckUpdates` | alle `UpdateSource`s parallel, Fehler pro Quelle isoliert → `AppEvent::UpdatesChecked` |
 | `InstallUpdates` | Decision je Kandidat → Installation mit Permit, Sperre pro Paketmanager → `ActionLog` |
-| `IngestUsage` | alle aktiven `UsageSource`s, inkrementell → `UsageStore` |
-| `QueryUsage` | Aggregation pro `Period`, Provider, Modell → `Measured<…>` |
+| `UsageAgent` | liest beim Start, alle 60 s und nach jeder Änderung der Einstellungen alle `UsageSource`s inkrementell in den `UsageStore`, fasst die Nutzung mit `summarize` je `Period`, Provider und Modell zusammen (Sessions, Antworten, Token, `CostEstimate`, jeweils mit `Accuracy`) und sendet `AppEvent::Usage(UsageReport)` |
 | `SettingsAgent` | wendet `SettingsCommand::Change(SettingsChange)` über `SettingsStore::update` an (Sprache, Theme, Symbolsatz, Workspace hinzufügen/entfernen, Fast-Forward-Opt-out, Installations-Opt-ins) und liest auf `SettingsCommand::Reload` die Datei neu; veröffentlicht das Ergebnis über einen `watch`-Kanal und sendet `AppEvent::Settings` bzw. bei Fehlern `SettingsRejected` (die bisherigen Einstellungen bleiben dann gültig); sendet beim Start die aktuellen Einstellungen |
 | `LogAgent` | liest auf `LogCommand::Load` die letzten 500 Einträge aus dem `ActionLog` und sendet `AppEvent::Actions`; die TUI fordert sie beim Öffnen des Protokoll-Tabs an und, solange er offen ist, nach jedem beendeten Job, manuellen Fast-Forward und Sync |
 | `WorkspaceAgent` | führt die Workspace-Use-Cases aus: beim Start Cache, dann lokaler Scan, danach `SyncRepositories` mit Fetch im Fetch-Intervall und auf `Command::SyncNow`; beobachtet die Einstellungen und scannt nach jeder Änderung sofort lokal (neues Fetch-Intervall gilt ab dann); `Command::FastForward` startet `FastForwardRepo`; sendet `AppEvent::Workspaces`, `SyncStarted`, `RepoUpdated`; stoppt über `CancellationToken` |
@@ -328,12 +327,12 @@ Alle drei `select!`-Zweige sind cancel-safe. Die Schleife macht kein I/O außer 
 
 ![Datenfluss KI-Nutzung](diagrams/ingest-flow.svg)
 
-1. Alle 60 s: `IngestUsage` listet neue oder gewachsene JSONL-Dateien (`ingest_offset`: Pfad, Größe, mtime, Byte-Offset).
-2. Gelesen wird ab dem gespeicherten Offset bis zum letzten vollständigen Zeilenumbruch; eine unvollständige letzte Zeile bleibt für den nächsten Lauf liegen.
+1. Beim Start, alle 60 s und nach jeder Änderung der Einstellungen liest der `UsageAgent` jede `UsageSource`. `ClaudeLogs` durchsucht `~/.claude/projects` (bzw. `$CLAUDE_CONFIG_DIR/projects`) rekursiv nach `*.jsonl`, einschließlich der Subagent-Logs; die Desktop-App schreibt ihre Claude-Code-Sitzungen in denselben Ordner. Das Lesen läuft in `spawn_blocking`.
+2. Je Datei steht in `ingest_offset` Größe, Byte-Offset und die Zahl unlesbarer Zeilen. Gelesen wird ab dem Offset bis zum letzten vollständigen Zeilenumbruch; eine unvollständige letzte Zeile bleibt für den nächsten Lauf liegen.
 3. Ist eine Datei kleiner als ihr Offset (neu geschrieben), wird sie ab 0 gelesen; die Deduplizierung verhindert Doppelzählungen.
-4. Parser lesen nur die benötigten Felder (Serde ohne `deny_unknown_fields`). Unbekannte oder kaputte Zeilen werden gezählt und setzen die Quelle auf `Accuracy::Partial`.
-5. Claude: Deduplizierung über `message.id` + `requestId`; bei mehreren Zeilen derselben Antwort zählt der höchste Wert. Codex: je `token_count`-Ereignis zählt `last_token_usage`, Schlüssel `session_id` + `ordinal`.
-6. `QueryUsage` aggregiert pro Zeitraum und berechnet `CostEstimate` aus der Preistabelle.
+4. Ein Vorfilter überspringt Zeilen ohne `"assistant"` und `"usage"`. Der Parser liest nur Usage-Metadaten (Serde ohne `deny_unknown_fields`); Inhalte werden nie übernommen. Platzhalter-Antworten mit Modell `<synthetic>` zählen nicht. Kaputte Zeilen werden gezählt und machen Token und Kosten zu `Accuracy::Partial`.
+5. Claude: Schlüssel `message.id:requestId`. Mehrere Zeilen derselben Antwort werden beim Speichern zusammengeführt, je Token-Art zählt der höchste Wert. Der Cache-Schreibanteil wird nach 5 Minuten und 1 Stunde getrennt; ältere Logs ohne Aufteilung zählen als 5 Minuten. `speed` und `inference_geo` bestimmen den Tarif.
+6. `summarize` berechnet je Zeitraum Sessions, Token und `CostEstimate` aus der Preistabelle und den Overrides der Config, gesamt und je Modell (teuerstes zuerst).
 
 ### 6.6 Beenden während einer laufenden Aktion
 

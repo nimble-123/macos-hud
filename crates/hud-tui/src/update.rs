@@ -230,6 +230,7 @@ fn on_app_event(model: &mut Model, event: AppEvent) {
             model.settings_tab.notice = None;
             crate::settings_tab::clamp(model);
         }
+        AppEvent::Usage(report) => model.usage = Some(report),
         AppEvent::JobsFinished => {
             if model.quit == Quit::Waiting {
                 model.quit = Quit::Now;

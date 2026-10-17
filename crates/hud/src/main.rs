@@ -17,10 +17,12 @@ use hud_application::settings::{IconPreference, InitialSetup, Settings, Settings
 use std::sync::Arc;
 
 use hud_application::ports::updates::UpdateSource;
+use hud_application::ports::usage::UsageSource;
 use hud_application::usecases::agent::WorkspaceAgent;
 use hud_application::usecases::log::LogAgent;
 use hud_application::usecases::settings::SettingsAgent;
 use hud_application::usecases::updates::UpdatesAgent;
+use hud_application::usecases::usage::UsageAgent;
 use hud_application::{
     AppEvent, Command, LogCommand, SettingsCommand, UpdateCommand, WorkspaceCommand,
 };
@@ -31,6 +33,7 @@ use hud_infrastructure::git::GitCli;
 use hud_infrastructure::process::{TERMINATE_GRACE, TokioProcessRunner};
 use hud_infrastructure::sqlite::SqliteStore;
 use hud_infrastructure::updates::{brew::Brew, npm::NpmGlobal, skills::Skills};
+use hud_infrastructure::usage::claude::ClaudeLogs;
 use hud_tui::{
     IconSet, Model, Msg, SetupModel, SetupOutcome, update, update_setup, view, view_setup,
 };
@@ -46,6 +49,8 @@ const COMMAND_CAPACITY: usize = 64;
 /// cancelled tools to stop after SIGTERM, or to be killed after the grace.
 const SHUTDOWN_GRACE: Duration = TERMINATE_GRACE.saturating_add(Duration::from_secs(3));
 const RENDER_TICK: Duration = Duration::from_millis(250);
+/// How often the AI logs are read again.
+const USAGE_INTERVAL: Duration = Duration::from_secs(60);
 
 #[tokio::main]
 async fn main() -> anyhow::Result<std::process::ExitCode> {
@@ -210,6 +215,7 @@ fn start_background(
         .map_or_else(|| "git".to_owned(), |path| path.display().to_string());
     // Tool paths and enabled sources are read once; changing them needs a restart.
     let sources = update_sources(&preferences, &runner);
+    let usage_sources = usage_sources(&preferences);
     let (current, watched) = watch::channel(preferences);
     let workspaces = WorkspaceAgent::new(
         GitCli::new(runner, git_program),
@@ -225,6 +231,14 @@ fn start_background(
     let (settings_commands, settings_rx) = mpsc::channel::<SettingsCommand>(COMMAND_CAPACITY);
     let (log_commands, log_rx) = mpsc::channel::<LogCommand>(COMMAND_CAPACITY);
     let log = LogAgent::new(store.clone());
+    let usage = UsageAgent::new(
+        usage_sources,
+        store.clone(),
+        SystemClock,
+        jiff::tz::TimeZone::system(),
+        watched.clone(),
+        USAGE_INTERVAL,
+    );
     let updates = UpdatesAgent::new(
         sources,
         store.clone(),
@@ -237,6 +251,7 @@ fn start_background(
     let handles = vec![
         tokio::spawn(settings.run(settings_rx, events_tx.clone(), cancel.clone())),
         tokio::spawn(log.run(log_rx, events_tx.clone(), cancel.clone())),
+        tokio::spawn(usage.run(events_tx.clone(), cancel.clone())),
         tokio::spawn(workspaces.run(workspace_rx, events_tx, cancel.clone())),
         tokio::spawn(updates.run(update_rx, cancel.clone())),
     ];
@@ -271,6 +286,21 @@ impl Router {
         }
         Ok(())
     }
+}
+
+/// AI usage sources; read once at start like the update sources.
+fn usage_sources(preferences: &Settings) -> Vec<Arc<dyn UsageSource>> {
+    let mut sources: Vec<Arc<dyn UsageSource>> = Vec::new();
+    if preferences.claude.enabled
+        && let Some(home) = std::env::var_os("HOME")
+    {
+        let config_dir = std::env::var_os("CLAUDE_CONFIG_DIR").map(PathBuf::from);
+        sources.push(Arc::new(ClaudeLogs::new(ClaudeLogs::default_root(
+            std::path::Path::new(&home),
+            config_dir.as_deref(),
+        ))));
+    }
+    sources
 }
 
 /// Update sources in display order; Skills only when enabled in the config.

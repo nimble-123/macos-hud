@@ -7,9 +7,11 @@ use std::time::Duration;
 use hud_application::ports::store::{
     ActionLog, CachedRepo, InstallHistory, InstallResult, ScanCache, StoreError,
 };
+use hud_application::ports::usage::{Cursors, FileCursor, UsageBatch, UsageStore};
 use hud_domain::action::{ActionId, ActionKind, ActionRecord, Outcome, Trigger};
 use hud_domain::git::{BranchName, CommitId, GitOperation, Head, RepoPath, RepoStatus, Upstream};
 use hud_domain::update::{PackageName, SourceId, UpdateCandidate};
+use hud_domain::usage::{Geo, ModelId, Provider, Speed, TokenUsage, UsageRecord};
 use jiff::Timestamp;
 use rusqlite::{Connection, OptionalExtension, params};
 use rusqlite_migration::{M, Migrations};
@@ -59,6 +61,33 @@ fn migrations() -> Migrations<'static> {
                 result TEXT NOT NULL
             );
             CREATE INDEX install_history_package ON install_history (source, name);",
+        ),
+        M::up(
+            "CREATE TABLE ai_usage (
+                provider TEXT NOT NULL,
+                message_key TEXT NOT NULL,
+                session TEXT NOT NULL,
+                model TEXT NOT NULL,
+                at_ms INTEGER NOT NULL,
+                input INTEGER NOT NULL,
+                output INTEGER NOT NULL,
+                cache_write_5m INTEGER NOT NULL,
+                cache_write_1h INTEGER NOT NULL,
+                cache_read INTEGER NOT NULL,
+                reasoning INTEGER,
+                speed TEXT NOT NULL,
+                geo TEXT NOT NULL,
+                PRIMARY KEY (provider, message_key)
+            );
+            CREATE INDEX ai_usage_at ON ai_usage (at_ms);
+            CREATE TABLE ingest_offset (
+                provider TEXT NOT NULL,
+                file TEXT NOT NULL,
+                size INTEGER NOT NULL,
+                byte_offset INTEGER NOT NULL,
+                unreadable INTEGER NOT NULL,
+                PRIMARY KEY (provider, file)
+            );",
         ),
     ])
 }
@@ -333,6 +362,171 @@ impl InstallHistory for SqliteStore {
     }
 }
 
+impl UsageStore for SqliteStore {
+    async fn cursors(&self, provider: Provider) -> Result<Cursors, StoreError> {
+        self.call(move |db| {
+            let mut query = db.prepare(
+                "SELECT file, size, byte_offset, unreadable FROM ingest_offset WHERE provider = ?1",
+            )?;
+            let rows = query.query_map(params![provider_str(provider)], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    FileCursor {
+                        size: get_u64(row, 1)?,
+                        offset: get_u64(row, 2)?,
+                        unreadable: get_u64(row, 3)?,
+                    },
+                ))
+            })?;
+            rows.collect()
+        })
+        .await
+    }
+
+    async fn save(&self, provider: Provider, batch: UsageBatch) -> Result<(), StoreError> {
+        self.call(move |db| {
+            let name = provider_str(provider);
+            let transaction = db.transaction()?;
+            {
+                // Lines of the same answer repeat with growing counts: keep the highest.
+                let mut insert = transaction.prepare(
+                    "INSERT INTO ai_usage (provider, message_key, session, model, at_ms, input, output,
+                         cache_write_5m, cache_write_1h, cache_read, reasoning, speed, geo)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+                     ON CONFLICT (provider, message_key) DO UPDATE SET
+                         input = max(input, excluded.input),
+                         output = max(output, excluded.output),
+                         cache_write_5m = max(cache_write_5m, excluded.cache_write_5m),
+                         cache_write_1h = max(cache_write_1h, excluded.cache_write_1h),
+                         cache_read = max(cache_read, excluded.cache_read),
+                         reasoning = max(coalesce(reasoning, 0), coalesce(excluded.reasoning, 0))",
+                )?;
+                for record in &batch.records {
+                    let tokens = &record.tokens;
+                    insert.execute(params![
+                        name,
+                        record.key,
+                        record.session,
+                        record.model.as_str(),
+                        record.at.as_millisecond(),
+                        int(tokens.input),
+                        int(tokens.output),
+                        int(tokens.cache_write_5m),
+                        int(tokens.cache_write_1h),
+                        int(tokens.cache_read),
+                        tokens.reasoning.map(int),
+                        speed_str(record.speed),
+                        geo_str(record.geo),
+                    ])?;
+                }
+                transaction.execute("DELETE FROM ingest_offset WHERE provider = ?1", params![name])?;
+                let mut cursor = transaction.prepare(
+                    "INSERT INTO ingest_offset (provider, file, size, byte_offset, unreadable)
+                     VALUES (?1, ?2, ?3, ?4, ?5)",
+                )?;
+                for (file, position) in &batch.cursors {
+                    cursor.execute(params![
+                        name,
+                        file,
+                        int(position.size),
+                        int(position.offset),
+                        int(position.unreadable)
+                    ])?;
+                }
+            }
+            transaction.commit()
+        })
+        .await
+    }
+
+    async fn records(
+        &self,
+        from: Timestamp,
+        to: Timestamp,
+    ) -> Result<Vec<UsageRecord>, StoreError> {
+        self.call(move |db| {
+            let mut query = db.prepare(
+                "SELECT provider, message_key, session, model, at_ms, input, output, cache_write_5m,
+                        cache_write_1h, cache_read, reasoning, speed, geo
+                 FROM ai_usage WHERE at_ms >= ?1 AND at_ms < ?2",
+            )?;
+            let rows =
+                query.query_map(params![from.as_millisecond(), to.as_millisecond()], |row| {
+                    Ok(UsageRecord {
+                        provider: parse_provider(&row.get::<_, String>(0)?, 0)?,
+                        key: row.get(1)?,
+                        session: row.get(2)?,
+                        model: ModelId::try_from(row.get::<_, String>(3)?)
+                            .map_err(|e| conversion(3, e))?,
+                        at: Timestamp::from_millisecond(row.get(4)?)
+                            .map_err(|e| conversion(4, e))?,
+                        tokens: TokenUsage {
+                            input: get_u64(row, 5)?,
+                            output: get_u64(row, 6)?,
+                            cache_write_5m: get_u64(row, 7)?,
+                            cache_write_1h: get_u64(row, 8)?,
+                            cache_read: get_u64(row, 9)?,
+                            reasoning: row
+                                .get::<_, Option<i64>>(10)?
+                                .map(|v| u64::try_from(v).map_err(|e| conversion(10, e)))
+                                .transpose()?,
+                        },
+                        speed: if row.get::<_, String>(11)? == "fast" {
+                            Speed::Fast
+                        } else {
+                            Speed::Standard
+                        },
+                        geo: if row.get::<_, String>(12)? == "us" {
+                            Geo::Us
+                        } else {
+                            Geo::Global
+                        },
+                    })
+                })?;
+            rows.collect()
+        })
+        .await
+    }
+}
+
+/// SQLite stores integers as `i64`; token counts never get near the limit.
+fn int(value: u64) -> i64 {
+    i64::try_from(value).unwrap_or(i64::MAX)
+}
+
+fn get_u64(row: &rusqlite::Row<'_>, column: usize) -> rusqlite::Result<u64> {
+    u64::try_from(row.get::<_, i64>(column)?).map_err(|e| conversion(column, e))
+}
+
+fn provider_str(provider: Provider) -> &'static str {
+    match provider {
+        Provider::Claude => "claude",
+        Provider::Codex => "codex",
+    }
+}
+
+fn parse_provider(text: &str, column: usize) -> rusqlite::Result<Provider> {
+    match text {
+        "claude" => Ok(Provider::Claude),
+        "codex" => Ok(Provider::Codex),
+        other => Err(conversion(column, UnknownValue(other.to_owned()))),
+    }
+}
+
+fn speed_str(speed: Speed) -> &'static str {
+    match speed {
+        Speed::Standard => "standard",
+        Speed::Fast => "fast",
+    }
+}
+
+fn geo_str(geo: Geo) -> &'static str {
+    match geo {
+        Geo::Global => "global",
+        Geo::Us => "us",
+    }
+}
+
 fn source_str(source: SourceId) -> &'static str {
     match source {
         SourceId::Homebrew => "homebrew",
@@ -575,14 +769,16 @@ mod tests {
     async fn cached_status_round_trips_and_retain_drops_missing_repos() {
         let store = SqliteStore::in_memory(ts("2026-10-17T10:00:00Z")).expect("BUG");
         for path in ["/repos/a", "/repos/b"] {
-            store
-                .save(CachedRepo {
+            ScanCache::save(
+                &store,
+                CachedRepo {
                     repo: repo(path),
                     status: status(),
                     scanned_at: ts("2026-10-17T10:00:00Z"),
-                })
-                .await
-                .expect("BUG");
+                },
+            )
+            .await
+            .expect("BUG");
         }
         store.retain(vec![repo("/repos/b")]).await.expect("BUG");
         let cached = store.load_all().await.expect("BUG");
@@ -616,5 +812,67 @@ mod tests {
             .await
             .expect("BUG");
         assert!(!asked().await.expect("BUG"));
+    }
+
+    #[tokio::test]
+    async fn usage_is_merged_by_key_and_cursors_are_replaced() {
+        let store = SqliteStore::in_memory(ts("2026-10-17T10:00:00Z")).expect("BUG");
+        let record = |output| UsageRecord {
+            provider: Provider::Claude,
+            key: "msg_a:req_a".into(),
+            session: "s".into(),
+            model: ModelId::try_from("claude-opus-5-5".to_owned()).expect("BUG"),
+            at: ts("2026-10-17T08:00:00Z"),
+            tokens: TokenUsage {
+                output,
+                cache_read: 100,
+                ..TokenUsage::default()
+            },
+            speed: Speed::Fast,
+            geo: Geo::Global,
+        };
+        let cursor = |offset| FileCursor {
+            size: offset,
+            offset,
+            unreadable: 1,
+        };
+        UsageStore::save(
+            &store,
+            Provider::Claude,
+            UsageBatch {
+                records: vec![record(40), record(120)],
+                cursors: Cursors::from([("a.jsonl".to_owned(), cursor(10))]),
+            },
+        )
+        .await
+        .expect("BUG");
+        UsageStore::save(
+            &store,
+            Provider::Claude,
+            UsageBatch {
+                records: vec![record(90)],
+                cursors: Cursors::from([("a.jsonl".to_owned(), cursor(20))]),
+            },
+        )
+        .await
+        .expect("BUG");
+
+        let records = store
+            .records(ts("2026-10-17T00:00:00Z"), ts("2026-10-18T00:00:00Z"))
+            .await
+            .expect("BUG");
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].tokens.output, 120, "the highest count wins");
+        assert_eq!(records[0].speed, Speed::Fast);
+        let cursors = store.cursors(Provider::Claude).await.expect("BUG");
+        assert_eq!(cursors["a.jsonl"].offset, 20);
+        assert!(
+            store
+                .records(ts("2026-10-17T09:00:00Z"), ts("2026-10-18T00:00:00Z"))
+                .await
+                .expect("BUG")
+                .is_empty(),
+            "the range end is exclusive and filters by time"
+        );
     }
 }

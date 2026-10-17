@@ -4,3 +4,4 @@ pub mod discovery;
 pub mod git;
 pub mod store;
 pub mod updates;
+pub mod usage;
