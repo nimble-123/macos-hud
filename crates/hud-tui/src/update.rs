@@ -31,6 +31,11 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
     if model.confirm.is_some() {
         return on_confirm_key(model, key);
     }
+    if model.tab == Tab::Settings
+        && let Some(commands) = crate::settings_tab::on_key(model, key)
+    {
+        return commands;
+    }
     match key.code {
         KeyCode::Tab => model.tab = model.tab.next(),
         KeyCode::BackTab => model.tab = model.tab.previous(),
@@ -178,6 +183,14 @@ fn on_app_event(model: &mut Model, event: AppEvent) {
             } else {
                 model.jobs.insert(job.id, job);
             }
+        }
+        AppEvent::Settings(preferences) => {
+            model.apply_preferences(*preferences);
+            model.settings_tab.notice = None;
+            crate::settings_tab::clamp(model);
+        }
+        AppEvent::SettingsRejected(reason) => {
+            model.settings_tab.notice = Some(crate::settings_tab::Notice::Rejected(reason));
         }
         AppEvent::RepoUpdated(report) => {
             model.mark_fast_forwards(std::slice::from_ref(&report));

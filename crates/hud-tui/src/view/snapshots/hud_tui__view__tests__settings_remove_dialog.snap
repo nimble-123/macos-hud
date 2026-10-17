@@ -1,0 +1,26 @@
+---
+source: crates/hud-tui/src/view/mod.rs
+expression: render_tall(&model).backend()
+---
+"  Übersicht    Workspaces    Updates    KI    Protokoll    Einstellungen        "
+"  ────────────────────────────────────────────────────────────────────────────  "
+"                                                                                "
+"  Darstellung                                                                   "
+"    Sprache                                 Automatisch (Deutsch)               "
+"    Theme                                   Automatisch (Dunkel)                "
+"    Symbole                                 Unicode (empfohlen)                 "
+"    ┌ Workspace entfernen? ────────────────────────────────────────────────┐    "
+"  Wo│                                                                      │    "
+"  ▌ │  /ws                                                                 │    "
+"    │                                                                      │    "
+"    │  Nur aus der Config. Ordner und Repositories bleiben unverändert.    │    "
+"  Au│                                                                      │    "
+"    │  Enter entfernen   Esc abbrechen                                     │    "
+"    │                                                                      │    "
+"    └──────────────────────────────────────────────────────────────────────┘    "
+"                                                                                "
+"                                                                                "
+"                                                                                "
+"                                                                                "
+"  ────────────────────────────────────────────────────────────────────────────  "
+"  ↑↓ auswählen   Enter ändern   a hinzufügen   d entfernen   r Config neu lade  "

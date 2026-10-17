@@ -130,7 +130,8 @@ hud --reset-config --reset-data --yes
 | `Enter` | run the selected action |
 | `f` | fast-forward the selected repo |
 | `u` | update the selected package |
-| `r` | refresh now |
+| `a` / `d` | add / remove a workspace (Settings) |
+| `r` | refresh now; in Settings: reload the config file |
 | `?` | help |
 | `q` | quit (asks first if something is still running) |
 

@@ -5,9 +5,9 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use hud_application::settings::{
-    AutoInstallSettings, Billing, IconPreference, InitialSetup, LanguagePreference, PriceOverride,
-    ProviderSettings, ScanSettings, Settings, SettingsError, SettingsStore, SkillsSettings,
-    ThemePreference, ToolPaths, WorkspaceSettings,
+    AutoInstallKind, AutoInstallSettings, Billing, IconPreference, InitialSetup,
+    LanguagePreference, PriceOverride, ProviderSettings, ScanSettings, Settings, SettingsChange,
+    SettingsError, SettingsStore, SkillsSettings, ThemePreference, ToolPaths, WorkspaceSettings,
 };
 use hud_domain::WorkspacePath;
 use serde::Deserialize;
@@ -63,20 +63,35 @@ impl SettingsStore for TomlSettings {
     }
 
     async fn apply_setup(&self, setup: &InitialSetup) -> Result<Settings, SettingsError> {
+        self.edit(|existing| with_setup(existing, setup, &self.home))
+            .await
+    }
+
+    async fn update(&self, change: &SettingsChange) -> Result<Settings, SettingsError> {
+        self.edit(|existing| with_change(existing, change, &self.home))
+            .await
+    }
+}
+
+impl TomlSettings {
+    /// Reads the file as it is now, so hand edits made while hud runs are
+    /// kept, applies `change` and writes the result atomically.
+    async fn edit(
+        &self,
+        change: impl FnOnce(Option<&str>) -> Result<String, String>,
+    ) -> Result<Settings, SettingsError> {
         let invalid = |message| SettingsError::Invalid {
             path: self.path.display().to_string(),
             message,
         };
         let existing = self.read_text().await?;
-        let text = with_setup(existing.as_deref(), setup).map_err(invalid)?;
-        // Validate before writing: a setup that produces an invalid file is rejected.
+        let text = change(existing.as_deref()).map_err(invalid)?;
+        // Validate before writing: a change that produces an invalid file is rejected.
         let settings = parse(&text, &self.home).map_err(invalid)?;
         self.write_atomically(&text).await?;
         Ok(settings)
     }
-}
 
-impl TomlSettings {
     async fn read_text(&self) -> Result<Option<String>, SettingsError> {
         match tokio::fs::read_to_string(&self.path).await {
             Ok(text) => Ok(Some(text)),
@@ -112,45 +127,144 @@ const NEW_FILE_HEADER: &str = "\
 ";
 
 /// Adds setup choices to `existing` (or a new file), keeping comments and other keys.
-fn with_setup(existing: Option<&str>, setup: &InitialSetup) -> Result<String, String> {
-    let mut document: toml_edit::DocumentMut = existing
+fn with_setup(existing: Option<&str>, setup: &InitialSetup, home: &Path) -> Result<String, String> {
+    let mut document = document(existing)?;
+    document["icons"] = toml_edit::value(icons_value(setup.icons));
+    for path in &setup.workspaces {
+        add_workspace(&mut document, path, home)?;
+    }
+    Ok(render(existing, &document))
+}
+
+/// Applies one settings change; only the keys it is about are touched.
+fn with_change(
+    existing: Option<&str>,
+    change: &SettingsChange,
+    home: &Path,
+) -> Result<String, String> {
+    let mut document = document(existing)?;
+    match change {
+        SettingsChange::Language(language) => {
+            set(
+                &mut document["language"],
+                match language {
+                    LanguagePreference::Auto => "auto",
+                    LanguagePreference::De => "de",
+                    LanguagePreference::En => "en",
+                },
+            );
+        }
+        SettingsChange::Theme(theme) => {
+            set(
+                &mut document["theme"],
+                match theme {
+                    ThemePreference::Auto => "auto",
+                    ThemePreference::Dark => "dark",
+                    ThemePreference::Light => "light",
+                },
+            );
+        }
+        SettingsChange::Icons(icons) => set(&mut document["icons"], icons_value(*icons)),
+        SettingsChange::AddWorkspace(path) => add_workspace(&mut document, path, home)?,
+        SettingsChange::RemoveWorkspace(workspace) => {
+            let tables = workspaces_mut(&mut document)?;
+            let index = workspace_index(tables, workspace.as_path(), home)?;
+            tables.remove(index);
+        }
+        SettingsChange::AutoFastForward { workspace, enabled } => {
+            let tables = workspaces_mut(&mut document)?;
+            let index = workspace_index(tables, workspace.as_path(), home)?;
+            if let Some(table) = tables.get_mut(index) {
+                set(&mut table["auto_fast_forward"], *enabled);
+            }
+        }
+        SettingsChange::AutoInstall { kind, enabled } => {
+            let (table, key) = match kind {
+                AutoInstallKind::BrewFormulae => ("brew", "auto_install_formulae"),
+                AutoInstallKind::BrewCasks => ("brew", "auto_install_casks"),
+                AutoInstallKind::Npm => ("npm", "auto_install"),
+            };
+            set(&mut document["updates"][table][key], *enabled);
+        }
+    }
+    Ok(render(existing, &document))
+}
+
+/// Replaces a value but keeps its surrounding whitespace and inline comment.
+fn set(item: &mut toml_edit::Item, value: impl Into<toml_edit::Value>) {
+    let mut value = value.into();
+    if let Some(old) = item.as_value() {
+        *value.decor_mut() = old.decor().clone();
+    }
+    *item = toml_edit::Item::Value(value);
+}
+
+fn document(existing: Option<&str>) -> Result<toml_edit::DocumentMut, String> {
+    existing
         .unwrap_or_default()
         .parse()
-        .map_err(|error: toml_edit::TomlError| error.to_string())?;
-    document["icons"] = toml_edit::value(match setup.icons {
+        .map_err(|error: toml_edit::TomlError| error.to_string())
+}
+
+/// `toml_edit` attaches comments of an empty document to its end, so the
+/// header of a new file is prepended to the rendered text instead.
+fn render(existing: Option<&str>, document: &toml_edit::DocumentMut) -> String {
+    match existing {
+        Some(_) => document.to_string(),
+        None => format!("{NEW_FILE_HEADER}{document}"),
+    }
+}
+
+fn icons_value(icons: IconPreference) -> &'static str {
+    match icons {
         IconPreference::Unicode => "unicode",
         IconPreference::Nerd => "nerd",
         IconPreference::Ascii => "ascii",
-    });
-    let workspaces = document
+    }
+}
+
+fn workspaces_mut(
+    document: &mut toml_edit::DocumentMut,
+) -> Result<&mut toml_edit::ArrayOfTables, String> {
+    document
         .entry("workspaces")
         .or_insert_with(|| toml_edit::Item::ArrayOfTables(toml_edit::ArrayOfTables::new()))
         .as_array_of_tables_mut()
-        .ok_or_else(|| "workspaces must be an array of tables ([[workspaces]])".to_owned())?;
-    let known: Vec<String> = workspaces
+        .ok_or_else(|| "workspaces must be an array of tables ([[workspaces]])".to_owned())
+}
+
+/// Position of the workspace whose path, after `~/` expansion, is `path`.
+fn workspace_index(
+    tables: &toml_edit::ArrayOfTables,
+    path: &Path,
+    home: &Path,
+) -> Result<usize, String> {
+    tables
         .iter()
-        .filter_map(|table| {
+        .position(|table| {
             table
                 .get("path")
                 .and_then(toml_edit::Item::as_str)
-                .map(str::to_owned)
+                .is_some_and(|written| expand_home(written, home) == path)
         })
-        .collect();
-    for path in &setup.workspaces {
-        if known.contains(path) {
-            continue;
-        }
-        let mut table = toml_edit::Table::new();
-        table["path"] = toml_edit::value(path.as_str());
-        table["auto_fast_forward"] = toml_edit::value(true);
-        workspaces.push(table);
+        .ok_or_else(|| format!("workspace {} is not in the config", path.display()))
+}
+
+/// Appends a workspace unless one with the same expanded path exists.
+fn add_workspace(
+    document: &mut toml_edit::DocumentMut,
+    path: &str,
+    home: &Path,
+) -> Result<(), String> {
+    let tables = workspaces_mut(document)?;
+    if workspace_index(tables, &expand_home(path, home), home).is_ok() {
+        return Ok(());
     }
-    // toml_edit attaches comments of an empty document to its end, so the
-    // header of a new file is prepended to the rendered text instead.
-    Ok(match existing {
-        Some(_) => document.to_string(),
-        None => format!("{NEW_FILE_HEADER}{document}"),
-    })
+    let mut table = toml_edit::Table::new();
+    table["path"] = toml_edit::value(path);
+    table["auto_fast_forward"] = toml_edit::value(true);
+    tables.push(table);
+    Ok(())
 }
 
 /// Parses and validates the file content.
@@ -620,12 +734,125 @@ npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
         assert_eq!(text.matches("# hud configuration").count(), 1, "{text}");
     }
 
+    const HAND_WRITTEN: &str = "\
+# my comment
+language = \"de\" # inline comment
+
+[[workspaces]]
+path = \"~/code\"
+auto_fast_forward = true
+
+[[workspaces]]
+path = \"/srv/repos\"
+";
+
+    fn workspace_path(path: &str) -> WorkspacePath {
+        WorkspacePath::try_from(PathBuf::from(path)).expect("BUG: absolute")
+    }
+
+    fn change(change: &SettingsChange) -> (String, Settings) {
+        let text = with_change(Some(HAND_WRITTEN), change, Path::new(HOME)).expect("BUG: valid");
+        let settings = parse(&text, Path::new(HOME)).expect("BUG: parses");
+        assert!(text.starts_with("# my comment"), "{text}");
+        (text, settings)
+    }
+
+    #[test]
+    fn changing_the_theme_keeps_comments_and_other_keys() {
+        let (text, settings) = change(&SettingsChange::Theme(ThemePreference::Light));
+        assert_eq!(settings.theme, ThemePreference::Light);
+        assert!(
+            text.contains("language = \"de\" # inline comment"),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn changing_the_language_keeps_its_inline_comment() {
+        let (text, settings) = change(&SettingsChange::Language(LanguagePreference::En));
+        assert_eq!(settings.language, LanguagePreference::En);
+        assert!(text.contains("# inline comment"), "{text}");
+    }
+
+    #[test]
+    fn adding_a_known_workspace_in_another_spelling_changes_nothing() {
+        let path = format!("{HOME}/code");
+        let (text, _) = change(&SettingsChange::AddWorkspace(path));
+        assert_eq!(text, HAND_WRITTEN);
+    }
+
+    #[test]
+    fn adding_a_workspace_appends_it_with_fast_forward_on() {
+        let (_, settings) = change(&SettingsChange::AddWorkspace("~/new".into()));
+        let added = settings.workspaces.last().expect("BUG: three workspaces");
+        assert_eq!(added.path, workspace_path(&format!("{HOME}/new")));
+        assert!(added.auto_fast_forward);
+    }
+
+    #[test]
+    fn removing_a_workspace_matches_the_expanded_path() {
+        let workspace = workspace_path(&format!("{HOME}/code"));
+        let (_, settings) = change(&SettingsChange::RemoveWorkspace(workspace));
+        assert_eq!(settings.workspaces.len(), 1);
+        assert_eq!(settings.workspaces[0].path, workspace_path("/srv/repos"));
+    }
+
+    #[test]
+    fn removing_an_unknown_workspace_is_an_error() {
+        let change = SettingsChange::RemoveWorkspace(workspace_path("/nowhere"));
+        assert!(with_change(Some(HAND_WRITTEN), &change, Path::new(HOME)).is_err());
+    }
+
+    #[test]
+    fn fast_forward_opt_out_is_written_to_its_workspace() {
+        let (_, settings) = change(&SettingsChange::AutoFastForward {
+            workspace: workspace_path("/srv/repos"),
+            enabled: false,
+        });
+        assert!(settings.workspaces[0].auto_fast_forward);
+        assert!(!settings.workspaces[1].auto_fast_forward);
+    }
+
+    #[test]
+    fn an_opt_in_writes_only_its_own_key() {
+        let (text, settings) = change(&SettingsChange::AutoInstall {
+            kind: AutoInstallKind::BrewCasks,
+            enabled: true,
+        });
+        assert!(settings.auto_install.brew_casks);
+        assert!(text.contains("auto_install_casks = true"), "{text}");
+        assert!(!text.contains("auto_install_formulae"), "{text}");
+        assert!(!text.contains("[updates.npm]"), "{text}");
+    }
+
+    #[tokio::test]
+    async fn update_reads_the_file_again_and_keeps_hand_edits() {
+        let dir = tempfile::tempdir().expect("BUG");
+        let store = TomlSettings::new(dir.path().join("config.toml"), PathBuf::from(HOME));
+        std::fs::write(store.path(), HAND_WRITTEN).expect("BUG");
+        let _ = store.load().await.expect("BUG");
+        // Edited by hand while hud runs.
+        std::fs::write(
+            store.path(),
+            format!("{HAND_WRITTEN}\n[git]\nfetch_interval_min = 5\n"),
+        )
+        .expect("BUG");
+
+        let settings = store
+            .update(&SettingsChange::Icons(IconPreference::Ascii))
+            .await
+            .expect("BUG");
+        assert_eq!(settings.icons, IconPreference::Ascii);
+        assert_eq!(settings.fetch_interval, Duration::from_mins(5));
+    }
+
     #[test]
     fn setup_keeps_existing_keys_comments_and_workspaces() {
         let existing = "# my comment\nlanguage = \"de\"\n\n[[workspaces]]\npath = \"/a\"\nauto_fast_forward = false\n";
         let text = with_setup(
             Some(existing),
             &setup(&["/a", "/b"], IconPreference::Unicode),
+            Path::new(HOME),
         )
         .expect("BUG");
         assert!(text.contains("# my comment"), "{text}");

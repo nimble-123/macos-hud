@@ -16,6 +16,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use hud_application::ports::updates::{Availability, SourceCheck};
+use hud_application::settings::{AutoInstallSettings, Settings, WorkspaceSettings};
 use hud_application::usecases::updates::{JobId, JobState, JobUpdate, SourceReport};
 use hud_application::usecases::workspaces::{RepoReport, RepoState, WorkspaceReport};
 use hud_application::{AppEvent, ReportSource};
@@ -93,7 +94,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Every tab in English on dark, plus the overview in the other variants.
     let variants = [
         ("en-dark", Language::En, Appearance::Dark, Tab::ALL.len()),
-        ("de-dark", Language::De, Appearance::Dark, 3),
+        ("de-dark", Language::De, Appearance::Dark, Tab::ALL.len()),
         ("en-light", Language::En, Appearance::Light, 2),
     ];
     for (suffix, language, appearance, tabs) in variants {
@@ -104,6 +105,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
         let mut model = Model::new(settings);
         update(&mut model, Msg::Tick(Instant::now()));
+        update(
+            &mut model,
+            Msg::App(AppEvent::Settings(Box::new(sample_settings()))),
+        );
         update(&mut model, Msg::App(sample_workspaces()));
         for event in sample_updates() {
             update(&mut model, Msg::App(event));
@@ -128,6 +133,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     Ok(())
+}
+
+/// Two workspaces, one opted out of fast-forward, formulae installed automatically.
+fn sample_settings() -> Settings {
+    let workspace = |path: &str, auto_fast_forward| WorkspaceSettings {
+        path: WorkspacePath::try_from(PathBuf::from(path)).expect("BUG: absolute"),
+        auto_fast_forward,
+    };
+    Settings {
+        workspaces: vec![
+            workspace("/Users/nimble/workspace/projects", true),
+            workspace("/Volumes/1TB EXT/workspace", false),
+        ],
+        auto_install: AutoInstallSettings {
+            brew_formulae: true,
+            ..AutoInstallSettings::default()
+        },
+        ..Settings::default()
+    }
 }
 
 /// A first scan in progress: four of 79 repositories are done.

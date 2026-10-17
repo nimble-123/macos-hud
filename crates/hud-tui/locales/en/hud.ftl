@@ -100,3 +100,32 @@ jobs-running = { $count ->
     [one] 1 installation running
    *[other] { $count } installations running
 }
+settings-loading = Loading settings …
+settings-display = Display
+settings-language = Language
+settings-theme = Theme
+settings-icons = Symbols
+settings-workspaces = Workspaces
+settings-auto-ff = Automatic fast-forward
+settings-add-workspace = Add workspace
+settings-auto-install = Automatic installation
+settings-rejected = Not saved: { $reason }
+settings-remove-title = Remove workspace?
+settings-remove-body = Only from the config. Folders and repositories stay as they are.
+pref-auto = Automatic
+lang-de = German
+lang-en = English
+theme-dark = Dark
+theme-light = Light
+opt-brew-formulae = Homebrew formulae
+opt-brew-casks = Homebrew casks
+opt-npm = Global npm (never across major versions)
+toggle-on = on
+toggle-off = off
+confirm-remove = remove
+key-a = a
+key-d = d
+hint-change = change
+hint-add = add
+hint-remove = remove
+hint-reload = reload config

@@ -130,7 +130,9 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 | `Enter` | ausgewählte Aktion ausführen |
 | `f` | Fast-Forward für das ausgewählte Repo |
 | `u` | ausgewähltes Paket aktualisieren |
-| `r` | jetzt aktualisieren |
+| `a` | Workspace hinzufügen (Einstellungen) |
+| `d` | ausgewählten Workspace entfernen (Einstellungen, mit Rückfrage) |
+| `r` | jetzt aktualisieren; im Einstellungen-Tab: Config neu laden |
 | `?` | Hilfe |
 | `q` | beenden (fragt nach, wenn noch etwas läuft) |
 
@@ -152,6 +154,29 @@ Skills   1.7.2
 - Skills meldet keine einzelnen Updates; der Tab zeigt die Zahl installierter Skills und eine Zeile „Alle Skills aktualisieren“.
 - `u` oder `Enter` öffnet einen zentrierten Bestätigungsdialog in `focus` mit dem genauen Befehl. Bei einem Major-Update warnt eine Zeile in `advisory`. `Enter` installiert, `Esc` oder `n` bricht ab; solange der Dialog offen ist, gehen alle Tasten an ihn.
 - Laufende Installationen erscheinen auf allen Tabs in der Fortschrittszeile der Fußzeile, vor Scan und Sync.
+
+### 5.3 Einstellungen-Tab
+
+```
+Darstellung
+▌ Sprache                       Automatisch (Deutsch)      ermittelter Wert in soft
+  Theme                         Automatisch (Dunkel)
+  Symbole                       Unicode (empfohlen)
+Workspaces                      Automatischer Fast-Forward
+  /Users/nimble/workspace       ● an
+  /Volumes/1TB EXT/workspace    ○ aus                      aus in muted
+  + Workspace hinzufügen
+Automatische Installation
+  Homebrew-Formeln              ○ aus
+  Homebrew-Casks                ○ aus
+  npm global (nie über Major-Versionen)  ○ aus
+```
+
+- Drei Abschnitte, je ein fetter Kopf in `ink`; Werte in einer eigenen Spalte.
+- `Enter`, Leertaste oder `→` ändern die Zeile: Auswahlen wechseln zum nächsten Wert, `←` zum vorherigen; Schalter kippen. Die Anzeige zeigt immer den gespeicherten Stand, nicht eine lokale Vorschau.
+- `a` oder `Enter` auf „Workspace hinzufügen“ öffnet eine Eingabezeile in `focus` mit Cursor `█`; Pfade beginnen mit `/` oder `~/`. Solange die Eingabe offen ist, gehen alle Tasten an sie.
+- `d` öffnet einen zentrierten Dialog „Workspace entfernen?“ mit dem Hinweis, dass nur die Config geändert wird.
+- Sprache, Theme und Symbolsatz gelten sofort. Ein abgelehnter Schreibversuch erscheint unter den Einstellungen in `warning`, ein ungültiger Pfad in `caution`.
 
 ## 6. Bewegung
 

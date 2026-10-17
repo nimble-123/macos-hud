@@ -5,6 +5,7 @@ use hud_domain::git::RepoPath;
 
 use hud_domain::update::InstallTarget;
 
+use crate::settings::{Settings, SettingsChange};
 use crate::usecases::updates::{JobUpdate, SourceReport};
 use crate::usecases::workspaces::{RepoReport, WorkspaceReport};
 
@@ -53,6 +54,10 @@ pub enum AppEvent {
     SourceUpdated(SourceReport),
     /// An installation job changed state.
     Job(JobUpdate),
+    /// The settings as they are now: at start, after a change or a reload.
+    Settings(Box<Settings>),
+    /// A change or reload failed; the previous settings stay in effect.
+    SettingsRejected(String),
 }
 
 /// Request from the presentation layer to run a use case, grouped by the
@@ -63,6 +68,17 @@ pub enum Command {
     Workspaces(WorkspaceCommand),
     /// For the updates agent.
     Updates(UpdateCommand),
+    /// For the settings agent.
+    Settings(SettingsCommand),
+}
+
+/// Settings requests.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SettingsCommand {
+    /// Apply a change and write it to the config file.
+    Change(SettingsChange),
+    /// Read the config file again, e.g. after editing it by hand.
+    Reload,
 }
 
 /// Workspace requests.

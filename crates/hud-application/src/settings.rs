@@ -247,6 +247,46 @@ pub struct InitialSetup {
     pub icons: IconPreference,
 }
 
+/// One change made in the settings tab.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SettingsChange {
+    /// UI language.
+    Language(LanguagePreference),
+    /// Light/dark.
+    Theme(ThemePreference),
+    /// Glyph set.
+    Icons(IconPreference),
+    /// Adds a workspace folder as entered; `~/` is allowed. Known folders are ignored.
+    AddWorkspace(String),
+    /// Removes a workspace.
+    RemoveWorkspace(WorkspacePath),
+    /// Turns automatic fast-forward of one workspace on or off.
+    AutoFastForward {
+        /// Workspace.
+        workspace: WorkspacePath,
+        /// New value.
+        enabled: bool,
+    },
+    /// Turns one automatic installation opt-in on or off.
+    AutoInstall {
+        /// Which opt-in.
+        kind: AutoInstallKind,
+        /// New value.
+        enabled: bool,
+    },
+}
+
+/// The automatic installation opt-ins, one per kind of package.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AutoInstallKind {
+    /// Homebrew formulae.
+    BrewFormulae,
+    /// Homebrew casks.
+    BrewCasks,
+    /// Global npm packages.
+    Npm,
+}
+
 /// Loads and updates user settings.
 pub trait SettingsStore: Send + Sync {
     /// Loads the settings. A missing file yields [`Settings::default`].
@@ -257,6 +297,13 @@ pub trait SettingsStore: Send + Sync {
     fn apply_setup(
         &self,
         setup: &InitialSetup,
+    ) -> impl Future<Output = Result<Settings, SettingsError>> + Send;
+
+    /// Applies one change to the file as it is now, keeping comments and
+    /// everything else in it, and returns the settings afterwards.
+    fn update(
+        &self,
+        change: &SettingsChange,
     ) -> impl Future<Output = Result<Settings, SettingsError>> + Send;
 }
 

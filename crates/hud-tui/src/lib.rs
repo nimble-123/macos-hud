@@ -8,6 +8,7 @@ pub mod icons;
 mod model;
 mod msg;
 mod settings;
+mod settings_tab;
 mod setup;
 mod theme;
 mod update;
@@ -15,7 +16,7 @@ mod view;
 
 pub use model::{Model, Tab};
 pub use msg::Msg;
-pub use settings::{Appearance, ColorDepth, IconSet, Language, UiSettings};
+pub use settings::{Appearance, ColorDepth, IconSet, Language, System, UiSettings};
 pub use setup::{SetupChoice, SetupModel, SetupOutcome, update_setup, view_setup};
 pub use theme::Theme;
 pub use update::update;

@@ -237,16 +237,15 @@ pub enum Outcome { Succeeded, Failed(String), Skipped(String), Cancelled, TimedO
 | `InstallUpdates` | Decision je Kandidat → Installation mit Permit, Sperre pro Paketmanager → `ActionLog` |
 | `IngestUsage` | alle aktiven `UsageSource`s, inkrementell → `UsageStore` |
 | `QueryUsage` | Aggregation pro `Period`, Provider, Modell → `Measured<…>` |
-| `ManageWorkspaces` | hinzufügen, entfernen, Opt-out umschalten → `SettingsStore` |
-| `ManageSettings` | Opt-ins, Sprache, Theme → `SettingsStore` |
-| `WorkspaceAgent` | führt die Workspace-Use-Cases aus: beim Start Cache, dann lokaler Scan, danach `SyncRepositories` mit Fetch im Fetch-Intervall und auf `Command::SyncNow`; `Command::FastForward` startet `FastForwardRepo`; sendet `AppEvent::Workspaces`, `SyncStarted`, `RepoUpdated`; stoppt über `CancellationToken` |
-| `UpdatesAgent` | prüft alle Update-Quellen beim Start, im Prüf-Intervall (6 h) und auf `UpdateCommand::CheckNow`; führt `UpdateCommand::Install` als Job aus (`JobState`: Queued, Running, Succeeded, NeedsInteraction, Denied, Failed, TimedOut) mit `install_decision` und `ActionLog`; installiert nach jeder Prüfung die Kandidaten, die `install_decision(…, InstallRequest::Auto, …)` mit den Opt-ins erlaubt, nacheinander und ohne zweiten Lauf parallel; schreibt jedes Paketergebnis in die `InstallHistory`; Prüfungen und Jobs laufen als eigene Tasks unter der Sperre ihrer Quelle; sendet `AppEvent::Updates`, `SourceUpdated`, `Job` |
+| `SettingsAgent` | wendet `SettingsCommand::Change(SettingsChange)` über `SettingsStore::update` an (Sprache, Theme, Symbolsatz, Workspace hinzufügen/entfernen, Fast-Forward-Opt-out, Installations-Opt-ins) und liest auf `SettingsCommand::Reload` die Datei neu; veröffentlicht das Ergebnis über einen `watch`-Kanal und sendet `AppEvent::Settings` bzw. bei Fehlern `SettingsRejected` (die bisherigen Einstellungen bleiben dann gültig); sendet beim Start die aktuellen Einstellungen |
+| `WorkspaceAgent` | führt die Workspace-Use-Cases aus: beim Start Cache, dann lokaler Scan, danach `SyncRepositories` mit Fetch im Fetch-Intervall und auf `Command::SyncNow`; beobachtet die Einstellungen und scannt nach jeder Änderung sofort lokal (neues Fetch-Intervall gilt ab dann); `Command::FastForward` startet `FastForwardRepo`; sendet `AppEvent::Workspaces`, `SyncStarted`, `RepoUpdated`; stoppt über `CancellationToken` |
+| `UpdatesAgent` | prüft alle Update-Quellen beim Start, im Prüf-Intervall (6 h) und auf `UpdateCommand::CheckNow`; führt `UpdateCommand::Install` als Job aus (`JobState`: Queued, Running, Succeeded, NeedsInteraction, Denied, Failed, TimedOut) mit `install_decision` und `ActionLog`; installiert nach jeder Prüfung die Kandidaten, die `install_decision(…, InstallRequest::Auto, …)` mit den Opt-ins erlaubt, nacheinander und ohne zweiten Lauf parallel; schreibt jedes Paketergebnis in die `InstallHistory`; liest Opt-ins und Prüf-Intervall aus den beobachteten Einstellungen, Änderungen gelten ab der nächsten Prüfung; Prüfungen und Jobs laufen als eigene Tasks unter der Sperre ihrer Quelle; sendet `AppEvent::Updates`, `SourceUpdated`, `Job` |
 | `Scheduler` | treibt periodische Use Cases (Fetch 15 min, Updates 6 h, Ingest 60 s, System 2 s) |
 | `JobRunner` | führt verändernde Use Cases als Jobs aus, verwaltet Status, Sperren und Abbruch |
 
 Jeder Use Case ist eine Struct mit Abhängigkeiten im Konstruktor und einer Methode `execute`.
 
-Befehle der TUI sind nach Agent gruppiert: `Command::Workspaces(WorkspaceCommand)` und `Command::Updates(UpdateCommand)`. Das Binary leitet jede Gruppe über einen eigenen Kanal an ihren Agent weiter; Ergebnisse kommen gemeinsam als `AppEvent` zurück.
+Befehle der TUI sind nach Agent gruppiert: `Command::Workspaces(WorkspaceCommand)`, `Command::Updates(UpdateCommand)` und `Command::Settings(SettingsCommand)`. Das Binary leitet jede Gruppe über einen eigenen Kanal an ihren Agent weiter; Ergebnisse kommen gemeinsam als `AppEvent` zurück. Kein Agent kennt einen anderen: Einstellungen erreichen Workspace- und Updates-Agent nur über den `watch`-Kanal des `SettingsAgent`. Werkzeugpfade (`[tools]`) und die Aktivierung von Skills werden nur beim Start gelesen.
 
 ### 5.5 Ebene 2: Präsentation (`hud-tui`)
 
@@ -274,7 +273,7 @@ Zuerst wertet hud die Kommandozeile aus. `--version` und `--help` geben Text aus
 3. Config lesen. Fehlt sie oder enthält sie keinen Workspace, zeigt hud nach dem Terminal-Setup den Einrichtungsdialog: (1) Workspaces wählen (Vorschläge sind vorhandene typische Ordner unter Home wie `~/workspace`, `~/Developer`, `~/Projects`; eigene Pfade mit `/` oder `~/`), (2) Symbolsatz mit Vorschau wählen. `Esc` beendet hud ohne Schreiben. Sonst schreibt `SettingsStore::apply_setup` die Auswahl kommentarerhaltend und atomar in die Config und liefert die neuen Einstellungen; der Hauptbildschirm startet ohne Neustart.
 4. SQLite öffnen, Migrationen ausführen.
 5. Ermittlung des Login-PATH im Hintergrund anstoßen (`$SHELL -l -i -c …`, Timeout 3 s, Fallback: aktueller PATH). Die TUI wartet nicht darauf; erst der erste Fremdprozess wartet bei Bedarf. Der Wert wird einmal ermittelt und von allen Prozessaufrufen geteilt.
-6. Theme (OSC 11, 100 ms) und Sprache (Systemsprache von macOS über `sys-locale`) bestimmen, sofern nicht in der Config festgelegt.
+6. Terminal-Hintergrund (OSC 11, 100 ms) und Systemsprache (`sys-locale`) ermitteln, auch wenn die Config sie festlegt: Stellt man später im Einstellungen-Tab auf `auto`, gilt der ermittelte Wert ohne erneute Abfrage. `UiSettings::resolve` bildet daraus und aus der Config die Darstellung; dieselbe Funktion läuft nach jeder Änderung der Einstellungen.
 7. Composition Root baut Adapter und Use Cases, startet Scheduler und Job-Runner.
 8. Letzte Ergebnisse aus `ScanCache` anzeigen, dann ersten Scan anstoßen.
 
@@ -461,7 +460,7 @@ Alle Fremdwerkzeuge laufen über den internen `ProcessRunner`:
 - Lesen: `toml` + Serde in typisierte Structs mit `#[serde(default)]` und `#[serde(deny_unknown_fields)]`; Tippfehler führen zu einer klaren Fehlermeldung mit Zeilennummer. Eine ungültige Config beendet hud vor der Übernahme des Terminals, damit die Meldung in der Shell lesbar bleibt; eine fehlende Config ergibt die Defaults.
 - Preis-Overrides werden beim Einlesen in ganzzahlige Mikro-USD umgerechnet (ADR 0009).
 - Validierung beim Laden in Domain-Typen (Parse-don't-validate), z. B. `WorkspacePath`.
-- Schreiben: `toml_edit`, Datei vorher neu einlesen, nur geänderte Schlüssel anfassen, atomar schreiben (temporäre Datei + `rename`).
+- Schreiben: `toml_edit`, Datei vorher neu einlesen, nur geänderte Schlüssel anfassen, atomar schreiben (temporäre Datei + `rename`). Ein ersetzter Wert behält Leerraum und Inline-Kommentar. Workspaces werden über den Pfad nach `~/`-Auflösung erkannt, sodass `~/code` und `/Users/…/code` derselbe Workspace sind. Das Ergebnis wird vor dem Schreiben vollständig validiert; eine ungültige Änderung schreibt nichts.
 
 ```toml
 language = "auto"            # auto | de | en
