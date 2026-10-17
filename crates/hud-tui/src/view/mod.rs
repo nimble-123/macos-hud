@@ -6,6 +6,7 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
 
+mod log;
 mod settings;
 mod updates;
 mod workspaces;
@@ -34,6 +35,7 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Tab::Workspaces => workspaces::render(model, frame, body),
         Tab::Updates => updates::render(model, frame, body),
         Tab::Settings => settings::render(model, frame, body),
+        Tab::Log => log::render(model, frame, body),
         tab => render_placeholder(tab, language, &model.theme, frame, body),
     }
     render_footer(model, frame, footer);
@@ -128,6 +130,9 @@ fn footer_hints(model: &Model) -> Vec<(&'static str, &'static str)> {
     if model.tab() == Tab::Settings && tab.input.is_some() {
         return vec![("key-enter", "hint-add"), ("key-esc", "hint-cancel")];
     }
+    if model.tab() == Tab::Log && model.log_tab.searching {
+        return vec![("key-enter", "hint-finish"), ("key-esc", "hint-cancel")];
+    }
     let mut hints = Vec::with_capacity(7);
     match model.tab() {
         Tab::Updates => hints.extend([("key-arrows", "hint-select"), ("key-u", "hint-install")]),
@@ -141,7 +146,12 @@ fn footer_hints(model: &Model) -> Vec<(&'static str, &'static str)> {
             ("key-a", "hint-add"),
             ("key-d", "hint-remove"),
         ]),
-        Tab::Overview | Tab::Ai | Tab::Log => {}
+        Tab::Log => hints.extend([
+            ("key-arrows", "hint-select"),
+            ("key-slash", "hint-search"),
+            ("key-f", "hint-filter"),
+        ]),
+        Tab::Overview | Tab::Ai => {}
     }
     let refresh = if model.tab() == Tab::Settings {
         "hint-reload"
@@ -289,6 +299,68 @@ mod tests {
             .draw(|frame| view(model, frame))
             .expect("BUG: test draw");
         terminal
+    }
+
+    fn log_tab(language: Language) -> Model {
+        use hud_application::AppEvent;
+        use hud_domain::action::{ActionId, ActionKind, ActionRecord, Outcome, Trigger};
+        let at = |text: &str| text.parse::<jiff::Timestamp>().expect("BUG: timestamp");
+        let record =
+            |id, kind, target: &str, trigger, outcome, summary: Option<&str>| ActionRecord {
+                id: ActionId(id),
+                started_at: at("2026-10-17T12:00:00Z"),
+                finished_at: Some(at("2026-10-17T12:01:05Z")),
+                kind,
+                target: target.to_owned(),
+                trigger,
+                outcome: Some(outcome),
+                summary: summary.map(str::to_owned),
+            };
+        let mut model = Model::new(UiSettings {
+            language,
+            ..UiSettings::default()
+        });
+        model.tab = Tab::Log;
+        let actions = vec![
+            record(
+                3,
+                ActionKind::Install,
+                "Npm wrangler 4.81.0 → 4.151.1",
+                Trigger::Manual,
+                Outcome::Failed(
+                    "npm failed: npm error code EACCES\nnpm error path /usr/local/lib".into(),
+                ),
+                None,
+            ),
+            record(
+                2,
+                ActionKind::FastForward,
+                "/ws/api",
+                Trigger::Auto,
+                Outcome::Succeeded,
+                Some("3 commits to 1a2b3c4d5e6f"),
+            ),
+            record(
+                1,
+                ActionKind::Fetch,
+                "/ws/web",
+                Trigger::Auto,
+                Outcome::Failed("timeout".into()),
+                None,
+            ),
+        ];
+        update(&mut model, Msg::App(AppEvent::Actions(actions)));
+        model
+    }
+
+    #[test]
+    fn log_tab_in_german() {
+        insta::assert_snapshot!(render_tall(&log_tab(Language::De)).backend());
+    }
+
+    #[test]
+    fn log_tab_in_english() {
+        insta::assert_snapshot!(render_tall(&log_tab(Language::En)).backend());
     }
 
     #[test]

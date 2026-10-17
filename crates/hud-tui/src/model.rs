@@ -58,7 +58,9 @@ use hud_domain::git::RepoPath;
 use hud_domain::update::InstallTarget;
 
 use hud_application::settings::Settings;
+use hud_domain::action::ActionRecord;
 
+use crate::log_tab::LogTab;
 use crate::settings::{System, UiSettings};
 use crate::settings_tab::SettingsTab;
 use crate::theme::Theme;
@@ -102,6 +104,12 @@ pub struct Model {
     pub(crate) preferences: Option<Settings>,
     /// Cursor, input and dialog of the Settings tab.
     pub(crate) settings_tab: SettingsTab,
+    /// Most recent logged actions, newest first.
+    pub(crate) actions: Vec<ActionRecord>,
+    /// Cursor, search and filter of the Log tab.
+    pub(crate) log_tab: LogTab,
+    /// Zone for showing times; UTC unless the binary sets the system zone.
+    pub(crate) time_zone: jiff::tz::TimeZone,
 }
 
 /// Progress of a running scan.
@@ -145,7 +153,17 @@ impl Model {
             },
             preferences: None,
             settings_tab: SettingsTab::default(),
+            actions: Vec::new(),
+            log_tab: LogTab::default(),
+            time_zone: jiff::tz::TimeZone::UTC,
         }
+    }
+
+    /// Sets the zone in which times are shown.
+    #[must_use]
+    pub fn with_time_zone(mut self, time_zone: jiff::tz::TimeZone) -> Self {
+        self.time_zone = time_zone;
+        self
     }
 
     /// Sets what the system reported, for preferences that are `auto`.
