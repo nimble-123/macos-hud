@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/nimble-123/macos-hud/compare/v0.5.0...v0.6.0) (2026-10-17)
+
+
+### Neue Funktionen
+
+* **tui:** add help overlay ([#98](https://github.com/nimble-123/macos-hud/issues/98)) ([9de1532](https://github.com/nimble-123/macos-hud/commit/9de1532745fefb2f93492a53d105601be054fc70))
+* **tui:** add key figures to the AI tab ([#94](https://github.com/nimble-123/macos-hud/issues/94)) ([5e51fcc](https://github.com/nimble-123/macos-hud/commit/5e51fcc8410eabf2bb17f9f43769b34fb0a6b62b))
+* **tui:** add mouse support ([#99](https://github.com/nimble-123/macos-hud/issues/99)) ([a5bccce](https://github.com/nimble-123/macos-hud/commit/a5bccce68ca2e4d18bc78027f895f22c56183d7f))
+* **tui:** add overview with load sparklines and deviations ([#90](https://github.com/nimble-123/macos-hud/issues/90)) ([4a1fff8](https://github.com/nimble-123/macos-hud/commit/4a1fff846272ac9a54d5c6d8384fe3d6ce64b8a8))
+* **tui:** show AI activity as a contribution calendar ([#95](https://github.com/nimble-123/macos-hud/issues/95)) ([a3d08b9](https://github.com/nimble-123/macos-hud/commit/a3d08b9a4fe5e029bf50eaa1a419abae3be253a6))
+* **tui:** show own git activity as a contribution calendar ([#97](https://github.com/nimble-123/macos-hud/issues/97)) ([435b0e8](https://github.com/nimble-123/macos-hud/commit/435b0e839e01ae833edf54e552ac1c11279f337e))
+
 ## [0.5.0](https://github.com/nimble-123/macos-hud/compare/v0.4.0...v0.5.0) (2026-10-17)
 
 
