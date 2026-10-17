@@ -1,7 +1,7 @@
 //! Settings tab: presentation, workspaces and opt-ins, plus the remove dialog.
 
 use hud_application::settings::{
-    AutoInstallKind, IconPreference, LanguagePreference, ThemePreference,
+    AutoInstallKind, IconPreference, LanguagePreference, Settings, ThemePreference,
 };
 use hud_domain::WorkspacePath;
 use ratatui::Frame;
@@ -32,7 +32,28 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         return;
     };
     let tab = &model.settings_tab;
+    let (lines, _) = build(model, preferences);
+    frame.render_widget(Paragraph::new(lines), area);
+    if let Some(path) = &tab.remove {
+        render_remove(model, path, frame, area);
+    }
+}
+
+/// Settings row under line `y` of the tab's area.
+pub(super) fn row_at(model: &Model, y: u16) -> Option<usize> {
+    let preferences = model.preferences.as_ref()?;
+    build(model, preferences)
+        .1
+        .get(usize::from(y))
+        .copied()
+        .flatten()
+}
+
+/// Lines and, per line, the settings row it shows.
+fn build<'a>(model: &Model, preferences: &Settings) -> (Vec<Line<'a>>, Vec<Option<usize>>) {
+    let tab = &model.settings_tab;
     let mut lines = Vec::new();
+    let mut map = Vec::new();
     let mut section = None;
     for (index, row) in rows(preferences).iter().enumerate() {
         let current = match row {
@@ -43,9 +64,11 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         if section != Some(current) {
             if section.is_some() {
                 lines.push(Line::raw(""));
+                map.push(None);
             }
             let column = (current == "settings-workspaces").then_some("settings-auto-ff");
             lines.push(heading(model, current, column));
+            map.push(None);
             section = Some(current);
         }
         if *row == Row::AddWorkspace
@@ -55,15 +78,13 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         } else {
             lines.push(row_line(model, row, index == tab.selected));
         }
+        map.push(Some(index));
     }
     if let Some(notice) = &tab.notice {
         lines.push(Line::raw(""));
         lines.push(notice_line(model, notice));
     }
-    frame.render_widget(Paragraph::new(lines), area);
-    if let Some(path) = &tab.remove {
-        render_remove(model, path, frame, area);
-    }
+    (lines, map)
 }
 
 fn heading<'a>(model: &Model, title: &str, column: Option<&str>) -> Line<'a> {

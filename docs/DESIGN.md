@@ -121,7 +121,8 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 
 - **Linksbündig**, eine Spalte für Text, Zahlen rechtsbündig in eigenen Spalten.
 - **Rahmen** in `muted`, nur der aktive Bereich in `focus`.
-- **Fußzeile** zeigt kontextabhängige Aktionen; jedes Element ist per Maus klickbar und hat ein Tastenkürzel.
+- **Fußzeile** zeigt kontextabhängige Aktionen; jede Aktion hat ein Tastenkürzel und ist per Maus klickbar. Hinweise, die nur Tasten erklären (z. B. ↑↓), reagieren nicht auf Klicks.
+- **Maus**: Tab-Beschriftungen, Zeitraumauswahl und Listenzeilen sind klickbar; ein zweiter Klick auf die gewählte Zeile öffnet sie wie Enter. Das Mausrad bewegt die Auswahl.
 - **Übersicht zeigt nur Abweichungen** (Dark Cockpit). Ist alles normal, steht dort ein einziger neutraler Satz, z. B. „Alles aktuell. Letzte Prüfung vor 4 min.“ Repos zählen als „zurück“ (auch bei Opt-out), „übersprungen“ (Regel blockiert), „divergiert“ oder „Fehler“; nicht verfügbare Workspaces erscheinen eigens. Updates zählen ohne gepinnte Pakete.
 - Die Sparklines sind rechtsbündig: der neueste Wert steht immer an derselben Stelle. CPU oder Speicher ab 90 % erscheinen in `caution`.
 - Darunter die **KI-Aktivität** im Stil des GitHub-Contribution-Graphs: eine Spalte je Woche (so viele, wie in die Breite passen, höchstens 53), Zeilen Mo bis So, Monatskürzel über der Woche, in der ein Monat beginnt. Fünf Stufen von `rule` bis `advisory` (0 und die Quartile der aktiven Tage), Legende „weniger … mehr“; ohne Farben (`NO_COLOR`) zeigen `·░▒▓█` die Stufe. Darunter Antworten, aktive Tage und längste Serie. Ohne jede Aktivität entfällt der Kalender.

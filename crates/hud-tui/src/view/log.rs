@@ -73,6 +73,20 @@ fn render_bar(model: &Model, frame: &mut Frame, area: Rect) {
     frame.render_widget(Paragraph::new(Line::from(spans)), area);
 }
 
+/// Log entry under line `y` of the tab's area: below the filter bar (two
+/// lines) and the column header, with the same window as the list.
+pub(super) fn row_at(model: &Model, area: Rect, y: u16) -> Option<usize> {
+    let list_y = y.checked_sub(3)?;
+    let list_height = area.height.saturating_sub(2 + DETAIL_HEIGHT);
+    let rows = usize::from(list_height.saturating_sub(1));
+    let start = model
+        .log_tab
+        .selected
+        .saturating_sub(rows.saturating_sub(1));
+    let index = start + usize::from(list_y);
+    (usize::from(list_y) < rows && index < visible(model).len()).then_some(index)
+}
+
 fn render_list(model: &Model, records: &[&ActionRecord], frame: &mut Frame, area: Rect) {
     let language = model.settings.language;
     let theme = &model.theme;

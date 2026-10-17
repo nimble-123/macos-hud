@@ -482,6 +482,8 @@ async fn run(
     commands: &Router,
 ) -> anyhow::Result<()> {
     let mut input = EventStream::new();
+    let size = terminal.size()?;
+    let _ = update(&mut model, Msg::Resize(size.width, size.height));
     let mut render_tick = tokio::time::interval(RENDER_TICK);
     render_tick.set_missed_tick_behavior(MissedTickBehavior::Skip);
 

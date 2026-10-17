@@ -32,7 +32,8 @@ pub fn update(model: &mut Model, msg: Msg) -> Vec<Command> {
                 .recent_ok
                 .retain(|_, at| now.duration_since(*at) < OK_HIGHLIGHT);
         }
-        Msg::Mouse(_) | Msg::Resize => {}
+        Msg::Mouse(event) => return crate::mouse::on_mouse(model, event),
+        Msg::Resize(columns, rows) => model.area = ratatui::layout::Rect::new(0, 0, columns, rows),
     }
     Vec::new()
 }

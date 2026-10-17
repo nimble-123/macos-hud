@@ -23,21 +23,29 @@ use crate::{Model, Tab};
 
 pub(crate) use overview::SPARK_SAMPLES;
 
-/// Renders the model into a frame. Pure: reads the model, writes the frame.
-pub fn view(model: &Model, frame: &mut Frame) {
-    // While work runs in the background the footer gets an extra progress line.
-    let busy = model.scan.is_some() || model.syncing || !model.jobs.is_empty();
+/// While work runs in the background the footer gets an extra progress line.
+fn busy(model: &Model) -> bool {
+    model.scan.is_some() || model.syncing || !model.jobs.is_empty()
+}
+
+/// Tab bar, body and footer of a frame; shared with mouse hit-testing so a
+/// click resolves against exactly what was drawn.
+pub(crate) fn areas(model: &Model, full: Rect) -> [Rect; 3] {
     let [tabs, body, footer] = Layout::vertical([
         Constraint::Length(2),
         Constraint::Fill(1),
-        Constraint::Length(if busy { 3 } else { 2 }),
+        Constraint::Length(if busy(model) { 3 } else { 2 }),
     ])
     .horizontal_margin(2)
-    .areas(frame.area());
+    .areas(full);
+    [tabs, body.inner(Margin::new(0, 1)), footer]
+}
 
+/// Renders the model into a frame. Pure: reads the model, writes the frame.
+pub fn view(model: &Model, frame: &mut Frame) {
+    let [tabs, body, footer] = areas(model, frame.area());
     let language = model.settings.language;
     render_tabs(model.tab(), language, &model.theme, frame, tabs);
-    let body = body.inner(Margin::new(0, 1));
     match model.tab() {
         Tab::Workspaces => workspaces::render(model, frame, body),
         Tab::Updates => updates::render(model, frame, body),
@@ -119,7 +127,61 @@ pub(crate) fn tab_message(tab: Tab) -> &'static str {
     }
 }
 
-fn render_tabs(active: Tab, language: Language, theme: &Theme, frame: &mut Frame, area: Rect) {
+/// Index of the span under column `x` of a line drawn from column `left`.
+fn span_at(line: &Line<'_>, left: u16, x: u16) -> Option<usize> {
+    let mut start = left;
+    for (index, span) in line.spans.iter().enumerate() {
+        let end = start.saturating_add(u16::try_from(span.width()).unwrap_or(u16::MAX));
+        if (start..end).contains(&x) {
+            return Some(index);
+        }
+        start = end;
+    }
+    None
+}
+
+/// What a click at `(x, y)` hits.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Hit {
+    /// A tab in the tab bar.
+    Tab(Tab),
+    /// A key hint in the footer, by its key's message id.
+    Key(&'static str),
+    /// A period in the AI tab.
+    Period(hud_domain::usage::Period),
+    /// A selectable row of the active tab.
+    Row(usize),
+}
+
+/// Resolves a click against the layout `view` draws for `full`.
+pub(crate) fn hit(model: &Model, full: Rect, x: u16, y: u16) -> Option<Hit> {
+    let [tabs, body, footer] = areas(model, full);
+    if y == tabs.y {
+        let line = tab_line(model.tab(), model.settings.language, &model.theme);
+        return span_at(&line, tabs.x, x).map(|index| Hit::Tab(Tab::ALL[index / 2]));
+    }
+    let hints_y = footer.y + 1 + u16::from(busy(model));
+    if y == hints_y {
+        let hints = footer_hints(model);
+        let line = hint_line(model, &hints);
+        return span_at(&line, footer.x, x).map(|index| Hit::Key(hints[index / 2].0));
+    }
+    if !(body.y..body.y + body.height).contains(&y) {
+        return None;
+    }
+    let row = y - body.y;
+    match model.tab() {
+        Tab::Ai if row == 0 => span_at(&ai::period_bar(model), body.x, x)
+            .map(|index| Hit::Period(hud_domain::usage::Period::ALL[index / 2])),
+        Tab::Workspaces => workspaces::row_at(model, body, row).map(Hit::Row),
+        Tab::Updates => updates::row_at(model, row).map(Hit::Row),
+        Tab::Settings => settings::row_at(model, row).map(Hit::Row),
+        Tab::Log => log::row_at(model, body, row).map(Hit::Row),
+        Tab::Ai | Tab::Overview => None,
+    }
+}
+
+fn tab_line(active: Tab, language: Language, theme: &Theme) -> Line<'static> {
     let mut spans = Vec::with_capacity(Tab::ALL.len() * 2);
     for tab in Tab::ALL {
         let style = if tab == active {
@@ -132,17 +194,24 @@ fn render_tabs(active: Tab, language: Language, theme: &Theme, frame: &mut Frame
         spans.push(Span::styled(t(language, tab_message(tab)), style));
         spans.push(Span::raw("    "));
     }
+    Line::from(spans)
+}
+
+fn render_tabs(active: Tab, language: Language, theme: &Theme, frame: &mut Frame, area: Rect) {
     let block = Block::new()
         .borders(Borders::BOTTOM)
         .border_style(Style::new().fg(theme.rule));
-    frame.render_widget(Paragraph::new(Line::from(spans)).block(block), area);
+    frame.render_widget(
+        Paragraph::new(tab_line(active, language, theme)).block(block),
+        area,
+    );
 }
 
-fn render_footer(model: &Model, frame: &mut Frame, area: Rect) {
+/// Key and label per hint; each pair is one click target.
+fn hint_line(model: &Model, hints: &[(&'static str, &'static str)]) -> Line<'static> {
     let language = model.settings.language;
     let theme = &model.theme;
-    let hints = footer_hints(model);
-    let mut spans = Vec::with_capacity(hints.len() * 2 + 1);
+    let mut spans = Vec::with_capacity(hints.len() * 2);
     for (key, label) in hints {
         spans.push(Span::styled(
             t(language, key),
@@ -153,6 +222,13 @@ fn render_footer(model: &Model, frame: &mut Frame, area: Rect) {
             Style::new().fg(theme.soft),
         ));
     }
+    Line::from(spans)
+}
+
+fn render_footer(model: &Model, frame: &mut Frame, area: Rect) {
+    let language = model.settings.language;
+    let theme = &model.theme;
+    let hints = hint_line(model, &footer_hints(model));
     let block = Block::new()
         .borders(Borders::TOP)
         .border_style(Style::new().fg(theme.rule));
@@ -172,7 +248,7 @@ fn render_footer(model: &Model, frame: &mut Frame, area: Rect) {
     if !progress.is_empty() {
         lines.push(Line::from(progress));
     }
-    lines.push(Line::from(spans));
+    lines.push(hints);
     frame.render_widget(Paragraph::new(lines), inner);
 }
 

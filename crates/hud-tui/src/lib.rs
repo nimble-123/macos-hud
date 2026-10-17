@@ -7,6 +7,7 @@ mod i18n;
 pub mod icons;
 mod log_tab;
 mod model;
+mod mouse;
 mod msg;
 mod settings;
 mod settings_tab;

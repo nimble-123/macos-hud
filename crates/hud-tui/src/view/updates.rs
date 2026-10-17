@@ -29,49 +29,79 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         );
         return;
     }
+    let (lines, _) = build(model);
+    frame.render_widget(Paragraph::new(lines), area);
+    if let Some(target) = &model.confirm {
+        render_confirm(model, target, frame, area);
+    }
+}
+
+/// Update row under line `y` of the tab's area.
+pub(super) fn row_at(model: &Model, y: u16) -> Option<usize> {
+    if model.updates.is_empty() {
+        return None;
+    }
+    build(model).1.get(usize::from(y)).copied().flatten()
+}
+
+/// Lines and, per line, the index into [`Model::update_rows`] it shows.
+fn build(model: &Model) -> (Vec<Line<'_>>, Vec<Option<usize>>) {
+    let language = model.settings.language;
+    let theme = &model.theme;
     let rows = model.update_rows();
+    let index_of = |target: &InstallTarget| rows.iter().position(|row| row == target);
     let mut lines = Vec::new();
+    let mut map = Vec::new();
+    let mut push = |line: Line<'static>, row: Option<usize>, lines: &mut Vec<Line<'static>>| {
+        lines.push(line);
+        map.push(row);
+    };
     for report in &model.updates {
         if !lines.is_empty() {
-            lines.push(Line::raw(""));
+            push(Line::raw(""), None, &mut lines);
         }
-        lines.push(header(model, report));
+        push(header(model, report), None, &mut lines);
         let Some(check) = &report.check else { continue };
         match check {
-            Err(error) => lines.push(error_line(model, error)),
+            Err(error) => push(error_line(model, error), None, &mut lines),
             Ok(check) if check.updates_known && check.candidates.is_empty() => {
                 let glyph = status_glyph(model.settings.icons, Status::Neutral);
-                lines.push(Line::styled(
+                let line = Line::styled(
                     format!("  {glyph} {}", t(language, "src-up-to-date")),
                     Style::new().fg(theme.muted),
-                ));
+                );
+                push(line, None, &mut lines);
             }
             Ok(check) if check.updates_known => {
                 for candidate in &check.candidates {
                     let target = InstallTarget::Package(candidate.clone());
-                    let selected = rows.get(model.update_selected) == Some(&target);
-                    lines.push(candidate_line(model, candidate, &target, selected));
+                    let index = index_of(&target);
+                    let selected = index == Some(model.update_selected);
+                    push(
+                        candidate_line(model, candidate, &target, selected),
+                        index,
+                        &mut lines,
+                    );
                 }
             }
             Ok(check) => {
                 let count = u32::try_from(check.installed.len()).unwrap_or(u32::MAX);
-                lines.push(Line::styled(
+                let line = Line::styled(
                     format!(
                         "  {}",
                         t_count(language, "src-skills-installed", "count", count)
                     ),
                     Style::new().fg(theme.muted),
-                ));
+                );
+                push(line, None, &mut lines);
                 let target = InstallTarget::AllSkills;
-                let selected = rows.get(model.update_selected) == Some(&target);
-                lines.push(update_all_line(model, &target, selected));
+                let index = index_of(&target);
+                let selected = index == Some(model.update_selected);
+                push(update_all_line(model, &target, selected), index, &mut lines);
             }
         }
     }
-    frame.render_widget(Paragraph::new(lines), area);
-    if let Some(target) = &model.confirm {
-        render_confirm(model, target, frame, area);
-    }
+    (lines, map)
 }
 
 fn source_name(source: SourceId) -> &'static str {

@@ -26,14 +26,42 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         return;
     }
 
+    let (lines, _, selected_line) = build(model);
+    frame.render_widget(
+        Paragraph::new(lines).scroll((scroll(area, selected_line), 0)),
+        area,
+    );
+}
+
+/// Keep the selection visible: scroll so the selected line stays on screen.
+fn scroll(area: Rect, selected_line: usize) -> u16 {
+    let height = usize::from(area.height).max(1);
+    let scroll = selected_line.saturating_sub(height.saturating_sub(2));
+    u16::try_from(scroll).unwrap_or(u16::MAX)
+}
+
+/// Repository row under line `y` of the tab's area, as the frame shows it.
+pub(super) fn row_at(model: &Model, area: Rect, y: u16) -> Option<usize> {
+    let (_, rows, selected_line) = build(model);
+    let line = usize::from(y + scroll(area, selected_line));
+    rows.get(line).copied().flatten()
+}
+
+/// Lines, the repository row of each line, and the line of the selection.
+fn build(model: &Model) -> (Vec<Line<'_>>, Vec<Option<usize>>, usize) {
+    let language = model.settings.language;
+    let theme = &model.theme;
     let mut lines = Vec::new();
+    let mut rows = Vec::new();
     let mut row = 0usize;
     let mut selected_line = 0usize;
     for workspace in &model.workspaces {
         if !lines.is_empty() {
             lines.push(Line::raw(""));
+            rows.push(None);
         }
         lines.push(header(model, workspace));
+        rows.push(None);
         match &workspace.repos {
             None => {}
             Some(repos) if repos.is_empty() => {
@@ -46,6 +74,7 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
                     format!("  {}", t(language, message)),
                     Style::new().fg(theme.soft),
                 ));
+                rows.push(None);
             }
             Some(repos) => {
                 for report in repos {
@@ -53,17 +82,14 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
                         selected_line = lines.len();
                     }
                     lines.push(repo_line(model, workspace, report, row == model.selected));
+                    rows.push(Some(row));
                     row += 1;
                 }
             }
         }
     }
 
-    // Keep the selection visible: scroll so the selected line stays on screen.
-    let height = usize::from(area.height).max(1);
-    let scroll = selected_line.saturating_sub(height.saturating_sub(2));
-    let scroll = u16::try_from(scroll).unwrap_or(u16::MAX);
-    frame.render_widget(Paragraph::new(lines).scroll((scroll, 0)), area);
+    (lines, rows, selected_line)
 }
 
 fn header<'a>(model: &Model, workspace: &'a WorkspaceReport) -> Line<'a> {
