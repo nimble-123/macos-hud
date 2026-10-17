@@ -4,6 +4,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use hud_application::{AppEvent, Command, UpdateCommand, WorkspaceCommand};
 
 use hud_domain::update::InstallTarget;
+use hud_domain::usage::Period;
 
 use crate::model::{OK_HIGHLIGHT, Quit, ScanProgress, wrap_step};
 use crate::{Model, Msg, Tab};
@@ -95,6 +96,12 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
                 });
             model.confirm = selectable.cloned();
         }
+        KeyCode::Right | KeyCode::Char('l') if model.tab == Tab::Ai => step_period(model, 1),
+        KeyCode::Left | KeyCode::Char('h') if model.tab == Tab::Ai => step_period(model, -1),
+        KeyCode::Char(c @ '1'..='5') if model.tab == Tab::Ai => {
+            let index = usize::from(u8::try_from(c).unwrap_or(b'1') - b'1');
+            model.ai_period = Period::ALL[index];
+        }
         KeyCode::Char('f') if model.tab == Tab::Workspaces => {
             if let Some(report) = model.selected_repo() {
                 return vec![Command::Workspaces(WorkspaceCommand::FastForward(
@@ -150,6 +157,14 @@ fn on_confirm_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
         }
         _ => Vec::new(),
     }
+}
+
+fn step_period(model: &mut Model, delta: isize) {
+    let index = Period::ALL
+        .iter()
+        .position(|p| *p == model.ai_period)
+        .unwrap_or(0);
+    model.ai_period = Period::ALL[wrap_step(index, delta, Period::ALL.len())];
 }
 
 fn move_update_selection(model: &mut Model, delta: isize) {
@@ -369,6 +384,20 @@ mod tests {
             Msg::Key(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL)),
         );
         assert!(model.should_quit());
+    }
+
+    #[test]
+    fn arrows_switch_the_ai_period_and_wrap() {
+        let mut model = Model {
+            tab: Tab::Ai,
+            ..Model::default()
+        };
+        update(&mut model, key(KeyCode::Left));
+        assert_eq!(model.ai_period, Period::LastMonth);
+        update(&mut model, key(KeyCode::Right));
+        assert_eq!(model.ai_period, Period::Today);
+        update(&mut model, key(KeyCode::Char('3')));
+        assert_eq!(model.ai_period, Period::Last30Days);
     }
 
     #[test]

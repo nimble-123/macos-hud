@@ -111,6 +111,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Msg::App(AppEvent::Settings(Box::new(sample_settings()))),
         );
         update(&mut model, Msg::App(AppEvent::Actions(sample_actions())));
+        update(
+            &mut model,
+            Msg::App(AppEvent::Usage(Box::new(sample_usage()))),
+        );
         update(&mut model, Msg::App(sample_workspaces()));
         for event in sample_updates() {
             update(&mut model, Msg::App(event));
@@ -135,6 +139,76 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     Ok(())
+}
+
+/// A busy day with Opus and a few Haiku subagent calls.
+fn sample_usage() -> hud_application::usecases::usage::UsageReport {
+    use hud_application::usecases::usage::{ModelUsage, PeriodUsage, SourceState, UsageReport};
+    use hud_domain::usage::{
+        Accuracy, CostEstimate, Measured, ModelId, PRICES_AS_OF, Period, Provider, TokenUsage,
+    };
+    let tokens = |input, output, write, read| TokenUsage {
+        input,
+        output,
+        cache_write_5m: 0,
+        cache_write_1h: write,
+        cache_read: read,
+        reasoning: None,
+    };
+    let cost = |micro_usd| CostEstimate {
+        micro_usd,
+        prices_as_of: PRICES_AS_OF,
+    };
+    let model = |id: &str, responses, sessions, tokens, micro: Option<u64>| ModelUsage {
+        provider: Provider::Claude,
+        model: ModelId::try_from(id.to_owned()).expect("BUG: model id"),
+        responses,
+        sessions,
+        tokens,
+        cost: micro.map(cost),
+    };
+    let periods = Period::ALL
+        .iter()
+        .map(|&period| PeriodUsage {
+            period,
+            models: vec![
+                model(
+                    "claude-opus-5-5",
+                    1_537,
+                    4,
+                    tokens(3_120, 212_400, 12_400_000, 180_200_000),
+                    Some(137_480_000),
+                ),
+                model(
+                    "claude-haiku-4-5-20251001",
+                    214,
+                    3,
+                    tokens(96_000, 18_300, 0, 0),
+                    Some(187_500),
+                ),
+            ],
+            sessions: Measured {
+                value: 5,
+                accuracy: Accuracy::Exact,
+            },
+            tokens: Measured {
+                value: tokens(99_120, 230_700, 12_400_000, 180_200_000),
+                accuracy: Accuracy::Exact,
+            },
+            cost: Measured {
+                value: cost(137_667_500),
+                accuracy: Accuracy::Estimated,
+            },
+        })
+        .collect();
+    UsageReport {
+        periods,
+        sources: vec![SourceState {
+            provider: Provider::Claude,
+            error: None,
+            unreadable: 0,
+        }],
+    }
 }
 
 /// A failed manual installation on top, then automatic work.
