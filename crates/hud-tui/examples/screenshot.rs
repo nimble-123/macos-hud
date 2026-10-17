@@ -85,7 +85,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Realistic sample data so reviews show every state at once.
-#[expect(clippy::too_many_lines, reason = "one literal list of sample repositories")]
+#[expect(
+    clippy::too_many_lines,
+    reason = "one literal list of sample repositories"
+)]
 fn sample_workspaces() -> AppEvent {
     let ws = |path: &str| WorkspacePath::try_from(PathBuf::from(path)).expect("BUG: absolute");
     let report = |path: &str, branch: &str, ahead: u32, behind: u32, state: RepoState| RepoReport {
