@@ -130,6 +130,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 | `Enter` | ausgewählte Aktion ausführen |
 | `f` | Fast-Forward für das ausgewählte Repo (Workspaces) |
 | `u` | ausgewähltes Paket aktualisieren |
+| `←` `→`, `1`–`5` | im KI-Tab: Zeitraum wechseln |
 | `/` | im Protokoll suchen |
 | `f` | im Protokoll: Filter wechseln (sonst Fast-Forward) |
 | `a` | Workspace hinzufügen (Einstellungen) |
@@ -179,6 +180,24 @@ Automatische Installation
 - `a` oder `Enter` auf „Workspace hinzufügen“ öffnet eine Eingabezeile in `focus` mit Cursor `█`; Pfade beginnen mit `/` oder `~/`. Solange die Eingabe offen ist, gehen alle Tasten an sie.
 - `d` öffnet einen zentrierten Dialog „Workspace entfernen?“ mit dem Hinweis, dass nur die Config geändert wird.
 - Sprache, Theme und Symbolsatz gelten sofort. Ein abgelehnter Schreibversuch erscheint unter den Einstellungen in `warning`, ein ungültiger Pfad in `caution`.
+
+### 5.5 KI-Tab
+
+```
+Heute   7 Tage   30 Tage   Dieser Monat   Letzter Monat         aktiver Zeitraum in focus
+Claude Code   Preise Stand 2026-10-17
+Sessions        5
+Antworten       1.751
+Token           192,9 M   Input 99,1 k   Output 230,7 k   Cache schr. 12,4 M   Cache lesen 180,2 M
+Kosten          ≈ 137,67 $   API-Äquivalent
+  Modell                     Antworten   Input   Output   Cache schr.   Cache lesen      Kosten
+  claude-opus-5-5                1.537   3,1 k  212,4 k        12,4 M       180,2 M  ≈ 137,48 $
+```
+
+- Kennzeichnung nach Genauigkeit: `≈` geschätzt, `~` unvollständig (mit Hinweis, z. B. „3 Zeilen nicht lesbar“), `—` nicht verfügbar (Modell ohne Preis).
+- Kosten tragen immer „API-Äquivalent“ (Abo, `billing = "subscription"`) oder „Schätzung“ (`billing = "api"`) und das Stand-Datum der Preistabelle.
+- Zahlen kompakt mit einer Nachkommastelle (`192,9 M`, englisch `192.9M`), Beträge auf Cent gerundet (`137,67 $`, englisch `$137.67`), Tausender gruppiert.
+- Modelle nach Kosten sortiert, teuerstes zuerst. Ohne Logs steht dort „Keine Logs unter …“ in neutral.
 
 ### 5.4 Protokoll-Tab
 

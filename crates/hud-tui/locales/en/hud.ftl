@@ -175,3 +175,34 @@ quit-waiting = { $count ->
    *[other] Waiting for { $count } installations, then hud quits
 }
 hint-quit-now = quit now
+ai-loading = Reading AI usage …
+ai-no-sources = No AI source enabled.
+ai-claude = Claude Code
+ai-codex = Codex
+ai-prices-as-of = prices as of { $date }
+ai-no-logs = No logs at { $path }
+ai-read-failed = Logs not readable: { $message }
+ai-unreadable = { $count ->
+    [one] partial: 1 line not readable
+   *[other] partial: { $count } lines not readable
+}
+ai-sessions = Sessions
+ai-responses = Responses
+ai-tokens = Tokens
+ai-input = Input
+ai-output = Output
+ai-cache-write = Cache write
+ai-cache-read = Cache read
+ai-cost = Cost
+ai-model = Model
+ai-no-usage = No usage in this period.
+ai-partial = partial
+ai-api-equivalent = API equivalent
+ai-estimate = estimate
+period-today = Today
+period-7-days = 7 days
+period-30-days = 30 days
+period-this-month = This month
+period-last-month = Last month
+key-left-right = ←→
+hint-period = period

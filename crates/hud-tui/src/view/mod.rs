@@ -6,6 +6,7 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 
+mod ai;
 mod log;
 mod settings;
 mod updates;
@@ -36,7 +37,8 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Tab::Updates => updates::render(model, frame, body),
         Tab::Settings => settings::render(model, frame, body),
         Tab::Log => log::render(model, frame, body),
-        tab => render_placeholder(tab, language, &model.theme, frame, body),
+        Tab::Ai => ai::render(model, frame, body),
+        Tab::Overview => render_placeholder(Tab::Overview, language, &model.theme, frame, body),
     }
     render_footer(model, frame, footer);
     if model.quit == crate::model::Quit::Asking {
@@ -210,7 +212,8 @@ fn footer_hints(model: &Model) -> Vec<(&'static str, &'static str)> {
             ("key-slash", "hint-search"),
             ("key-f", "hint-filter"),
         ]),
-        Tab::Overview | Tab::Ai => {}
+        Tab::Ai => hints.push(("key-left-right", "hint-period")),
+        Tab::Overview => {}
     }
     let refresh = if model.tab() == Tab::Settings {
         "hint-reload"
@@ -415,6 +418,107 @@ mod tests {
         ];
         update(&mut model, Msg::App(AppEvent::Actions(actions)));
         model
+    }
+
+    fn sample_usage() -> hud_application::usecases::usage::UsageReport {
+        use hud_application::usecases::usage::{ModelUsage, PeriodUsage, SourceState, UsageReport};
+        use hud_domain::usage::{
+            Accuracy, CostEstimate, Measured, ModelId, PRICES_AS_OF, Period, Provider, TokenUsage,
+        };
+        let tokens = |input, output, write, read| TokenUsage {
+            input,
+            output,
+            cache_write_5m: 0,
+            cache_write_1h: write,
+            cache_read: read,
+            reasoning: None,
+        };
+        let cost = |micro_usd| CostEstimate {
+            micro_usd,
+            prices_as_of: PRICES_AS_OF,
+        };
+        let model = |id: &str, responses, sessions, tokens, micro: Option<u64>| ModelUsage {
+            provider: Provider::Claude,
+            model: ModelId::try_from(id.to_owned()).expect("BUG: model id"),
+            responses,
+            sessions,
+            tokens,
+            cost: micro.map(cost),
+        };
+        let periods = Period::ALL
+            .iter()
+            .map(|&period| PeriodUsage {
+                period,
+                models: vec![
+                    model(
+                        "claude-opus-5-5",
+                        1_537,
+                        4,
+                        tokens(3_120, 212_400, 12_400_000, 180_200_000),
+                        Some(137_480_000),
+                    ),
+                    model(
+                        "claude-haiku-4-5-20251001",
+                        214,
+                        3,
+                        tokens(96_000, 18_300, 0, 0),
+                        Some(187_500),
+                    ),
+                ],
+                sessions: Measured {
+                    value: 5,
+                    accuracy: Accuracy::Exact,
+                },
+                tokens: Measured {
+                    value: tokens(99_120, 230_700, 12_400_000, 180_200_000),
+                    accuracy: Accuracy::Exact,
+                },
+                cost: Measured {
+                    value: cost(137_667_500),
+                    accuracy: Accuracy::Estimated,
+                },
+            })
+            .collect();
+        UsageReport {
+            periods,
+            sources: vec![SourceState {
+                provider: Provider::Claude,
+                error: None,
+                unreadable: 0,
+            }],
+        }
+    }
+
+    fn ai_tab(language: Language) -> Model {
+        use hud_application::AppEvent;
+        let mut model = Model::new(UiSettings {
+            language,
+            ..UiSettings::default()
+        });
+        model.tab = Tab::Ai;
+        update(
+            &mut model,
+            Msg::App(AppEvent::Usage(Box::new(sample_usage()))),
+        );
+        model
+    }
+
+    fn render_wide(model: &Model) -> Terminal<TestBackend> {
+        let mut terminal = Terminal::new(TestBackend::new(115, 22)).expect("BUG: test backend");
+        terminal
+            .draw(|frame| view(model, frame))
+            .expect("BUG: test draw");
+        terminal
+    }
+
+    #[test]
+    fn ai_tab_in_german() {
+        insta::assert_snapshot!(render_wide(&ai_tab(Language::De)).backend());
+    }
+
+    #[test]
+    fn ai_tab_in_english() {
+        insta::assert_snapshot!(render_wide(&ai_tab(Language::En)).backend());
     }
 
     #[test]
