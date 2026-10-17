@@ -5,6 +5,7 @@ use hud_application::{AppEvent, Command, LogCommand, ReportSource};
 use hud_domain::action::{ActionRecord, Outcome, Trigger};
 
 use crate::Model;
+use crate::model::wrap_step;
 
 /// State of the Log tab.
 #[derive(Debug, Default)]
@@ -89,9 +90,9 @@ pub(crate) fn on_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Command>> {
     let tab = &mut model.log_tab;
     match key.code {
         KeyCode::Down | KeyCode::Char('j') => {
-            tab.selected = (tab.selected + 1).min(count.saturating_sub(1));
+            tab.selected = wrap_step(tab.selected, 1, count);
         }
-        KeyCode::Up | KeyCode::Char('k') => tab.selected = tab.selected.saturating_sub(1),
+        KeyCode::Up | KeyCode::Char('k') => tab.selected = wrap_step(tab.selected, -1, count),
         KeyCode::Char('/') => tab.searching = true,
         KeyCode::Char('f') => {
             tab.filter = tab.filter.next();
@@ -195,6 +196,15 @@ mod tests {
 
     fn targets(model: &Model) -> Vec<&str> {
         visible(model).iter().map(|r| r.target.as_str()).collect()
+    }
+
+    #[test]
+    fn selection_wraps_at_both_ends() {
+        let mut model = model();
+        update(&mut model, key(KeyCode::Up));
+        assert_eq!(model.log_tab.selected, 2, "up from the first row");
+        update(&mut model, key(KeyCode::Down));
+        assert_eq!(model.log_tab.selected, 0, "down from the last row");
     }
 
     #[test]

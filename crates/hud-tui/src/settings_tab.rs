@@ -11,6 +11,7 @@ use hud_application::{Command, SettingsCommand};
 use hud_domain::WorkspacePath;
 
 use crate::Model;
+use crate::model::wrap_step;
 
 /// State of the Settings tab.
 #[derive(Debug, Default)]
@@ -89,11 +90,11 @@ pub(crate) fn on_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Command>> {
     let row = rows.get(tab.selected).cloned();
     let change = match key.code {
         KeyCode::Down | KeyCode::Char('j') => {
-            tab.selected = (tab.selected + 1).min(rows.len().saturating_sub(1));
+            tab.selected = wrap_step(tab.selected, 1, rows.len());
             None
         }
         KeyCode::Up | KeyCode::Char('k') => {
-            tab.selected = tab.selected.saturating_sub(1);
+            tab.selected = wrap_step(tab.selected, -1, rows.len());
             None
         }
         KeyCode::Char('r') => {
@@ -281,6 +282,16 @@ mod tests {
     fn select(model: &mut Model, wanted: &Row) {
         let rows = rows(model.preferences.as_ref().expect("BUG: loaded"));
         model.settings_tab.selected = rows.iter().position(|r| r == wanted).expect("BUG: row");
+    }
+
+    #[test]
+    fn selection_wraps_at_both_ends() {
+        let mut model = model();
+        let last = rows(model.preferences.as_ref().expect("BUG: loaded")).len() - 1;
+        update(&mut model, key(KeyCode::Up));
+        assert_eq!(model.settings_tab.selected, last, "up from the first row");
+        update(&mut model, key(KeyCode::Down));
+        assert_eq!(model.settings_tab.selected, 0, "down from the last row");
     }
 
     #[test]

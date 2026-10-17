@@ -126,7 +126,7 @@ hud --reset-config --reset-data --yes
 | Key | Action |
 | --- | --- |
 | `Tab` / `Shift-Tab` | next / previous tab |
-| `↑` `↓` | move selection |
+| `↑` `↓` | move selection (wraps around at both ends) |
 | `Enter` | run the selected action |
 | `f` | fast-forward the selected repo |
 | `u` | update the selected package |

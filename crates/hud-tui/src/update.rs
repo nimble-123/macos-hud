@@ -5,7 +5,7 @@ use hud_application::{AppEvent, Command, UpdateCommand, WorkspaceCommand};
 
 use hud_domain::update::InstallTarget;
 
-use crate::model::{OK_HIGHLIGHT, ScanProgress};
+use crate::model::{OK_HIGHLIGHT, ScanProgress, wrap_step};
 use crate::{Model, Msg, Tab};
 
 /// Applies a message to the model and returns the commands to run.
@@ -124,21 +124,12 @@ fn on_confirm_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
 
 fn move_update_selection(model: &mut Model, delta: isize) {
     let count = model.update_rows().len();
-    if count == 0 {
-        return;
-    }
-    model.update_selected = model
-        .update_selected
-        .saturating_add_signed(delta)
-        .min(count - 1);
+    model.update_selected = wrap_step(model.update_selected, delta, count);
 }
 
 fn move_selection(model: &mut Model, delta: isize) {
     let count = model.repo_rows().count();
-    if count == 0 {
-        return;
-    }
-    model.selected = model.selected.saturating_add_signed(delta).min(count - 1);
+    model.selected = wrap_step(model.selected, delta, count);
 }
 
 fn on_app_event(model: &mut Model, event: AppEvent) {
@@ -352,17 +343,36 @@ mod tests {
     }
 
     #[test]
-    fn selection_stays_within_the_list() {
+    fn repository_selection_wraps_at_both_ends() {
         let mut model = on_workspaces_tab();
         update(
             &mut model,
-            Msg::App(workspaces(vec![report("/ws/a", RepoState::UpToDate)])),
+            Msg::App(workspaces(vec![
+                report("/ws/a", RepoState::UpToDate),
+                report("/ws/b", RepoState::UpToDate),
+            ])),
         );
+        update(&mut model, key(KeyCode::Up));
+        assert_eq!(model.selected, 1, "up from the first row");
         update(&mut model, key(KeyCode::Down));
+        assert_eq!(model.selected, 0, "down from the last row");
+    }
+
+    #[test]
+    fn selection_in_an_empty_list_stays_at_zero() {
+        let mut model = on_workspaces_tab();
         update(&mut model, key(KeyCode::Down));
-        assert_eq!(model.selected, 0);
         update(&mut model, key(KeyCode::Up));
         assert_eq!(model.selected, 0);
+    }
+
+    #[test]
+    fn update_selection_wraps_at_both_ends() {
+        let mut model = on_updates_tab(vec![npm_candidate("a", false), npm_candidate("b", false)]);
+        update(&mut model, key(KeyCode::Char('k')));
+        assert_eq!(model.update_selected, 1, "up from the first row");
+        update(&mut model, key(KeyCode::Char('j')));
+        assert_eq!(model.update_selected, 0, "down from the last row");
     }
 
     #[test]

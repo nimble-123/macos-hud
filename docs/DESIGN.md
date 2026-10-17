@@ -126,7 +126,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 | Taste | Aktion |
 |---|---|
 | `Tab` / `Shift-Tab` | nächster / vorheriger Tab |
-| `↑` `↓` | Auswahl bewegen |
+| `↑` `↓` | Auswahl bewegen; am Listenende geht es oben weiter und umgekehrt |
 | `Enter` | ausgewählte Aktion ausführen |
 | `f` | Fast-Forward für das ausgewählte Repo (Workspaces) |
 | `u` | ausgewähltes Paket aktualisieren |
