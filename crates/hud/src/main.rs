@@ -1,5 +1,6 @@
 //! hud binary: composition root, terminal lifecycle and event loop.
 
+mod environment;
 mod logging;
 mod terminal;
 
@@ -26,8 +27,9 @@ async fn main() -> anyhow::Result<()> {
     // the receiving branch of the event loop active.
     let (_app_events_tx, mut app_events) = mpsc::channel::<AppEvent>(APP_EVENT_CAPACITY);
 
+    let settings = environment::ui_settings();
     let mut session = terminal::Session::enter().context("failed to prepare the terminal")?;
-    let result = run(session.terminal(), &mut app_events).await;
+    let result = run(session.terminal(), Model::new(settings), &mut app_events).await;
     drop(session);
 
     tracing::info!("stopping hud");
@@ -36,9 +38,9 @@ async fn main() -> anyhow::Result<()> {
 
 async fn run(
     terminal: &mut terminal::Tui,
+    mut model: Model,
     app_events: &mut mpsc::Receiver<AppEvent>,
 ) -> anyhow::Result<()> {
-    let mut model = Model::default();
     let mut input = EventStream::new();
     let mut render_tick = tokio::time::interval(RENDER_TICK);
     render_tick.set_missed_tick_behavior(MissedTickBehavior::Skip);

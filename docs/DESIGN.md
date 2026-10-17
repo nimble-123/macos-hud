@@ -57,7 +57,7 @@ Alle Textfarben sind gegen ihren Hintergrund auf WCAG ≥ 4.5:1 geprüft (2026-1
 | Modus | Erkennung | Abbildung |
 |---|---|---|
 | Truecolor | `COLORTERM=truecolor\|24bit` | Hex-Werte aus 3.1/3.2, hell oder dunkel nach Theme |
-| 256 Farben | `TERM` enthält `256color` | nächstliegende xterm-256-Farbe (zur Build-Zeit berechnet) |
+| 256 Farben | `TERM` enthält `256color` | nächstliegende xterm-256-Farbe (beim Start berechnet) |
 | 16 Farben | sonst | `focus`→Magenta, `advisory`→Cyan, `caution`→Yellow, `warning`→Red, `ok`→Green, `muted`→BrightBlack |
 | Keine Farbe | `NO_COLOR` gesetzt | nur Symbole, Fett und Unterstreichung |
 
@@ -142,7 +142,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 
 ## 7. Sprache und Ton
 
-- UI zweisprachig **Deutsch/Englisch**, umschaltbar über `language = "auto" | "de" | "en"`. `auto` folgt der Systemsprache (`LANG`), Fallback Englisch.
+- UI zweisprachig **Deutsch/Englisch**, umschaltbar über `language = "auto" | "de" | "en"`. `auto` folgt der bevorzugten Systemsprache von macOS, Fallback Englisch.
 - Satzanfang groß, sonst Kleinschreibung, keine Großbuchstaben-Labels.
 - Aktionen heißen nach dem, was passiert: „Fast-Forward ausführen“, „Aktualisieren“. Die Bestätigung verwendet dasselbe Verb: „Fast-Forward ausgeführt“.
 - Fehler nennen Ursache und nächsten Schritt, ohne Entschuldigung: „npm nicht gefunden. PATH der Login-Shell prüfen oder `npm_path` in der Config setzen.“

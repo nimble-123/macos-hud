@@ -1,0 +1,16 @@
+---
+source: crates/hud-tui/src/view.rs
+expression: render(&german()).backend()
+---
+"  Übersicht    Workspaces    Updates    KI    Protokoll    Einstellungen        "
+"  ────────────────────────────────────────────────────────────────────────────  "
+"                                                                                "
+"  Übersicht ist noch nicht gebaut.                                              "
+"                                                                                "
+"                                                                                "
+"                                                                                "
+"                                                                                "
+"                                                                                "
+"                                                                                "
+"  ────────────────────────────────────────────────────────────────────────────  "
+"  tab wechseln   q beenden                                                      "
