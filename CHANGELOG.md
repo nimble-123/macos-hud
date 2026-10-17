@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/nimble-123/macos-hud/compare/v0.1.0...v0.2.0) (2026-10-17)
+
+
+### Neue Funktionen
+
+* **release:** attach universal builds and update the Homebrew tap ([#61](https://github.com/nimble-123/macos-hud/issues/61)) ([2384cd3](https://github.com/nimble-123/macos-hud/commit/2384cd3afec89e3f62d1da18d43ebfee43455d31))
+
+
+### Fehlerbehebungen
+
+* **tui:** show repositories as they are scanned with a progress bar ([#59](https://github.com/nimble-123/macos-hud/issues/59)) ([82e2f1c](https://github.com/nimble-123/macos-hud/commit/82e2f1c181184f952b12a449f7a4b899003b08bd))
+
 ## 0.1.0 (2026-10-17)
 
 

@@ -843,7 +843,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hud"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "crossterm",
@@ -865,7 +865,7 @@ dependencies = [
 
 [[package]]
 name = "hud-application"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "futures",
  "hud-domain",
@@ -878,7 +878,7 @@ dependencies = [
 
 [[package]]
 name = "hud-domain"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "jiff",
  "proptest",
@@ -887,7 +887,7 @@ dependencies = [
 
 [[package]]
 name = "hud-infrastructure"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "hud-application",
  "hud-domain",
@@ -905,7 +905,7 @@ dependencies = [
 
 [[package]]
 name = "hud-tui"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "crossterm",
  "fluent-templates",
