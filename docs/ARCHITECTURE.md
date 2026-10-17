@@ -265,7 +265,7 @@ Jeder Use Case ist eine Struct mit Abhängigkeiten im Konstruktor und einer Meth
 2. Logging initialisieren (`~/Library/Logs/hud/`).
 3. Config lesen. Fehlt sie oder enthält sie keinen Workspace: Einrichtungsdialog, danach Config schreiben.
 4. SQLite öffnen, Migrationen ausführen.
-5. PATH der Login-Shell ermitteln (`$SHELL -lic 'printf %s "$PATH"'`, Timeout 3 s, Fallback: aktueller PATH).
+5. Ermittlung des Login-PATH im Hintergrund anstoßen (`$SHELL -l -i -c …`, Timeout 3 s, Fallback: aktueller PATH). Die TUI wartet nicht darauf; erst der erste Fremdprozess wartet bei Bedarf. Der Wert wird einmal ermittelt und von allen Prozessaufrufen geteilt.
 6. Theme (OSC 11, 100 ms) und Sprache (Systemsprache von macOS über `sys-locale`) bestimmen, sofern nicht in der Config festgelegt.
 7. Composition Root baut Adapter und Use Cases, startet Scheduler und Job-Runner.
 8. Letzte Ergebnisse aus `ScanCache` anzeigen, dann ersten Scan anstoßen.
@@ -416,6 +416,7 @@ Keine Sperre wird über ein `.await` gehalten, außer den Ressourcen-Sperren, de
 Alle Fremdwerkzeuge laufen über den internen `ProcessRunner`:
 
 - `tokio::process::Command`, stdin geschlossen (`Stdio::null()`), stdout/stderr erfasst, höchstens die letzten 64 KiB behalten.
+- Jeder Kindprozess läuft in einer eigenen Prozessgruppe, damit kein Fremdprozess das Terminal der TUI übernimmt. Die Login-Shell läuft mit `+m` (ohne Job-Control): Eine interaktive Shell mit Job-Control würde sich sonst zur Vordergrund-Prozessgruppe machen und die TUI anhalten.
 - `PATH` aus der Login-Shell (Abschnitt 6.1); die Ausgabe ist mit Markern eingerahmt, weil interaktive Shells zusätzlichen Text ausgeben können. Optional pro Werkzeug in der Config überschreibbar (`[tools]` mit `git`, `brew`, `npm`).
 - Umgebung pro Werkzeug:
 

@@ -14,7 +14,7 @@ use std::path::PathBuf;
 use hud_application::AppEvent;
 use hud_application::settings::{Settings, SettingsStore};
 use hud_infrastructure::config::TomlSettings;
-use hud_infrastructure::process::{TokioProcessRunner, login_path};
+use hud_infrastructure::process::TokioProcessRunner;
 use hud_tui::{Model, Msg, update, view};
 use tokio::sync::mpsc;
 use tokio::time::MissedTickBehavior;
@@ -33,16 +33,18 @@ async fn main() -> anyhow::Result<()> {
     let (_app_events_tx, mut app_events) = mpsc::channel::<AppEvent>(APP_EVENT_CAPACITY);
 
     let preferences = load_settings().await?;
-    let path = login_path(
-        &TokioProcessRunner::new(std::env::var_os("PATH").unwrap_or_default()),
-        &std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_owned()),
+    // Resolving the login shell PATH can take seconds; start it now and let
+    // the first external process wait for it instead of the UI.
+    let runner = TokioProcessRunner::with_login_path(
+        std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_owned()),
         std::env::var_os("PATH").unwrap_or_default(),
-    )
-    .await;
-    tracing::info!(
-        entries = std::env::split_paths(&path).count(),
-        "resolved login PATH"
     );
+    tokio::spawn({
+        let runner = runner.clone();
+        async move {
+            let _ = runner.path().await;
+        }
+    });
     let settings = environment::ui_settings(&preferences);
     let mut session = terminal::Session::enter().context("failed to prepare the terminal")?;
     let result = run(session.terminal(), Model::new(settings), &mut app_events).await;
