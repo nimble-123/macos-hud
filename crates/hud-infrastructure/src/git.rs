@@ -48,6 +48,7 @@ impl<R: ProcessRunner> GitCli<R> {
         let output = self.runner.run(spec).await.map_err(|error| match error {
             ProcessError::NotFound { .. } => GitError::GitMissing,
             ProcessError::TimedOut { .. } => GitError::TimedOut { action },
+            ProcessError::Cancelled { .. } => GitError::Cancelled { action },
             ProcessError::Io { source, .. } => GitError::Failed {
                 action,
                 message: source.to_string(),

@@ -5,7 +5,7 @@ use hud_application::{AppEvent, Command, UpdateCommand, WorkspaceCommand};
 
 use hud_domain::update::InstallTarget;
 
-use crate::model::{OK_HIGHLIGHT, ScanProgress, wrap_step};
+use crate::model::{OK_HIGHLIGHT, Quit, ScanProgress, wrap_step};
 use crate::{Model, Msg, Tab};
 
 /// Applies a message to the model and returns the commands to run.
@@ -34,6 +34,13 @@ pub fn update(model: &mut Model, msg: Msg) -> Vec<Command> {
 }
 
 fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
+    // Ctrl-C always reaches the quit logic, whatever has the focus.
+    if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
+        return request_quit(model);
+    }
+    if model.quit == Quit::Asking {
+        return on_quit_key(model, key);
+    }
     if model.confirm.is_some() {
         return on_confirm_key(model, key);
     }
@@ -59,8 +66,7 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
                 return vec![crate::log_tab::load()];
             }
         }
-        KeyCode::Char('q') => model.quit = true,
-        KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => model.quit = true,
+        KeyCode::Char('q') => return request_quit(model),
         KeyCode::Char('r') if model.tab == Tab::Updates => {
             return vec![Command::Updates(UpdateCommand::CheckNow)];
         }
@@ -96,6 +102,30 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
                 ))];
             }
         }
+        _ => {}
+    }
+    Vec::new()
+}
+
+/// Quits at once unless installations run; then the dialog asks first. A
+/// second request while waiting or asking quits for good.
+fn request_quit(model: &mut Model) -> Vec<Command> {
+    model.quit = match model.quit {
+        Quit::No if !model.jobs.is_empty() => Quit::Asking,
+        Quit::No | Quit::Asking | Quit::Waiting | Quit::Now => Quit::Now,
+    };
+    Vec::new()
+}
+
+/// The dialog takes all keys: Enter waits (the default), `a` cancels, Esc stays.
+fn on_quit_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
+    match key.code {
+        KeyCode::Enter | KeyCode::Char('w') => {
+            model.quit = Quit::Waiting;
+            return vec![Command::Updates(UpdateCommand::Drain)];
+        }
+        KeyCode::Char('a') => model.quit = Quit::Now,
+        KeyCode::Esc | KeyCode::Char('n') => model.quit = Quit::No,
         _ => {}
     }
     Vec::new()
@@ -200,6 +230,11 @@ fn on_app_event(model: &mut Model, event: AppEvent) {
             model.settings_tab.notice = None;
             crate::settings_tab::clamp(model);
         }
+        AppEvent::JobsFinished => {
+            if model.quit == Quit::Waiting {
+                model.quit = Quit::Now;
+            }
+        }
         AppEvent::Actions(actions) => {
             model.actions = actions;
             crate::log_tab::clamp(model);
@@ -255,6 +290,79 @@ mod tests {
     #[test]
     fn ctrl_c_requests_quit() {
         let mut model = Model::default();
+        update(
+            &mut model,
+            Msg::Key(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL)),
+        );
+        assert!(model.should_quit());
+    }
+
+    fn with_running_job() -> Model {
+        use hud_application::usecases::updates::{JobId, JobState, JobUpdate};
+        let mut model = Model::default();
+        let job = JobUpdate {
+            id: JobId(1),
+            target: InstallTarget::AllSkills,
+            state: JobState::Running,
+        };
+        update(&mut model, Msg::App(AppEvent::Job(job)));
+        model
+    }
+
+    #[test]
+    fn q_with_a_running_installation_asks_first() {
+        let mut model = with_running_job();
+        update(&mut model, key(KeyCode::Char('q')));
+        assert!(!model.should_quit());
+        assert_eq!(model.quit, Quit::Asking);
+    }
+
+    #[test]
+    fn enter_in_the_quit_dialog_waits_for_the_installations() {
+        let mut model = with_running_job();
+        update(&mut model, key(KeyCode::Char('q')));
+        assert_eq!(
+            update(&mut model, key(KeyCode::Enter)),
+            vec![Command::Updates(UpdateCommand::Drain)]
+        );
+        assert!(!model.should_quit());
+        update(&mut model, Msg::App(AppEvent::JobsFinished));
+        assert!(model.should_quit());
+    }
+
+    #[test]
+    fn a_in_the_quit_dialog_quits_and_cancels() {
+        let mut model = with_running_job();
+        update(&mut model, key(KeyCode::Char('q')));
+        update(&mut model, key(KeyCode::Char('a')));
+        assert!(model.should_quit());
+    }
+
+    #[test]
+    fn escape_closes_the_quit_dialog() {
+        let mut model = with_running_job();
+        update(&mut model, key(KeyCode::Char('q')));
+        update(&mut model, key(KeyCode::Esc));
+        assert_eq!(model.quit, Quit::No);
+        assert!(!model.should_quit());
+    }
+
+    #[test]
+    fn q_while_waiting_quits_at_once() {
+        let mut model = with_running_job();
+        update(&mut model, key(KeyCode::Char('q')));
+        update(&mut model, key(KeyCode::Enter));
+        update(&mut model, key(KeyCode::Char('q')));
+        assert!(model.should_quit());
+    }
+
+    #[test]
+    fn ctrl_c_reaches_quit_even_from_an_open_input() {
+        let mut model = Model {
+            tab: Tab::Log,
+            ..Model::default()
+        };
+        update(&mut model, key(KeyCode::Char('/')));
         update(
             &mut model,
             Msg::Key(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL)),

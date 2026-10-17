@@ -28,7 +28,7 @@ use hud_infrastructure::clock::SystemClock;
 use hud_infrastructure::config::TomlSettings;
 use hud_infrastructure::discovery::FsDiscovery;
 use hud_infrastructure::git::GitCli;
-use hud_infrastructure::process::TokioProcessRunner;
+use hud_infrastructure::process::{TERMINATE_GRACE, TokioProcessRunner};
 use hud_infrastructure::sqlite::SqliteStore;
 use hud_infrastructure::updates::{brew::Brew, npm::NpmGlobal, skills::Skills};
 use hud_tui::{
@@ -42,8 +42,9 @@ use tokio_util::sync::CancellationToken;
 const APP_EVENT_CAPACITY: usize = 256;
 /// Capacity of the channel from the UI to the use cases.
 const COMMAND_CAPACITY: usize = 64;
-/// Upper bound for waiting on background work when quitting.
-const SHUTDOWN_GRACE: Duration = Duration::from_secs(2);
+/// Upper bound for waiting on background work when quitting: long enough for
+/// cancelled tools to stop after SIGTERM, or to be killed after the grace.
+const SHUTDOWN_GRACE: Duration = TERMINATE_GRACE.saturating_add(Duration::from_secs(3));
 const RENDER_TICK: Duration = Duration::from_millis(250);
 
 #[tokio::main]
@@ -70,10 +71,13 @@ async fn main() -> anyhow::Result<std::process::ExitCode> {
 
     // Resolving the login shell PATH can take seconds; start it now and let
     // the first external process wait for it instead of the UI.
+    // One token stops everything at quit: agents and the tools they run.
+    let cancel = CancellationToken::new();
     let runner = TokioProcessRunner::with_login_path(
         std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_owned()),
         std::env::var_os("PATH").unwrap_or_default(),
-    );
+    )
+    .with_cancel(cancel.clone(), TERMINATE_GRACE);
     tokio::spawn({
         let runner = runner.clone();
         async move {
@@ -102,7 +106,7 @@ async fn main() -> anyhow::Result<std::process::ExitCode> {
         (preferences, settings)
     };
 
-    let mut background = start_background(preferences, config, runner)?;
+    let mut background = start_background(preferences, config, runner, cancel)?;
     let result = run(
         session.terminal(),
         Model::new(settings)
@@ -195,6 +199,7 @@ fn start_background(
     preferences: Settings,
     config: TomlSettings,
     runner: TokioProcessRunner,
+    cancel: CancellationToken,
 ) -> anyhow::Result<Background> {
     let store = SqliteStore::open(&database_path()?, jiff::Timestamp::now())
         .context("failed to open the database")?;
@@ -229,7 +234,6 @@ fn start_background(
         events_tx.clone(),
     );
     let settings = SettingsAgent::new(config, current);
-    let cancel = CancellationToken::new();
     let handles = vec![
         tokio::spawn(settings.run(settings_rx, events_tx.clone(), cancel.clone())),
         tokio::spawn(log.run(log_rx, events_tx.clone(), cancel.clone())),

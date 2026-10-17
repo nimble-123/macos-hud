@@ -214,6 +214,7 @@ fn job_status(model: &Model, target: &InstallTarget) -> Option<(Status, String)>
             t_args(language, "job-failed", &[("message", message)]),
         ),
         JobState::TimedOut => (Status::Warning, t(language, "job-timed-out")),
+        JobState::Cancelled => (Status::Caution, t(language, "job-cancelled")),
     })
 }
 

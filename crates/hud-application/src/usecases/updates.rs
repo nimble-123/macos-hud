@@ -11,7 +11,7 @@ use hud_domain::update::{
     SourceId, UpdateCandidate, install_decision,
 };
 use tokio::sync::{Mutex, mpsc, watch};
-use tokio::task::JoinSet;
+use tokio::task::{AbortHandle, JoinSet};
 use tokio::time::{Instant, MissedTickBehavior};
 use tokio_util::sync::CancellationToken;
 
@@ -52,6 +52,8 @@ pub enum JobState {
     Failed(String),
     /// The tool took too long and was stopped.
     TimedOut,
+    /// hud quit before or while it ran.
+    Cancelled,
 }
 
 impl JobState {
@@ -96,6 +98,8 @@ struct Shared<L, H, C> {
     /// Set while automatic installations run, so a second check does not
     /// queue the same packages again.
     auto_running: AtomicBool,
+    /// Set once the agent stops: nothing new starts from then on.
+    stopping: AtomicBool,
 }
 
 /// Checks sources on start, on a timer and on request, and runs installations.
@@ -134,27 +138,32 @@ where
                 events,
                 next_job: AtomicU64::new(1),
                 auto_running: AtomicBool::new(false),
+                stopping: AtomicBool::new(false),
             }),
         }
     }
 
-    /// Runs until cancelled. Installation jobs run in their own tasks so a
-    /// long `brew upgrade` never delays checks or other sources.
+    /// Runs until cancelled or drained. Installation jobs run in their own
+    /// tasks so a long `brew upgrade` never delays checks or other sources.
+    ///
+    /// On the way out it always waits for the running tasks: after a drain
+    /// they finish normally, after a cancel the process runner stops their
+    /// tools (SIGTERM, then SIGKILL) and they are logged as cancelled.
     pub async fn run(self, mut commands: mpsc::Receiver<UpdateCommand>, cancel: CancellationToken) {
         let shared = &self.shared;
         // Checks run as tasks as well: `brew update` can take minutes and must
         // not delay commands or cancellation.
         let mut jobs = JoinSet::new();
-        jobs.spawn(Arc::clone(shared).check_and_report());
+        let mut checks = Vec::new();
+        spawn_check(shared, &mut jobs, &mut checks);
         let mut changes = shared.settings.clone();
         let mut interval = changes.borrow_and_update().update_check_interval;
         let mut timer = check_timer(interval);
+        let mut drained = false;
         loop {
             tokio::select! {
                 () = cancel.cancelled() => break,
-                _ = timer.tick() => {
-                    jobs.spawn(Arc::clone(shared).check_and_report());
-                }
+                _ = timer.tick() => spawn_check(shared, &mut jobs, &mut checks),
                 Ok(()) = changes.changed() => {
                     // New opt-ins are read on the next check; only the timer needs work.
                     let period = changes.borrow_and_update().update_check_interval;
@@ -166,8 +175,10 @@ where
                 Some(_) = jobs.join_next(), if !jobs.is_empty() => {}
                 command = commands.recv() => match command {
                     None => break,
-                    Some(UpdateCommand::CheckNow) => {
-                        jobs.spawn(Arc::clone(shared).check_and_report());
+                    Some(UpdateCommand::CheckNow) => spawn_check(shared, &mut jobs, &mut checks),
+                    Some(UpdateCommand::Drain) => {
+                        drained = true;
+                        break;
                     }
                     Some(UpdateCommand::Install { target, confirmed }) => {
                         let shared = Arc::clone(shared);
@@ -178,10 +189,31 @@ where
                 },
             }
         }
-        // Dropping the tasks stops their processes (kill on drop); the quit
-        // dialog (#26) decides beforehand whether to wait for them.
-        jobs.shutdown().await;
+        shared.stopping.store(true, Ordering::Release);
+        if drained {
+            // Checks change nothing on the system; waiting for them is pointless.
+            for check in &checks {
+                check.abort();
+            }
+        }
+        while jobs.join_next().await.is_some() {}
+        if drained {
+            let _ = shared.send(AppEvent::JobsFinished).await;
+        }
     }
+}
+
+fn spawn_check<L, H, C>(
+    shared: &Arc<Shared<L, H, C>>,
+    jobs: &mut JoinSet<()>,
+    checks: &mut Vec<AbortHandle>,
+) where
+    L: ActionLog + 'static,
+    H: InstallHistory + 'static,
+    C: Clock + 'static,
+{
+    checks.retain(|check| !check.is_finished());
+    checks.push(jobs.spawn(Arc::clone(shared).check_and_report()));
 }
 
 fn check_timer(period: Duration) -> tokio::time::Interval {
@@ -230,6 +262,9 @@ impl<L: ActionLog, H: InstallHistory, C: Clock> Shared<L, H, C> {
             return;
         }
         for candidate in candidates {
+            if self.stopping.load(Ordering::Acquire) {
+                break;
+            }
             let target = InstallTarget::Package(candidate);
             if let InstallDecision::Allowed(permit) =
                 self.decide(target, InstallRequest::Auto).await
@@ -309,6 +344,11 @@ impl<L: ActionLog, H: InstallHistory, C: Clock> Shared<L, H, C> {
         let _ = self.send(report(JobState::Queued)).await;
         let lock = self.locks.get(&source_id).cloned().unwrap_or_default();
         let _guard = lock.lock().await;
+        if self.stopping.load(Ordering::Acquire) {
+            // Queued, never started: nothing to log.
+            let _ = self.send(report(JobState::Cancelled)).await;
+            return;
+        }
         let _ = self.send(report(JobState::Running)).await;
 
         let action = self
@@ -327,6 +367,7 @@ impl<L: ActionLog, H: InstallHistory, C: Clock> Shared<L, H, C> {
             Ok(InstallOutcome::Installed) => JobState::Succeeded,
             Ok(InstallOutcome::NeedsInteraction) => JobState::NeedsInteraction,
             Err(UpdateError::TimedOut(_)) => JobState::TimedOut,
+            Err(UpdateError::Cancelled(_)) => JobState::Cancelled,
             Err(error) => JobState::Failed(error.to_string()),
         };
         if let Ok(action) = action
@@ -351,6 +392,8 @@ impl<L: ActionLog, H: InstallHistory, C: Clock> Shared<L, H, C> {
         let result = match state {
             JobState::Succeeded => InstallResult::Installed,
             JobState::NeedsInteraction => InstallResult::NeedsInteraction,
+            // A cancelled run says nothing about the package.
+            JobState::Cancelled => return,
             _ => InstallResult::Failed,
         };
         if let Err(error) = self
@@ -368,6 +411,7 @@ fn log_outcome(state: &JobState) -> Outcome {
         JobState::Succeeded => Outcome::Succeeded,
         JobState::NeedsInteraction => Outcome::Skipped("needs a password".into()),
         JobState::TimedOut => Outcome::TimedOut,
+        JobState::Cancelled => Outcome::Cancelled,
         JobState::Failed(message) => Outcome::Failed(message.clone()),
         JobState::Queued | JobState::Running | JobState::Denied(_) => {
             Outcome::Skipped(String::new())
@@ -421,6 +465,8 @@ mod tests {
         max_parallel: AtomicUsize,
         delay: Duration,
         outcome: InstallOutcome,
+        /// Behaves like the process runner: a cancel stops the tool.
+        cancel: CancellationToken,
     }
 
     impl FakeSource {
@@ -434,6 +480,7 @@ mod tests {
                 max_parallel: AtomicUsize::new(0),
                 delay: Duration::ZERO,
                 outcome: InstallOutcome::Installed,
+                cancel: CancellationToken::new(),
             }
         }
     }
@@ -461,8 +508,14 @@ mod tests {
             Box::pin(async move {
                 let now = self.running.fetch_add(1, Ordering::SeqCst) + 1;
                 self.max_parallel.fetch_max(now, Ordering::SeqCst);
-                tokio::time::sleep(self.delay).await;
+                let cancelled = tokio::select! {
+                    () = tokio::time::sleep(self.delay) => false,
+                    () = self.cancel.cancelled() => true,
+                };
                 self.running.fetch_sub(1, Ordering::SeqCst);
+                if cancelled {
+                    return Err(UpdateError::Cancelled("fake"));
+                }
                 self.installs.fetch_add(1, Ordering::SeqCst);
                 Ok(self.outcome.clone())
             })
@@ -660,6 +713,82 @@ mod tests {
         assert_eq!(brew.max_parallel.load(Ordering::SeqCst), 1);
         assert_eq!(brew.installs.load(Ordering::SeqCst), 3);
         agent.stop().await;
+    }
+
+    fn slow_brew() -> FakeSource {
+        let mut source = FakeSource::new(SourceId::Homebrew);
+        source.delay = Duration::from_millis(200);
+        source
+    }
+
+    async fn install(agent: &Running, name: &str) {
+        let target = InstallTarget::Package(candidate(SourceId::Homebrew, name));
+        agent
+            .commands
+            .send(UpdateCommand::Install {
+                target,
+                confirmed: true,
+            })
+            .await
+            .expect("BUG");
+    }
+
+    /// Waits until a job reports `Running`.
+    async fn until_running(events: &mut mpsc::Receiver<AppEvent>) {
+        loop {
+            if let Some(AppEvent::Job(job)) = events.recv().await
+                && job.state == JobState::Running
+            {
+                return;
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn drain_lets_the_running_install_finish_and_cancels_queued_ones() {
+        let brew = Arc::new(slow_brew());
+        let mut agent = start(vec![brew.clone() as Arc<dyn UpdateSource>]);
+        let _ = agent.events.recv().await;
+        install(&agent, "a").await;
+        install(&agent, "b").await;
+        until_running(&mut agent.events).await;
+        agent
+            .commands
+            .send(UpdateCommand::Drain)
+            .await
+            .expect("BUG");
+
+        let mut finished = Vec::new();
+        loop {
+            match agent.events.recv().await.expect("BUG: agent alive") {
+                AppEvent::Job(job) if job.state.is_finished() => finished.push(job.state),
+                AppEvent::JobsFinished => break,
+                _ => {}
+            }
+        }
+        finished.sort_by_key(|state| format!("{state:?}"));
+        assert_eq!(finished, vec![JobState::Cancelled, JobState::Succeeded]);
+        assert_eq!(brew.installs.load(Ordering::SeqCst), 1);
+        agent.task.await.expect("BUG: agent ends after the drain");
+    }
+
+    #[tokio::test]
+    async fn cancel_waits_for_the_stopped_install_and_logs_it_as_cancelled() {
+        let mut source = slow_brew();
+        source.delay = Duration::from_secs(60);
+        let brew = Arc::new(source);
+        let mut agent = start(vec![brew.clone() as Arc<dyn UpdateSource>]);
+        let _ = agent.events.recv().await;
+        install(&agent, "a").await;
+        until_running(&mut agent.events).await;
+
+        // In hud the same token reaches the process runner.
+        brew.cancel.cancel();
+        agent.cancel.cancel();
+        agent.task.await.expect("BUG: agent task");
+        let records = agent.log.records.lock().expect("BUG").clone();
+        assert_eq!(records[0].outcome, Some(Outcome::Cancelled));
+        assert!(agent.history.entries.lock().expect("BUG").is_empty());
     }
 
     #[tokio::test]

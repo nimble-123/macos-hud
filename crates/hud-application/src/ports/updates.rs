@@ -44,6 +44,9 @@ pub enum UpdateError {
     /// The tool did not finish in time.
     #[error("{0} timed out")]
     TimedOut(&'static str),
+    /// hud is quitting and stopped the tool.
+    #[error("{0} was cancelled")]
+    Cancelled(&'static str),
     /// The tool failed; the end of its output explains why.
     #[error("{tool} failed: {message}")]
     Failed {

@@ -136,7 +136,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 | `d` | ausgewählten Workspace entfernen (Einstellungen, mit Rückfrage) |
 | `r` | jetzt aktualisieren; im Einstellungen-Tab: Config neu laden |
 | `?` | Hilfe |
-| `q` | beenden (fragt nach, wenn noch etwas läuft) |
+| `q`, `Ctrl-C` | beenden; läuft eine Installation, fragt ein Dialog: warten (`Enter`, Default), abbrechen (`a`) oder zurück (`Esc`) |
 
 ### 5.2 Updates-Tab
 

@@ -54,6 +54,7 @@ impl<R: ProcessRunner> Skills<R> {
         self.runner.run(spec).await.map_err(|error| match error {
             ProcessError::NotFound { .. } => UpdateError::Missing("npx"),
             ProcessError::TimedOut { .. } => UpdateError::TimedOut(TOOL),
+            ProcessError::Cancelled { .. } => UpdateError::Cancelled(TOOL),
             ProcessError::Io { source, .. } => UpdateError::Failed {
                 tool: TOOL,
                 message: source.to_string(),

@@ -61,6 +61,8 @@ pub enum AppEvent {
     SettingsRejected(String),
     /// The most recent logged actions, newest first.
     Actions(Vec<ActionRecord>),
+    /// After [`UpdateCommand::Drain`]: every running installation has ended.
+    JobsFinished,
 }
 
 /// Request from the presentation layer to run a use case, grouped by the
@@ -107,6 +109,9 @@ pub enum WorkspaceCommand {
 pub enum UpdateCommand {
     /// Check all sources now.
     CheckNow,
+    /// Start nothing new and let running installations end; queued ones are
+    /// cancelled. Answered with [`AppEvent::JobsFinished`].
+    Drain,
     /// Install an update.
     Install {
         /// What to install.

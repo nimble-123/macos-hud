@@ -7,11 +7,17 @@ use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Duration;
 
+use nix::sys::signal::{Signal, killpg};
+use nix::unistd::Pid;
 use tokio::process::Command;
 use tokio::sync::OnceCell;
+use tokio_util::sync::CancellationToken;
 
 /// Only the end of a tool's output is kept; it is what explains a failure.
 pub const OUTPUT_LIMIT: usize = 64 * 1024;
+
+/// How long a cancelled tool may take to stop after SIGTERM before SIGKILL.
+pub const TERMINATE_GRACE: Duration = Duration::from_secs(5);
 
 /// What to run. Arguments are passed as a list and never through a shell.
 #[derive(Debug, Clone)]
@@ -70,6 +76,12 @@ pub enum ProcessError {
         /// Timeout in seconds.
         seconds: u64,
     },
+    /// hud is quitting and stopped the process (SIGTERM, then SIGKILL).
+    #[error("{program} was cancelled")]
+    Cancelled {
+        /// Program name.
+        program: String,
+    },
     /// Spawning or waiting failed.
     #[error("{program} could not be run")]
     Io {
@@ -98,6 +110,14 @@ pub trait ProcessRunner: Send + Sync {
 pub struct TokioProcessRunner {
     path: Arc<OnceCell<OsString>>,
     login_shell: Option<Arc<LoginShell>>,
+    stop: Stop,
+}
+
+/// When and how gently running processes are stopped.
+#[derive(Debug, Clone, Default)]
+struct Stop {
+    cancel: CancellationToken,
+    grace: Duration,
 }
 
 #[derive(Debug)]
@@ -113,6 +133,7 @@ impl TokioProcessRunner {
         Self {
             path: Arc::new(OnceCell::new_with(Some(path))),
             login_shell: None,
+            stop: Stop::default(),
         }
     }
 
@@ -126,7 +147,16 @@ impl TokioProcessRunner {
                 shell: shell.into(),
                 fallback,
             })),
+            stop: Stop::default(),
         }
+    }
+
+    /// Once `cancel` fires, running processes get SIGTERM and, if they are
+    /// still alive after `grace`, SIGKILL; new ones are stopped the same way.
+    #[must_use]
+    pub fn with_cancel(mut self, cancel: CancellationToken, grace: Duration) -> Self {
+        self.stop = Stop { cancel, grace };
+        self
     }
 
     /// The `PATH` children see; resolves it on the first call.
@@ -153,7 +183,7 @@ impl TokioProcessRunner {
 
 impl ProcessRunner for TokioProcessRunner {
     async fn run(&self, spec: ProcessSpec) -> Result<ProcessOutput, ProcessError> {
-        run_with_path(spec, &self.path().await).await
+        run_with_path(spec, &self.path().await, &self.stop).await
     }
 }
 
@@ -162,11 +192,15 @@ struct FixedPathRunner(OsString);
 
 impl ProcessRunner for FixedPathRunner {
     async fn run(&self, spec: ProcessSpec) -> Result<ProcessOutput, ProcessError> {
-        run_with_path(spec, &self.0).await
+        run_with_path(spec, &self.0, &Stop::default()).await
     }
 }
 
-async fn run_with_path(spec: ProcessSpec, path: &OsString) -> Result<ProcessOutput, ProcessError> {
+async fn run_with_path(
+    spec: ProcessSpec,
+    path: &OsString,
+    stop: &Stop,
+) -> Result<ProcessOutput, ProcessError> {
     let mut command = Command::new(&spec.program);
     command
         .args(&spec.args)
@@ -175,7 +209,10 @@ async fn run_with_path(spec: ProcessSpec, path: &OsString) -> Result<ProcessOutp
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        // A timed-out child is killed when its handle is dropped.
+        // Its own process group: no tool can take over the terminal, and a
+        // signal to the group also reaches the tool's own children.
+        .process_group(0)
+        // A child whose run is abandoned is killed when its handle is dropped.
         .kill_on_drop(true);
     if let Some(cwd) = &spec.cwd {
         command.current_dir(cwd);
@@ -183,21 +220,47 @@ async fn run_with_path(spec: ProcessSpec, path: &OsString) -> Result<ProcessOutp
     let child = command
         .spawn()
         .map_err(|source| spawn_error(&spec.program, source))?;
-    let output = tokio::time::timeout(spec.timeout, child.wait_with_output())
-        .await
-        .map_err(|_| ProcessError::TimedOut {
+    let group = child
+        .id()
+        .and_then(|id| i32::try_from(id).ok())
+        .map(Pid::from_raw);
+    let wait = child.wait_with_output();
+    tokio::pin!(wait);
+    let finished = tokio::select! {
+        finished = tokio::time::timeout(spec.timeout, &mut wait) => finished,
+        () = stop.cancel.cancelled() => {
+            signal(group, Signal::SIGTERM);
+            if tokio::time::timeout(stop.grace, &mut wait).await.is_err() {
+                signal(group, Signal::SIGKILL);
+            }
+            return Err(ProcessError::Cancelled { program: spec.program.clone() });
+        }
+    };
+    let Ok(waited) = finished else {
+        signal(group, Signal::SIGKILL);
+        return Err(ProcessError::TimedOut {
             program: spec.program.clone(),
             seconds: spec.timeout.as_secs(),
-        })?
-        .map_err(|source| ProcessError::Io {
-            program: spec.program.clone(),
-            source,
-        })?;
+        });
+    };
+    let output = waited.map_err(|source| ProcessError::Io {
+        program: spec.program.clone(),
+        source,
+    })?;
     Ok(ProcessOutput {
         code: output.status.code(),
         stdout: tail(&output.stdout),
         stderr: tail(&output.stderr),
     })
+}
+
+/// Signals the whole process group; a group that is already gone is fine.
+fn signal(group: Option<Pid>, signal: Signal) {
+    if let Some(group) = group
+        && let Err(error) = killpg(group, signal)
+    {
+        tracing::debug!(%error, ?signal, "process group already gone");
+    }
 }
 
 fn spawn_error(program: &str, source: std::io::Error) -> ProcessError {
@@ -326,6 +389,53 @@ mod tests {
         let spec = ProcessSpec::new("sleep", &["5"], Duration::from_millis(100));
         let error = runner().run(spec).await.unwrap_err();
         assert!(matches!(error, ProcessError::TimedOut { .. }), "{error}");
+    }
+
+    fn cancellable(grace: Duration) -> (TokioProcessRunner, CancellationToken) {
+        let cancel = CancellationToken::new();
+        (runner().with_cancel(cancel.clone(), grace), cancel)
+    }
+
+    #[tokio::test]
+    async fn cancel_stops_a_running_process_with_sigterm() {
+        let (runner, cancel) = cancellable(Duration::from_secs(5));
+        let started = std::time::Instant::now();
+        let run = tokio::spawn(async move {
+            runner
+                .run(ProcessSpec::new("sleep", &["30"], Duration::from_secs(60)))
+                .await
+        });
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        cancel.cancel();
+        let error = run.await.expect("BUG: task").unwrap_err();
+        assert!(matches!(error, ProcessError::Cancelled { .. }), "{error}");
+        assert!(
+            started.elapsed() < Duration::from_secs(2),
+            "SIGTERM ends sleep at once"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_process_ignoring_sigterm_is_killed_after_the_grace_period() {
+        let (runner, cancel) = cancellable(Duration::from_millis(300));
+        let started = std::time::Instant::now();
+        // The ignored signal is inherited by sleep, so the whole group ignores SIGTERM.
+        let spec = ProcessSpec::new(
+            "sh",
+            &["-c", "trap '' TERM; sleep 30"],
+            Duration::from_secs(60),
+        );
+        let run = tokio::spawn(async move { runner.run(spec).await });
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        cancel.cancel();
+        let error = run.await.expect("BUG: task").unwrap_err();
+        assert!(matches!(error, ProcessError::Cancelled { .. }), "{error}");
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed >= Duration::from_millis(400),
+            "waited for the grace period"
+        );
+        assert!(elapsed < Duration::from_secs(3), "SIGKILL ended it");
     }
 
     #[tokio::test]
