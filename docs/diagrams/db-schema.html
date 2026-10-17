@@ -62,8 +62,8 @@
         <title id="db-schema-title">SQLite-Schema</title>
         <desc id="db-schema-desc">Tabellen der lokalen hud-Datenbank: action_log, update_cache, install_history, ingest_offset und ai_usage mit ihren Primärschlüsseln; repo_cache ist nicht dargestellt.</desc>
         <rect width="100%" height="100%" fill="#f2f3f1"/>
-        <rect x="40" y="40" width="240" height="224" rx="6" fill="#f2f3f1"/>
-<rect x="40" y="40" width="240" height="224" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <rect x="40" y="40" width="240" height="248" rx="6" fill="#f2f3f1"/>
+<rect x="40" y="40" width="240" height="248" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
 <rect x="48" y="50" width="36" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
 <text x="66" y="59" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">TABLE</text>
 <text x="92" y="61" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start" font-weight="600">main.action_log</text>
@@ -72,23 +72,25 @@
 <rect x="180" y="78" width="20" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/><text x="190.0" y="87" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PK</text>
 <text x="268" y="88" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">integer</text>
 <rect x="41" y="96" width="238" height="24" fill="rgba(28,33,40,0.02)"/>
-<text x="52" y="112" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">ts</text>
+<text x="52" y="112" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">started_at</text>
 <text x="268" y="112" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text</text>
-<text x="52" y="136" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">kind</text>
-<text x="268" y="136" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text</text>
+<text x="52" y="136" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">finished_at</text>
+<text x="268" y="136" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text null</text>
 <rect x="41" y="144" width="238" height="24" fill="rgba(28,33,40,0.02)"/>
-<text x="52" y="160" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">target</text>
+<text x="52" y="160" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">kind</text>
 <text x="268" y="160" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text</text>
-<text x="52" y="184" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">trigger</text>
+<text x="52" y="184" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">target</text>
 <text x="268" y="184" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text</text>
 <rect x="41" y="192" width="238" height="24" fill="rgba(28,33,40,0.02)"/>
-<text x="52" y="208" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">outcome</text>
+<text x="52" y="208" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">trigger</text>
 <text x="268" y="208" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text</text>
-<text x="52" y="232" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">exit_code</text>
-<text x="268" y="232" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">integer null</text>
+<text x="52" y="232" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">outcome</text>
+<text x="268" y="232" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text null</text>
 <rect x="41" y="240" width="238" height="24" fill="rgba(28,33,40,0.02)"/>
-<text x="52" y="256" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">output_tail</text>
-<text x="268" y="256" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text</text>
+<text x="52" y="256" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">outcome_detail</text>
+<text x="268" y="256" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text null</text>
+<text x="52" y="280" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">summary</text>
+<text x="268" y="280" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text null</text>
         <rect x="360" y="40" width="240" height="176" rx="6" fill="#f2f3f1"/>
 <rect x="360" y="40" width="240" height="176" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
 <rect x="368" y="50" width="36" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>

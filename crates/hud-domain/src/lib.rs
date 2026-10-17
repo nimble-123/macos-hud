@@ -4,6 +4,7 @@
 //! Serde formats, Ratatui or any other infrastructure.
 #![warn(missing_docs)]
 
+pub mod action;
 pub mod git;
 mod workspace;
 

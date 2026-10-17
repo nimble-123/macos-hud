@@ -21,8 +21,11 @@ fluent-templates = "0.15.1"
 crossterm = { version = "0.29.0", features = ["event-stream"] }
 futures = "0.3.34"
 insta = "1.49.0"
+jiff = "0.2.38"
 proptest = "1.12.0"
 ratatui = "0.30.2"
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+rusqlite_migration = "2.6.0"
 serde = { version = "1.0.229", features = ["derive"] }
 sys-locale = "0.3.2"
 terminal-colorsaurus = "1.0.3"
