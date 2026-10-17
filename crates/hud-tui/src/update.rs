@@ -1,7 +1,7 @@
 //! State transitions.
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use hud_application::{AppEvent, Command};
+use hud_application::{AppEvent, Command, UpdateCommand, WorkspaceCommand};
 
 use crate::model::{OK_HIGHLIGHT, ScanProgress};
 use crate::{Model, Msg, Tab};
@@ -31,7 +31,12 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
         KeyCode::BackTab => model.tab = model.tab.previous(),
         KeyCode::Char('q') => model.quit = true,
         KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => model.quit = true,
-        KeyCode::Char('r') if !model.syncing => return vec![Command::SyncNow],
+        KeyCode::Char('r') if model.tab == Tab::Updates => {
+            return vec![Command::Updates(UpdateCommand::CheckNow)];
+        }
+        KeyCode::Char('r') if !model.syncing => {
+            return vec![Command::Workspaces(WorkspaceCommand::SyncNow)];
+        }
         KeyCode::Down | KeyCode::Char('j') if model.tab == Tab::Workspaces => {
             move_selection(model, 1);
         }
@@ -40,7 +45,9 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
         }
         KeyCode::Char('f') if model.tab == Tab::Workspaces => {
             if let Some(report) = model.selected_repo() {
-                return vec![Command::FastForward(report.repo.clone())];
+                return vec![Command::Workspaces(WorkspaceCommand::FastForward(
+                    report.repo.clone(),
+                ))];
             }
         }
         _ => {}
@@ -94,6 +101,25 @@ fn on_app_event(model: &mut Model, event: AppEvent) {
                     Ok(position) => repos[position] = report,
                     Err(position) => repos.insert(position, report),
                 }
+            }
+        }
+        AppEvent::Updates(reports) => model.updates = reports,
+        AppEvent::SourceUpdated(report) => {
+            match model
+                .updates
+                .iter_mut()
+                .find(|existing| existing.source == report.source)
+            {
+                Some(existing) => *existing = report,
+                None => model.updates.push(report),
+            }
+        }
+        AppEvent::Job(job) => {
+            if job.state.is_finished() {
+                model.jobs.remove(&job.id);
+                model.finished_jobs.insert(job.id, job);
+            } else {
+                model.jobs.insert(job.id, job);
             }
         }
         AppEvent::RepoUpdated(report) => {
@@ -205,7 +231,7 @@ mod tests {
         let mut model = Model::default();
         assert_eq!(
             update(&mut model, key(KeyCode::Char('r'))),
-            vec![Command::SyncNow]
+            vec![Command::Workspaces(WorkspaceCommand::SyncNow)]
         );
         update(&mut model, Msg::App(AppEvent::SyncStarted));
         assert_eq!(update(&mut model, key(KeyCode::Char('r'))), Vec::new());
@@ -225,9 +251,9 @@ mod tests {
         let commands = update(&mut model, key(KeyCode::Char('f')));
         assert_eq!(
             commands,
-            vec![Command::FastForward(
+            vec![Command::Workspaces(WorkspaceCommand::FastForward(
                 RepoPath::try_from(PathBuf::from("/ws/b")).expect("BUG")
-            )]
+            ))]
         );
     }
 

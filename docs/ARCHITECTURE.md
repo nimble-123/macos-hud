@@ -240,10 +240,13 @@ pub enum Outcome { Succeeded, Failed(String), Skipped(String), Cancelled, TimedO
 | `ManageWorkspaces` | hinzufügen, entfernen, Opt-out umschalten → `SettingsStore` |
 | `ManageSettings` | Opt-ins, Sprache, Theme → `SettingsStore` |
 | `WorkspaceAgent` | führt die Workspace-Use-Cases aus: beim Start Cache, dann lokaler Scan, danach `SyncRepositories` mit Fetch im Fetch-Intervall und auf `Command::SyncNow`; `Command::FastForward` startet `FastForwardRepo`; sendet `AppEvent::Workspaces`, `SyncStarted`, `RepoUpdated`; stoppt über `CancellationToken` |
+| `UpdatesAgent` | prüft alle Update-Quellen beim Start, im Prüf-Intervall (6 h) und auf `UpdateCommand::CheckNow`; führt `UpdateCommand::Install` als Job aus (`JobState`: Queued, Running, Succeeded, NeedsInteraction, Denied, Failed, TimedOut) mit `install_decision` und `ActionLog`; Prüfungen und Jobs laufen als eigene Tasks unter der Sperre ihrer Quelle; sendet `AppEvent::Updates`, `SourceUpdated`, `Job` |
 | `Scheduler` | treibt periodische Use Cases (Fetch 15 min, Updates 6 h, Ingest 60 s, System 2 s) |
 | `JobRunner` | führt verändernde Use Cases als Jobs aus, verwaltet Status, Sperren und Abbruch |
 
 Jeder Use Case ist eine Struct mit Abhängigkeiten im Konstruktor und einer Methode `execute`.
+
+Befehle der TUI sind nach Agent gruppiert: `Command::Workspaces(WorkspaceCommand)` und `Command::Updates(UpdateCommand)`. Das Binary leitet jede Gruppe über einen eigenen Kanal an ihren Agent weiter; Ergebnisse kommen gemeinsam als `AppEvent` zurück.
 
 ### 5.5 Ebene 2: Präsentation (`hud-tui`)
 
