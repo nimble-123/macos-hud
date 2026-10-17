@@ -6,6 +6,7 @@
 
 pub mod action;
 pub mod git;
+pub mod update;
 mod workspace;
 
 pub use workspace::{DomainError, WorkspacePath};

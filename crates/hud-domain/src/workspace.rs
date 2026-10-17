@@ -18,6 +18,9 @@ pub enum DomainError {
     /// Commit ids are 40 or 64 hexadecimal digits.
     #[error("invalid commit id: {0:?}")]
     InvalidCommitId(String),
+    /// Package names are non-empty and contain no whitespace.
+    #[error("invalid package name: {0:?}")]
+    InvalidPackageName(String),
 }
 
 /// Absolute path of a workspace folder. Existence is not required: a missing

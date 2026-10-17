@@ -12,6 +12,7 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
+semver.workspace = true
 jiff.workspace = true
 thiserror.workspace = true
 

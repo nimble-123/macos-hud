@@ -192,15 +192,17 @@ Regel: `pub fn sync_decision(repo: &RepoPath, status: &RepoStatus, mode: SyncMod
 **Updates**
 
 ```rust
-pub struct UpdateCandidate { source: SourceId, name: PackageName, current: Version, latest: Version, kind: PackageKind }
+pub struct UpdateCandidate { source: SourceId, kind: PackageKind, name: PackageName, current: Version, latest: Version, pinned: bool }
 pub enum PackageKind { Formula, Cask, NpmGlobal, Skill }
-pub enum VersionBump { Major, Minor, Patch, Unknown }        // aus semver; Unknown bei Nicht-SemVer
+pub enum VersionBump { Major, Minor, Patch, Unknown }        // tolerant: „v1.2“, „119.0,abc“
+pub enum InstallTarget { Package(UpdateCandidate), AllSkills }
+pub enum InstallRequest { Manual { confirmed: bool }, Auto }
 #[must_use]
 pub enum InstallDecision { Allowed(InstallPermit), Denied(DenyReason) }
-pub enum DenyReason { NotOptedIn, SourceHasNoAuto, MajorBump, NeedsInteractionPreviously, NotConfirmed }
+pub enum DenyReason { Pinned, NotConfirmed, SourceHasNoAuto, NotOptedIn, MajorBump, UnknownVersion, NeedsInteractionPreviously }
 ```
 
-Regel: `pub fn install_decision(c: &UpdateCandidate, trigger: Trigger, settings: &AutoInstallSettings, history: &InstallHistory) -> InstallDecision`.
+Regel: `pub fn install_decision(target: InstallTarget, request: InstallRequest, policy: AutoInstallPolicy, needed_interaction_before: bool) -> InstallDecision`. Gepinnte Pakete werden nie installiert (Homebrew verweigert es ohnehin). Manuell genügt die Bestätigung, auch über eine Major-Version. Automatisch gilt: Skills nie, sonst nur mit dem Opt-in der Paketart; npm nie über eine Major-Version und nie bei nicht vergleichbaren Versionen; ein Cask, der schon einmal ein Passwort verlangte, nicht erneut.
 
 **KI-Nutzung**
 
