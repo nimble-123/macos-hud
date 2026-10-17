@@ -127,19 +127,6 @@ pub struct ProviderSettings {
     pub billing: Billing,
 }
 
-/// Price override in micro-USD per million tokens (ADR 0009: no floats for money).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PriceOverride {
-    /// Input tokens.
-    pub input: u64,
-    /// Output tokens.
-    pub output: u64,
-    /// Cache write tokens.
-    pub cache_write: u64,
-    /// Cache read tokens.
-    pub cache_read: u64,
-}
-
 /// Explicit paths for external tools; `None` means look up in the login PATH.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ToolPaths {
@@ -176,8 +163,8 @@ pub struct Settings {
     pub claude: ProviderSettings,
     /// Codex.
     pub codex: ProviderSettings,
-    /// Price overrides by model id.
-    pub prices: BTreeMap<String, PriceOverride>,
+    /// Price overrides by model id, in micro-USD per million tokens (ADR 0009).
+    pub prices: BTreeMap<String, hud_domain::usage::Price>,
     /// Explicit tool paths.
     pub tools: ToolPaths,
 }

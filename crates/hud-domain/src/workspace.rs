@@ -21,6 +21,9 @@ pub enum DomainError {
     /// Package names are non-empty and contain no whitespace.
     #[error("invalid package name: {0:?}")]
     InvalidPackageName(String),
+    /// Model ids are non-empty and contain no whitespace.
+    #[error("invalid model id: {0:?}")]
+    InvalidModelId(String),
 }
 
 /// Absolute path of a workspace folder. Existence is not required: a missing

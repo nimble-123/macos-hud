@@ -207,14 +207,20 @@ Regel: `pub fn install_decision(target: InstallTarget, request: InstallRequest, 
 **KI-Nutzung**
 
 ```rust
-pub struct TokenUsage { input: u64, output: u64, cache_write: u64, cache_read: u64, reasoning: Option<u64> }
-pub struct Measured<T> { value: T, accuracy: Accuracy, source: DataSource }
+pub struct TokenUsage { input: u64, output: u64, cache_write_5m: u64, cache_write_1h: u64, cache_read: u64, reasoning: Option<u64> }
+pub struct UsageRecord { provider: Provider, key: String, session: String, model: ModelId, at: Timestamp, tokens: TokenUsage, speed: Speed, geo: Geo }
+pub struct Measured<T> { value: T, accuracy: Accuracy }
 pub enum Accuracy { Exact, Estimated, Partial, Unavailable }
-pub struct CostEstimate { amount_micro_usd: u64, basis: Billing, price_table_as_of: jiff::civil::Date }
+pub struct Price { input: u64, output: u64, cache_write_5m: u64, cache_write_1h: u64, cache_read: u64 } // Mikro-USD je Million Token
+pub struct CostEstimate { micro_usd: u64, prices_as_of: jiff::civil::Date }
 pub enum Period { Today, Last7Days, Last30Days, ThisMonth, LastMonth }
 ```
 
-`CostEstimate` ist per Konstruktion immer geschätzt. Einen Typ für exakte Kosten gibt es nicht. Geldbeträge sind ganzzahlige Mikro-Dollar (`u64`) statt `f64`, damit keine Rundungsfehler beim Summieren entstehen.
+`CostEstimate` ist per Konstruktion immer geschätzt. Einen Typ für exakte Kosten gibt es nicht. Geldbeträge sind ganzzahlige Mikro-Dollar (`u64`) statt `f64`, damit keine Rundungsfehler beim Summieren entstehen; Zwischensummen rechnen in Mikro-Dollar × 10⁶ (`u128`) und werden erst am Ende gerundet.
+
+Preise: `PriceTable` enthält die offiziellen Preise mit Stand-Datum (`PRICES_AS_OF`) für alle Claude-Modelle. Eine Modell-ID passt zu einem Eintrag, wenn sie ihm gleicht oder mit `-` weitergeht (Datumssuffix); der längste Eintrag gewinnt. Berücksichtigt werden Fast Mode (eigene Preise, Cache-Faktoren darauf), der Langprompt-Tarif von Haiku 5.5 (Prompt über 100 000 Token) und US-Inferenz (× 1,1). Ein Override aus `[ai.prices."<model-id>"]` ersetzt alle Preise seines Modells. Unbekannte Modelle haben keinen Preis; Summen mit solchen Anteilen sind `Accuracy::Partial`.
+
+`Period::range` liefert Beginn und Ende in der lokalen Zeitzone: „heute“ ab Mitternacht, „7 Tage“ und „30 Tage“ einschließlich heute, Kalendermonate vom Ersten an. Sommerzeitwechsel folgen dem Kalender.
 
 **Protokoll**
 
@@ -509,7 +515,8 @@ billing = "subscription"
 # [ai.prices."<model-id>"]
 # input = 0.0
 # output = 0.0
-# cache_write = 0.0
+# cache_write_5m = 0.0
+# cache_write_1h = 0.0
 # cache_read = 0.0
 ```
 

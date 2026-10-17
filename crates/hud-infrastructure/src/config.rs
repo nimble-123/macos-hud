@@ -6,8 +6,8 @@ use std::time::Duration;
 
 use hud_application::settings::{
     AutoInstallKind, AutoInstallSettings, Billing, IconPreference, InitialSetup,
-    LanguagePreference, PriceOverride, ProviderSettings, ScanSettings, Settings, SettingsChange,
-    SettingsError, SettingsStore, SkillsSettings, ThemePreference, ToolPaths, WorkspaceSettings,
+    LanguagePreference, ProviderSettings, ScanSettings, Settings, SettingsChange, SettingsError,
+    SettingsStore, SkillsSettings, ThemePreference, ToolPaths, WorkspaceSettings,
 };
 use hud_domain::WorkspacePath;
 use serde::Deserialize;
@@ -452,7 +452,8 @@ struct CodexProvider {
 struct Price {
     input: f64,
     output: f64,
-    cache_write: f64,
+    cache_write_5m: f64,
+    cache_write_1h: f64,
     cache_read: f64,
 }
 
@@ -549,7 +550,7 @@ fn minutes(value: u32, key: &str) -> Result<Duration, String> {
 }
 
 impl Price {
-    fn to_micro_usd(&self, model: &str) -> Result<PriceOverride, String> {
+    fn to_micro_usd(&self, model: &str) -> Result<hud_domain::usage::Price, String> {
         let convert = |usd: f64, field: &str| -> Result<u64, String> {
             if !usd.is_finite() || !(0.0..=1_000_000.0).contains(&usd) {
                 return Err(format!(
@@ -565,10 +566,11 @@ impl Price {
             let micro = (usd * 1_000_000.0).round() as u64;
             Ok(micro)
         };
-        Ok(PriceOverride {
+        Ok(hud_domain::usage::Price {
             input: convert(self.input, "input")?,
             output: convert(self.output, "output")?,
-            cache_write: convert(self.cache_write, "cache_write")?,
+            cache_write_5m: convert(self.cache_write_5m, "cache_write_5m")?,
+            cache_write_1h: convert(self.cache_write_1h, "cache_write_1h")?,
             cache_read: convert(self.cache_read, "cache_read")?,
         })
     }
@@ -640,7 +642,8 @@ enabled = true
 [ai.prices."claude-opus-5-5"]
 input = 3.0
 output = 15.0
-cache_write = 3.75
+cache_write_5m = 3.75
+cache_write_1h = 6.0
 cache_read = 0.3
 
 [tools]
@@ -661,7 +664,8 @@ npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
         assert!(!settings.auto_install.brew_casks);
         assert_eq!(settings.claude.billing, Billing::Api);
         assert!(settings.codex.enabled);
-        assert_eq!(settings.prices["claude-opus-5-5"].cache_write, 3_750_000);
+        assert_eq!(settings.prices["claude-opus-5-5"].cache_write_5m, 3_750_000);
+        assert_eq!(settings.prices["claude-opus-5-5"].cache_write_1h, 6_000_000);
         assert_eq!(
             settings.tools.npm.as_deref(),
             Some(Path::new("/Users/test/.nvm/versions/node/v24.12.0/bin/npm"))
@@ -689,8 +693,7 @@ npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
 
     #[test]
     fn negative_price_is_rejected() {
-        let text =
-            "[ai.prices.m]\ninput = -1.0\noutput = 0.0\ncache_write = 0.0\ncache_read = 0.0\n";
+        let text = "[ai.prices.m]\ninput = -1.0\noutput = 0.0\ncache_write_5m = 0.0\ncache_write_1h = 0.0\ncache_read = 0.0\n";
         assert!(parse(text, Path::new(HOME)).is_err());
     }
 
