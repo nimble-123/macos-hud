@@ -3,28 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Testpyramide</title>
+  <title>Tests je Schicht</title>
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:ital@0;1&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --paper: #f2f3f1; --ink: #1c2128; --muted: #47505c; --soft: #5a6470;
-      --accent: #b02a8a; --accent-tint: rgba(176,42,138,0.08); --link: #13738a;
-      --sans: 'Chakra Petch', system-ui, sans-serif; --mono: 'IBM Plex Mono', ui-monospace, monospace; --serif: 'IBM Plex Serif', serif;
+      --color-paper:   #f2f3f1;
+      --color-ink:     #1c2128;
+      --color-muted:   #47505c;
+      --color-accent:  #b02a8a;
+      --font-sans:     'Chakra Petch', system-ui, sans-serif;
+      --font-serif:    'IBM Plex Serif', serif;
+      --font-mono:     'IBM Plex Mono', ui-monospace, monospace;
     }
-    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
-    .frame { width: 100%; max-width: 1200px; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; min-width: 0; }
     .diagram-container { width: 100%; overflow-x: auto; }
-    .eyebrow { margin-bottom: 0.5rem; color: var(--muted); font: 500 0.66rem var(--mono); letter-spacing: 0.18em; text-transform: uppercase; }
-    h1 { margin-bottom: 1.5rem; color: var(--ink); font: 600 clamp(1.5rem, 2.4vw + 0.75rem, 1.75rem)/1.15 var(--sans); letter-spacing: -0.01em; }
-    svg { width: 100%; min-width: 960px; display: block; }
-    .node-name { fill: var(--ink); font: 600 12px var(--sans); text-anchor: middle; }
-    .sublabel { fill: var(--soft); font: 400 9px var(--mono); text-anchor: middle; }
-    .arrow-label { fill: var(--soft); font: 400 8px var(--mono); letter-spacing: 0.06em; text-anchor: middle; }
-    .eyebrow-svg { fill: var(--muted); font: 500 8px var(--mono); letter-spacing: 0.14em; }
-    .legend { fill: var(--muted); font: 400 8px var(--mono); letter-spacing: 0.06em; }
-    .callout { fill: var(--ink); font: italic 400 14px var(--serif); }
-
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: 'Chakra Petch', system-ui, sans-serif;
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 1000px; display: block; }
     @media print {
       .diagram-container { overflow-x: visible; }
       svg { min-width: 0; }
@@ -33,47 +55,50 @@
 </head>
 <body>
   <div class="frame">
-    <p class="eyebrow">Pyramide · Teststrategie</p>
-    <h1>Testpyramide</h1>
+    <p class="eyebrow">Balkendiagramm · Teststrategie</p>
+    <h1>Tests je Schicht</h1>
     <div class="diagram-container">
-      <svg viewBox="0 0 960 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="test-pyramid-title test-pyramid-desc">
-        <title id="test-pyramid-title">Testpyramide</title>
-        <desc id="test-pyramid-desc">Testpyramide von hud: viele schnelle Domain-Regeltests als Basis, darüber Use-Case-Tests gegen Fakes, Infrastruktur-Tests mit Fixtures und temporären Git-Repos und an der Spitze TUI-Snapshot-Tests.</desc>
-        <defs>
-          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker>
-          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker>
-          <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker>
-          <marker id="arrow-soft" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#5a6470"/></marker>
-          <marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#47505c" stroke-width="1.2"/></marker>
-        </defs>
-        <rect width="960" height="440" fill="#f2f3f1"/>
-        <polygon points="80,368 640,368 584,296 136,296" fill="rgba(28,33,40,0.08)" stroke="#47505c" stroke-width="1"/>
-        <text x="360" y="336" class="node-name" font-size="13">Domain-Regeln</text>
-        <line x1="624" y1="332" x2="660" y2="332" stroke="rgba(28,33,40,0.20)" stroke-width="0.8" stroke-dasharray="2,3"/>
-        <text x="672" y="330" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">Unit-Tests + proptest</text>
-        <text x="672" y="344" fill="#5a6470" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">viele, Millisekunden</text>
-        <polygon points="136,296 584,296 528,224 192,224" fill="rgba(28,33,40,0.06)" stroke="#47505c" stroke-width="1"/>
-        <text x="360" y="264" class="node-name" font-size="13">Application</text>
-        <line x1="568" y1="260" x2="660" y2="260" stroke="rgba(28,33,40,0.20)" stroke-width="0.8" stroke-dasharray="2,3"/>
-        <text x="672" y="258" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">Use Cases gegen Fakes</text>
-        <text x="672" y="272" fill="#5a6470" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">mockall nur gezielt</text>
-        <polygon points="192,224 528,224 472,152 248,152" fill="rgba(28,33,40,0.04)" stroke="#47505c" stroke-width="1"/>
-        <text x="360" y="192" class="node-name" font-size="13">Infrastructure</text>
-        <line x1="512" y1="188" x2="660" y2="188" stroke="rgba(28,33,40,0.20)" stroke-width="0.8" stroke-dasharray="2,3"/>
-        <text x="672" y="186" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">Fixtures, temporäre Git-Repos</text>
-        <text x="672" y="200" fill="#5a6470" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">FakeProcessRunner</text>
-        <polygon points="248,152 472,152 416,80 304,80" fill="rgba(28,33,40,0.02)" stroke="#47505c" stroke-width="1"/>
-        <text x="360" y="120" class="node-name" font-size="13">TUI</text>
-        <line x1="456" y1="116" x2="660" y2="116" stroke="rgba(28,33,40,0.20)" stroke-width="0.8" stroke-dasharray="2,3"/>
-        <text x="672" y="114" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif">update-Tests + insta</text>
-        <text x="672" y="128" fill="#5a6470" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace">de/en, hell/dunkel</text>
-        <line x1="40" y1="368" x2="40" y2="88" stroke="#47505c" stroke-width="1" marker-end="url(#arrow)"/>
-        <text x="28" y="76" class="eyebrow-svg">WENIGER, LANGSAMER</text>
-        <text x="28" y="388" class="eyebrow-svg">MEHR, SCHNELLER</text>
-        <text x="672" y="232" class="callout">kein Test ruft echtes brew, npm oder npx auf</text>
-        <path d="M 668 226 Q 662 210 662 196" fill="none" stroke="rgba(28,33,40,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
-        <circle cx="662" cy="192" r="2" fill="#1c2128"/>
-
+      <svg viewBox="0 0 1000 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="test-pyramid-title test-pyramid-desc">
+        <title id="test-pyramid-title">Tests je Schicht</title>
+        <desc id="test-pyramid-desc">Anzahl der Tests je Crate: hud-domain 47 mit 7 proptest-Eigenschaften, hud-application 59 gegen Fakes, hud-infrastructure 117 mit FakeRunner, Fixtures und temporären Git-Repos, hud-tui 134 mit 20 insta-Snapshots in Deutsch und Englisch, das Binary 12 für CLI und Reset.</desc>
+        
+        <rect width="100%" height="100%" fill="#f2f3f1"/>
+        <line x1="360" y1="56" x2="360" y2="408" stroke="rgba(28,33,40,0.08)" stroke-width="0.8"/>
+        <line x1="520" y1="56" x2="520" y2="408" stroke="rgba(28,33,40,0.08)" stroke-width="0.8"/>
+        <line x1="680" y1="56" x2="680" y2="408" stroke="rgba(28,33,40,0.08)" stroke-width="0.8"/>
+        <line x1="200" y1="40" x2="200" y2="420" stroke="rgba(28,33,40,0.25)" stroke-width="1"/>
+        <text x="200" y="440" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">0</text>
+        <text x="360" y="440" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">50</text>
+        <text x="520" y="440" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">100</text>
+        <text x="680" y="440" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">150</text>
+        <text x="440" y="462" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">Tests je Crate (#[test] und #[tokio::test])</text>
+        <text x="188" y="100" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="end">hud-domain</text>
+        <rect x="200" y="82" width="150.4" height="28" fill="#f2f3f1"/>
+        <rect x="200" y="82" width="150.4" height="28" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+        <text x="360.4" y="94" fill="#b02a8a" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">47</text>
+        <text x="360.4" y="107" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">Unit-Tests, 7 proptest-Eigenschaften der Permit-Regeln</text>
+        <text x="188" y="164" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="end">hud-application</text>
+        <rect x="200" y="146" width="188.8" height="28" fill="#f2f3f1"/>
+        <rect x="200" y="146" width="188.8" height="28" fill="rgba(71,80,92,0.15)" stroke="#47505c" stroke-width="1"/>
+        <text x="398.8" y="158" fill="#47505c" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">59</text>
+        <text x="398.8" y="171" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">Use Cases und Agents gegen handgeschriebene Fakes</text>
+        <text x="188" y="228" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="end">hud-infrastructure</text>
+        <rect x="200" y="210" width="374.4" height="28" fill="#f2f3f1"/>
+        <rect x="200" y="210" width="374.4" height="28" fill="rgba(71,80,92,0.15)" stroke="#47505c" stroke-width="1"/>
+        <text x="584.4" y="222" fill="#47505c" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">117</text>
+        <text x="584.4" y="235" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">FakeRunner, Fixtures (auch .jsonl.zst), temporäre Git-Repos</text>
+        <text x="188" y="292" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="end">hud-tui</text>
+        <rect x="200" y="274" width="428.8" height="28" fill="#f2f3f1"/>
+        <rect x="200" y="274" width="428.8" height="28" fill="rgba(71,80,92,0.15)" stroke="#47505c" stroke-width="1"/>
+        <text x="638.8" y="286" fill="#47505c" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">134</text>
+        <text x="638.8" y="299" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">update- und Maus-Tests, 20 insta-Snapshots (de/en)</text>
+        <text x="188" y="356" fill="#1c2128" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="end">hud</text>
+        <rect x="200" y="338" width="38.4" height="28" fill="#f2f3f1"/>
+        <rect x="200" y="338" width="38.4" height="28" fill="rgba(71,80,92,0.15)" stroke="#47505c" stroke-width="1"/>
+        <text x="248.4" y="350" fill="#47505c" font-size="11" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">12</text>
+        <text x="248.4" y="363" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">Binary: CLI und Reset mit tempfile</text>
+        <text x="200" y="506" fill="#47505c" font-size="13" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">Kein Test ruft echtes brew upgrade, npm install -g oder npx auf;</text>
+<text x="200" y="523" fill="#47505c" font-size="13" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">Prozesse laufen gegen den FakeRunner, Git gegen temporäre Repos.</text>
       </svg>
     </div>
   </div>

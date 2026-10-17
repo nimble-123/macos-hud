@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mausbedienung</title>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Serif:ital@0;1&amp;display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f2f3f1;
+      --color-ink:     #1c2128;
+      --color-muted:   #47505c;
+      --color-accent:  #b02a8a;
+      --font-sans:     'Chakra Petch', system-ui, sans-serif;
+      --font-serif:    'Chakra Petch', system-ui, sans-serif;
+      --font-mono:     'IBM Plex Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 800px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Querschnitt · Flowchart</p>
+    <h1>Mausbedienung</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 800 656" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mouse-title mouse-desc">
+        <title id="mouse-title">Mausbedienung</title>
+        <desc id="mouse-desc">Ein Mausereignis wird wie eine Taste behandelt: das Rad bewegt die Auswahl, ein Klick schließt die Hilfe, wird bei offenen Dialogen ignoriert und sonst über view::hit mit derselben Layout-Rechnung wie beim Zeichnen einem Tab, einer Taste, einem Zeitraum oder einer Zeile zugeordnet.</desc>
+        <defs>
+<marker id="arr-muted" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker>
+<marker id="arr-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker>
+<marker id="arr-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker>
+<marker id="arr-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#47505c" stroke-width="1.2"/></marker>
+</defs>
+        <rect width="100%" height="100%" fill="#f2f3f1"/>
+        <path d="M300,80 L300,102" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arr-muted)"/>
+        <path d="M368,140 L478,140" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arr-muted)"/>
+        <rect x="411.0" y="121" width="24" height="12" rx="2" fill="#f2f3f1"/><text x="423" y="130" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">RAD</text>
+        <path d="M300,176 L300,214" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arr-muted)"/>
+        <rect x="308" y="190" width="60" height="12" rx="2" fill="#f2f3f1"/><text x="338.0" y="199" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">LINKSKLICK</text>
+        <path d="M368,252 L478,252" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arr-muted)"/>
+        <rect x="413.0" y="233" width="20" height="12" rx="2" fill="#f2f3f1"/><text x="423" y="242" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">JA</text>
+        <path d="M300,288 L300,326" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arr-muted)"/>
+        <rect x="308" y="302" width="28" height="12" rx="2" fill="#f2f3f1"/><text x="322.0" y="311" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NEIN</text>
+        <path d="M368,364 L478,364" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arr-muted)"/>
+        <rect x="413.0" y="345" width="20" height="12" rx="2" fill="#f2f3f1"/><text x="423" y="354" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">JA</text>
+        <path d="M300,400 L300,438" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arr-muted)"/>
+        <rect x="308" y="414" width="28" height="12" rx="2" fill="#f2f3f1"/><text x="322.0" y="423" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NEIN</text>
+        <path d="M400,476 L478,476" fill="none" stroke="#b02a8a" stroke-width="1.2" marker-end="url(#arr-accent)"/>
+        <rect x="427.0" y="457" width="24" height="12" rx="2" fill="#f2f3f1"/><text x="439" y="466" fill="#b02a8a" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">HIT</text>
+        <rect x="220" y="40" width="160" height="40" rx="20" fill="#f2f3f1"/>
+        <rect x="220" y="40" width="160" height="40" rx="20" fill="rgba(71,80,92,0.10)" stroke="#5a6470" stroke-width="1"/>
+        <text x="300" y="64" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">MouseEvent</text>
+        <polygon points="300,104 368,140 300,176 232,140" fill="#f2f3f1"/>
+        <polygon points="300,104 368,140 300,176 232,140" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="300" y="143" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Art?</text>
+        <rect x="480" y="116" width="200" height="48" rx="6" fill="#f2f3f1"/>
+        <rect x="480" y="116" width="200" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="580.0" y="137.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">wie ↑ / ↓</text>
+        <text x="580.0" y="152.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Auswahl bewegen</text>
+        <polygon points="300,216 368,252 300,288 232,252" fill="#f2f3f1"/>
+        <polygon points="300,216 368,252 300,288 232,252" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="300" y="249" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Hilfe</text>
+        <text x="300" y="262" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">offen?</text>
+        <rect x="480" y="228" width="200" height="48" rx="6" fill="#f2f3f1"/>
+        <rect x="480" y="228" width="200" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="580.0" y="249.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Hilfe schließen</text>
+        <text x="580.0" y="264.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">sonst nichts</text>
+        <polygon points="300,328 368,364 300,400 232,364" fill="#f2f3f1"/>
+        <polygon points="300,328 368,364 300,400 232,364" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="300" y="361" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Dialog</text>
+        <text x="300" y="374" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">offen?</text>
+        <rect x="480" y="340" width="200" height="48" rx="6" fill="#f2f3f1"/>
+        <rect x="480" y="340" width="200" height="48" rx="6" fill="rgba(28,33,40,0.02)" stroke="rgba(28,33,40,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="580.0" y="361.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Klick ignorieren</text>
+        <text x="580.0" y="376.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Dialoge nur per Taste</text>
+        <rect x="200" y="440" width="200" height="72" rx="6" fill="#f2f3f1"/>
+        <rect x="200" y="440" width="200" height="72" rx="6" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+        <rect x="208" y="446" width="28" height="12" rx="2" fill="transparent" stroke="rgba(176,42,138,0.40)" stroke-width="0.8"/>
+        <text x="222.0" y="455" fill="#b02a8a" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">VIEW</text>
+        <text x="300.0" y="478.0" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">view::hit(x, y)</text>
+        <text x="300.0" y="493.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">auf model.area, mit</text>
+        <text x="300.0" y="506.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">derselben Layout-Rechnung</text>
+        <rect x="480" y="420" width="280" height="112" rx="6" fill="#f2f3f1"/>
+        <rect x="480" y="420" width="280" height="112" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <rect x="488" y="426" width="32" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.40)" stroke-width="0.8"/>
+        <text x="504.0" y="435" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">MOUSE</text>
+        <text x="620.0" y="465.0" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">wirkt wie die Taste</text>
+        <text x="620.0" y="480.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Tab: Tab wechseln</text>
+        <text x="620.0" y="493.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Key: Taste der Fußzeile</text>
+        <text x="620.0" y="506.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Period: Zeitraum wählen</text>
+        <text x="620.0" y="519.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Row: wählen, erneut = Enter</text>
+        <text x="40" y="556" fill="#1c2128" font-size="13" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">Msg::Resize hält model.area auf der Terminalgröße;</text>
+        <text x="40" y="574" fill="#1c2128" font-size="13" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">das Model speichert keine Klickflächen.</text>
+        <line x1="40" y1="608" x2="760" y2="608" stroke="rgba(28,33,40,0.10)" stroke-width="0.8"/>
+        <text x="40" y="628" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">LEGENDE</text>
+        <rect x="120" y="619" width="20" height="12" rx="3" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+        <text x="148" y="628" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">gleiche Rechnung wie das Zeichnen</text>
+        <rect x="354" y="619" width="20" height="12" rx="3" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="382" y="628" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Aktion</text>
+        <rect x="442" y="619" width="20" height="12" rx="3" fill="rgba(28,33,40,0.02)" stroke="rgba(28,33,40,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="470" y="628" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">keine Wirkung</text>
+        <line x1="568" y1="625" x2="586" y2="625" stroke="#47505c" stroke-width="1.2" marker-end="url(#arr-muted)"/>
+        <text x="596" y="628" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Ablauf</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

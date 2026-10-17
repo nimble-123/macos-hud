@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg viewBox="0 0 720 808" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="startup-flow-title startup-flow-desc" id="startup-flow-root">
+<svg viewBox="0 0 760 792" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="startup-flow-title startup-flow-desc" id="startup-flow-root">
         <title id="startup-flow-title">Start und Erststart</title>
-        <desc id="startup-flow-desc">Ablauf beim Start von hud: Terminal-Guard und Logging, Config lesen, bei fehlendem Workspace der Einrichtungsdialog, dann SQLite, Umgebungserkennung und die Composition Root, die Scheduler und Job-Runner startet.</desc>
+        <desc id="startup-flow-desc">Ablauf beim Start von hud: Kommandozeile (Ausgabe oder Reset enden ohne TUI), Logging und Config (ungültig beendet hud), Umgebung und Terminal, bei fehlendem Workspace der Einrichtungsdialog (Esc beendet ohne zu schreiben), dann die Composition Root mit OTLP-Empfänger, SQLite und Agents und die Ereignisschleife.</desc>
         <defs>
       <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
       #startup-flow-root { --color-paper:   #f2f3f1;
@@ -13,46 +13,82 @@
       --font-mono:     'IBM Plex Mono', ui-monospace, monospace; }
       #startup-flow-root { font-family: var(--font-sans); color: var(--color-ink); }
       #startup-flow-root .diagram-container { width: 100%; overflow-x: auto; }
-      #startup-flow-root .diagram-container { overflow-x: visible; }</style><marker id="startup-flow-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker><marker id="startup-flow-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker><marker id="startup-flow-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker></defs>
+      #startup-flow-root .diagram-container { overflow-x: visible; }</style><marker id="startup-flow-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker><marker id="startup-flow-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker><marker id="startup-flow-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker><marker id="startup-flow-arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#47505c" stroke-width="1.2"/></marker></defs>
         <rect width="100%" height="100%" fill="#f2f3f1"/>
-        <line x1="280" y1="64" x2="280" y2="94" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
-        <line x1="280" y1="152" x2="280" y2="182" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
-        <line x1="280" y1="240" x2="280" y2="270" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
-        <line x1="352" y1="312" x2="438" y2="312" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
-        <rect x="380.0" y="292" width="32" height="12" rx="2" fill="#f2f3f1"/><text x="396" y="301" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NEIN</text>
-        <line x1="280" y1="352" x2="280" y2="394" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
-        <rect x="288" y="366" width="24" height="12" rx="2" fill="#f2f3f1"/><text x="300.0" y="375" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">JA</text>
-        <path d="M540 340 V392 Q540 400 532 400 H286" fill="none" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
-        <line x1="280" y1="404" x2="280" y2="430" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
-        <line x1="280" y1="488" x2="280" y2="518" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
-        <line x1="280" y1="576" x2="280" y2="606" stroke="#b02a8a" stroke-width="1" marker-end="url(#startup-flow-arrow-accent)"/>
-        <line x1="280" y1="664" x2="280" y2="694" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
-        <rect x="200" y="24" width="160" height="40" rx="20" fill="#f2f3f1"/><rect x="200" y="24" width="160" height="40" rx="20" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.05"/><text x="280.0" y="48.0" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">hud startet</text>
-        <rect x="180" y="96" width="200" height="56" rx="6" fill="#f2f3f1"/><rect x="180" y="96" width="200" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/><text x="280.0" y="120" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Terminal-Guard + Logging</text><text x="280.0" y="137" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Panic-Hook, ~/Library/Logs/hud</text>
-        <rect x="180" y="184" width="200" height="56" rx="6" fill="#f2f3f1"/><rect x="180" y="184" width="200" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/><text x="280.0" y="208" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Config lesen</text><text x="280.0" y="225" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">~/.config/hud/config.toml</text>
-        <polygon points="280,272 352,312 280,352 208,312" fill="#f2f3f1"/>
-        <polygon points="280,272 352,312 280,352 208,312" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-        <text x="280" y="309" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Workspace</text>
-        <text x="280" y="323" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">vorhanden?</text>
-        <rect x="440" y="284" width="200" height="56" rx="6" fill="#f2f3f1"/><rect x="440" y="284" width="200" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/><text x="540.0" y="308" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Einrichtungsdialog</text><text x="540.0" y="325" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Pfade wählen, speichern</text>
-        <circle cx="280" cy="400" r="4" fill="#1c2128"/>
-        <rect x="180" y="432" width="200" height="56" rx="6" fill="#f2f3f1"/><rect x="180" y="432" width="200" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/><text x="280.0" y="456" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">SQLite öffnen</text><text x="280.0" y="473" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">hud.db, Migrationen</text>
-        <rect x="180" y="520" width="200" height="56" rx="6" fill="#f2f3f1"/><rect x="180" y="520" width="200" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/><text x="280.0" y="544" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Umgebung erkennen</text><text x="280.0" y="561" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Login-PATH, Theme, Sprache</text>
-        <rect x="180" y="608" width="200" height="56" rx="6" fill="#f2f3f1"/><rect x="180" y="608" width="200" height="56" rx="6" fill="#b02a8a" stroke="#b02a8a" stroke-width="1" fill-opacity="0.08"/><text x="280.0" y="632" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Composition Root</text><text x="280.0" y="649" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Scheduler + Job-Runner</text>
-        <rect x="180" y="696" width="200" height="40" rx="20" fill="#f2f3f1"/><rect x="180" y="696" width="200" height="40" rx="20" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.05"/><text x="280.0" y="720.0" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Cache + erster Scan</text>
-        <text x="684" y="628" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="end" font-style="italic">einzige Stelle, an der</text>
-        <text x="684" y="646" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="end" font-style="italic">Adapter erzeugt werden</text>
-        <path d="M 524 637 Q 440 640 388 636" fill="none" stroke="#1c2128" stroke-width="1" stroke-dasharray="4,3" stroke-opacity="0.4"/>
-        <circle cx="384" cy="636" r="2" fill="#1c2128"/>
-        <line x1="40" y1="760" x2="680" y2="760" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.1"/><text x="40" y="776" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">LEGENDE</text>
-        <rect x="128" y="768" width="28" height="14" rx="7" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.05"/>
-        <text x="164" y="779" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Start / Ende</text>
-        <rect x="252" y="768" width="28" height="14" rx="3" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-        <text x="288" y="779" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Schritt</text>
-        <polygon points="362,767 376,775 362,783 348,775" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-        <text x="384" y="779" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Entscheidung</text>
-        <circle cx="480" cy="775" r="4" fill="#1c2128"/>
-        <text x="492" y="779" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Zusammenführung</text>
-        <rect x="600" y="768" width="28" height="14" rx="3" fill="#b02a8a" stroke="#b02a8a" stroke-width="1" fill-opacity="0.08"/>
-        <text x="636" y="779" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Fokus</text>
+        <line x1="240" y1="64" x2="240" y2="94" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <line x1="324" y1="136" x2="468" y2="136" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <rect x="355.9" y="117" width="82.2" height="12" rx="2" fill="#f2f3f1"/><text x="397.0" y="126" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">AUSGABE, RESET</text>
+        <line x1="240" y1="176" x2="240" y2="206" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <rect x="248.0" y="185" width="45.1" height="12" rx="2" fill="#f2f3f1"/><text x="270.6" y="194" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">STARTEN</text>
+        <path d="M360 236 H532 Q540 236 540 228 V162" fill="none" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#startup-flow-arrow)"/>
+        <rect x="420.8" y="217" width="50.4" height="12" rx="2" fill="#f2f3f1"/><text x="446.0" y="226" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">UNGÜLTIG</text>
+        <line x1="240" y1="264" x2="240" y2="294" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <line x1="240" y1="364" x2="240" y2="394" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <line x1="324" y1="436" x2="468" y2="436" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <rect x="382.4" y="417" width="29.2" height="12" rx="2" fill="#f2f3f1"/><text x="397.0" y="426" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NEIN</text>
+        <path d="M600 408 V162" fill="none" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <rect x="608.0" y="293" width="23.9" height="12" rx="2" fill="#f2f3f1"/><text x="620.0" y="302" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ESC</text>
+        <path d="M580 464 V504 Q580 512 572 512 H246" fill="none" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <rect x="376.9" y="493" width="66.3" height="12" rx="2" fill="#f2f3f1"/><text x="410.0" y="502" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">GESPEICHERT</text>
+        <line x1="240" y1="476" x2="240" y2="506" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <rect x="248.0" y="485" width="18.6" height="12" rx="2" fill="#f2f3f1"/><text x="257.3" y="494" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">JA</text>
+        <line x1="240" y1="516" x2="240" y2="546" stroke="#b02a8a" stroke-width="1" marker-end="url(#startup-flow-arrow-accent)"/>
+        <line x1="240" y1="616" x2="240" y2="646" stroke="#47505c" stroke-width="1" marker-end="url(#startup-flow-arrow)"/>
+        <rect x="160" y="24" width="160" height="40" rx="20" fill="#f2f3f1"/>
+<rect x="160" y="24" width="160" height="40" rx="20" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.05"/>
+<text x="240.0" y="48.0" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">hud startet</text>
+        <polygon points="240,96 324,136 240,176 156,136" fill="#f2f3f1"/>
+<polygon points="240,96 324,136 240,176 156,136" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="240" y="140" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Argumente?</text>
+        <rect x="470" y="112" width="220" height="48" rx="20" fill="#f2f3f1"/>
+<rect x="470" y="112" width="220" height="48" rx="20" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.05"/>
+<text x="580.0" y="133.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Ende ohne TUI</text>
+<text x="580.0" y="148.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Text, Reset oder Exit 2</text>
+        <rect x="120" y="208" width="240" height="56" rx="6" fill="#f2f3f1"/>
+<rect x="120" y="208" width="240" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="240.0" y="233.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Logging, Config lesen</text>
+<text x="240.0" y="248.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">~/Library/Logs/hud · config.toml</text>
+        <rect x="120" y="296" width="240" height="68" rx="6" fill="#f2f3f1"/>
+<rect x="120" y="296" width="240" height="68" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="240.0" y="321.0" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Umgebung, Terminal</text>
+<text x="240.0" y="336.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Login-PATH (Task), OSC 11, Sprache</text>
+<text x="240.0" y="348.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Panic-Hook, Raw Mode, Maus</text>
+        <polygon points="240,396 324,436 240,476 156,436" fill="#f2f3f1"/>
+<polygon points="240,396 324,436 240,476 156,436" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="240" y="433" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Workspace</text>
+<text x="240" y="447" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">vorhanden?</text>
+        <rect x="470" y="408" width="220" height="56" rx="6" fill="#f2f3f1"/>
+<rect x="470" y="408" width="220" height="56" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="580.0" y="433.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Einrichtungsdialog</text>
+<text x="580.0" y="448.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Workspaces, Symbolsatz</text>
+        <circle cx="240" cy="512" r="4" fill="#1c2128"/>
+        <rect x="120" y="548" width="240" height="68" rx="6" fill="#f2f3f1"/>
+<rect x="120" y="548" width="240" height="68" rx="6" fill="#b02a8a" stroke="#b02a8a" stroke-width="1" fill-opacity="0.08"/>
+<text x="240.0" y="573.0" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Composition Root</text>
+<text x="240.0" y="588.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">OTLP-Empfänger (falls aktiv)</text>
+<text x="240.0" y="600.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">SQLite, Migrationen, Agents</text>
+        <rect x="140" y="648" width="200" height="48" rx="20" fill="#f2f3f1"/>
+<rect x="140" y="648" width="200" height="48" rx="20" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.05"/>
+<text x="240.0" y="669.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Ereignisschleife</text>
+<text x="240.0" y="684.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">zuerst Msg::Resize</text>
+        <text x="716" y="576" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="end" font-style="italic">einzige Stelle, an der</text>
+<text x="716" y="594" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="end" font-style="italic">Adapter entstehen</text>
+        <path d="M 572 585 Q 470 588 368 584" fill="none" stroke="#1c2128" stroke-width="1" stroke-dasharray="4,3" stroke-opacity="0.4"/><circle cx="364" cy="584" r="2" fill="#1c2128"/>
+        <text x="716" y="668" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="end" font-style="italic">WorkspaceAgent: Cache, lokaler Scan,</text>
+<text x="716" y="686" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="end" font-style="italic">Git-Kalender, erster Sync mit Fetch</text>
+        <path d="M 484 677 Q 420 676 348 674" fill="none" stroke="#1c2128" stroke-width="1" stroke-dasharray="4,3" stroke-opacity="0.4"/><circle cx="344" cy="674" r="2" fill="#1c2128"/>
+        <line x1="40" y1="736" x2="720" y2="736" stroke="#1c2128" stroke-width="0.8" stroke-opacity="0.1"/>
+<text x="40" y="752" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">LEGENDE</text>
+<rect x="128" y="744" width="28" height="14" rx="7" fill="#1c2128" stroke="#1c2128" stroke-width="1" fill-opacity="0.05"/>
+<text x="164" y="755" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Start / Ende</text>
+<rect x="240.4" y="744" width="28" height="14" rx="3" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="276.4" y="755" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Schritt</text>
+<polygon points="343.29999999999995,743 357.29999999999995,751 343.29999999999995,759 329.29999999999995,751" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="365.29999999999995" y="755" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Entscheidung</text>
+<circle cx="445.69999999999993" cy="751" r="4" fill="#1c2128"/>
+<text x="455.69999999999993" y="755" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Zusammenführung</text>
+<rect x="546.1999999999999" y="744" width="28" height="14" rx="3" fill="#b02a8a" stroke="#b02a8a" stroke-width="1" fill-opacity="0.08"/>
+<text x="582.1999999999999" y="755" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Fokus</text>
+<line x1="625.6999999999999" y1="751" x2="653.6999999999999" y2="751" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#startup-flow-arrow)"/>
+<text x="661.6999999999999" y="755" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Fehlerausgang</text>
       </svg>

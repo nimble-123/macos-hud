@@ -60,7 +60,7 @@
     <div class="diagram-container">
       <svg viewBox="0 0 1000 680" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sync-decision-title sync-decision-desc">
         <title id="sync-decision-title">Regeln für den Fast-Forward</title>
-        <desc id="sync-decision-desc">Entscheidungsregel sync_decision: Ein Repo wird nur vorgezogen, wenn es sauber und prüfbar ist, ausschließlich hinter dem Upstream liegt und kein Workspace-Opt-out im Auto-Modus greift; sonst wird es mit Grund übersprungen.</desc>
+        <desc id="sync-decision-desc">Entscheidungsregel sync_decision in fester Reihenfolge: laufende Git-Operation, detached HEAD, keine Commits, kein Upstream und lokale Änderungen überspringen das Repo; danach entscheiden Ahead/Behind, und im Auto-Modus greift das Workspace-Opt-out; nur ein sauberes Repo, das ausschließlich hinter dem Upstream liegt, erhält einen Permit.</desc>
         <defs>
           <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker>
           <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker>
@@ -68,84 +68,77 @@
         <rect width="100%" height="100%" fill="#f2f3f1"/>
         <line x1="420" y1="76" x2="420" y2="96" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
         <line x1="540" y1="150" x2="698" y2="150" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="606" y="130" width="28" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="620" y="139" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NEIN</text>
+        <rect x="606" y="130" width="28" height="12" rx="2" fill="#f2f3f1"/><text x="620" y="139" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NEIN</text>
         <line x1="420" y1="202" x2="420" y2="250" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="428" y="221" width="20" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="438" y="230" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">JA</text>
+        <rect x="428" y="221" width="20" height="12" rx="2" fill="#f2f3f1"/><text x="438" y="230" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">JA</text>
         <line x1="540" y1="304" x2="698" y2="304" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="586" y="284" width="68" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="620" y="293" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">AHEAD &gt; 0</text>
+        <rect x="592" y="284" width="56" height="12" rx="2" fill="#f2f3f1"/><text x="620" y="293" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">AHEAD &gt; 0</text>
         <line x1="300" y1="304" x2="222" y2="304" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="244" y="284" width="32" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="260" y="293" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">0 / 0</text>
+        <rect x="244" y="284" width="32" height="12" rx="2" fill="#f2f3f1"/><text x="260" y="293" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">0 / 0</text>
         <line x1="420" y1="356" x2="420" y2="402" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="428" y="374" width="60" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="458" y="383" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NUR BEHIND</text>
+        <rect x="428" y="374" width="60" height="12" rx="2" fill="#f2f3f1"/><text x="458" y="383" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NUR BEHIND</text>
         <line x1="540" y1="456" x2="698" y2="456" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="610" y="436" width="20" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="620" y="445" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">JA</text>
+        <rect x="610" y="436" width="20" height="12" rx="2" fill="#f2f3f1"/><text x="620" y="445" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">JA</text>
         <line x1="420" y1="508" x2="420" y2="546" stroke="#b02a8a" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
-        <rect x="428" y="522" width="28" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="442" y="531" fill="#b02a8a" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NEIN</text>
+        <rect x="428" y="522" width="28" height="12" rx="2" fill="#f2f3f1"/><text x="442" y="531" fill="#b02a8a" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NEIN</text>
         <rect x="340" y="32" width="160" height="44" rx="20" fill="#f2f3f1"/>
-        <rect x="340" y="32" width="160" height="44" rx="20" fill="rgba(28,33,40,0.03)" stroke="rgba(28,33,40,0.30)" stroke-width="1"/>
-        <text x="420" y="52" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Repo-Status</text>
-        <text x="420" y="68" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">status + upstream-oid</text>
+<rect x="340" y="32" width="160" height="44" rx="20" fill="rgba(28,33,40,0.03)" stroke="rgba(28,33,40,0.30)" stroke-width="1"/>
+<text x="420" y="51" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Repo-Status</text>
+<text x="420" y="67" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">status + upstream-oid</text>
         <polygon points="420,98 540,150 420,202 300,150" fill="#f2f3f1"/>
-        <polygon points="420,98 540,150 420,202 300,150" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-        <text x="420" y="147" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Sauber und</text>
-        <text x="420" y="161" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">prüfbar?</text>
-        <rect x="700" y="114" width="260" height="72" rx="20" fill="#f2f3f1"/>
-        <rect x="700" y="114" width="260" height="72" rx="20" fill="#ffffff" stroke="#8f6200" stroke-width="1"/>
-        <text x="830" y="142" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle"><tspan fill="#8f6200">▲</tspan> Übersprungen</text>
-        <text x="830" y="158" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Git-Operation · detached HEAD</text>
-        <text x="830" y="170" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">kein Upstream · lokale Änderung</text>
+<polygon points="420,98 540,150 420,202 300,150" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="420" y="147" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Sauber und</text>
+<text x="420" y="161" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">prüfbar?</text>
+        <rect x="700" y="104" width="260" height="92" rx="20" fill="#f2f3f1"/>
+<rect x="700" y="104" width="260" height="92" rx="20" fill="#ffffff" stroke="#8f6200" stroke-width="1"/>
+<text x="830" y="133" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle"><tspan fill="#8f6200">▲</tspan> Übersprungen</text>
+<text x="830" y="149" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Git-Operation läuft · detached HEAD</text>
+<text x="830" y="161" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">keine Commits · kein Upstream</text>
+<text x="830" y="173" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">lokale Änderungen</text>
         <polygon points="420,252 540,304 420,356 300,304" fill="#f2f3f1"/>
-        <polygon points="420,252 540,304 420,356 300,304" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-        <text x="420" y="308" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Ahead / Behind?</text>
+<polygon points="420,252 540,304 420,356 300,304" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="420" y="308" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Ahead / Behind?</text>
         <rect x="700" y="264" width="260" height="80" rx="20" fill="#f2f3f1"/>
         <rect x="700" y="264" width="260" height="80" rx="20" fill="#ffffff" stroke="#47505c" stroke-width="1"/>
         <text x="830" y="296" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Nicht vorziehbar</text>
         <text x="830" y="312" fill="#8f6200" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">▲ voraus · nur ahead</text>
         <text x="830" y="324" fill="#b42f25" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">✖ divergiert · ahead + behind</text>
         <rect x="60" y="280" width="160" height="48" rx="20" fill="#f2f3f1"/>
-        <rect x="60" y="280" width="160" height="48" rx="20" fill="#ffffff" stroke="#47505c" stroke-width="1"/>
-        <text x="140" y="302" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle"><tspan fill="#47505c">○</tspan> Aktuell</text>
-        <text x="140" y="318" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">nichts zu tun</text>
+<rect x="60" y="280" width="160" height="48" rx="20" fill="#ffffff" stroke="#47505c" stroke-width="1"/>
+<text x="140" y="301" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle"><tspan fill="#47505c">○</tspan> Aktuell</text>
+<text x="140" y="317" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">nichts zu tun</text>
         <polygon points="420,404 540,456 420,508 300,456" fill="#f2f3f1"/>
-        <polygon points="420,404 540,456 420,508 300,456" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-        <text x="420" y="453" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Auto-Modus und</text>
-        <text x="420" y="467" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Workspace Opt-out?</text>
+<polygon points="420,404 540,456 420,508 300,456" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="420" y="453" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Auto-Modus und</text>
+<text x="420" y="467" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Workspace-Opt-out?</text>
         <rect x="700" y="420" width="260" height="72" rx="20" fill="#f2f3f1"/>
-        <rect x="700" y="420" width="260" height="72" rx="20" fill="#ffffff" stroke="#13738a" stroke-width="1"/>
-        <text x="830" y="454" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle"><tspan fill="#13738a">◆</tspan> Manueller FF möglich</text>
-        <text x="830" y="470" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Opt-out aktiv · per Taste</text>
+<rect x="700" y="420" width="260" height="72" rx="20" fill="#ffffff" stroke="#8f6200" stroke-width="1"/>
+<text x="830" y="453" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle"><tspan fill="#8f6200">▲</tspan> Übersprungen: Opt-out</text>
+<text x="830" y="469" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">manuell per Taste f möglich</text>
         <rect x="320" y="548" width="200" height="64" rx="20" fill="#f2f3f1"/>
-        <rect x="320" y="548" width="200" height="64" rx="20" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
-        <text x="420" y="578" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle"><tspan fill="#24774a">●</tspan> Fast-Forward</text>
-        <text x="420" y="594" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Permit(head_oid, target_oid)</text>
-        <text x="40" y="136" fill="#47505c" font-size="13" font-style="italic" font-family="'IBM Plex Serif', serif">Untracked Dateien blockieren nicht:</text>
-        <text x="40" y="153" fill="#47505c" font-size="13" font-style="italic" font-family="'IBM Plex Serif', serif">Git bricht selbst ab, falls der</text>
-        <text x="40" y="170" fill="#47505c" font-size="13" font-style="italic" font-family="'IBM Plex Serif', serif">Upstream eine gleichnamige</text>
-        <text x="40" y="187" fill="#47505c" font-size="13" font-style="italic" font-family="'IBM Plex Serif', serif">Datei mitbringt.</text>
-        <line x1="40" y1="636" x2="960" y2="636" stroke="rgba(28,33,40,0.10)" stroke-width="0.8"/>
-        <text x="40" y="652" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.18em">LEGENDE</text>
+<rect x="320" y="548" width="200" height="64" rx="20" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+<text x="420" y="577" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle"><tspan fill="#24774a">●</tspan> Fast-Forward</text>
+<text x="420" y="593" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Permit(head, target, commits)</text>
+        <text x="40" y="136" fill="#47505c" font-size="13" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">Untracked Dateien blockieren nicht:</text>
+<text x="40" y="153" fill="#47505c" font-size="13" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">Git bricht selbst ab, falls der</text>
+<text x="40" y="170" fill="#47505c" font-size="13" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">Upstream eine gleichnamige</text>
+<text x="40" y="187" fill="#47505c" font-size="13" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">Datei mitbringt.</text>
+        <text x="40" y="420" fill="#47505c" font-size="13" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">Die Regeln laufen in fester</text>
+<text x="40" y="437" fill="#47505c" font-size="13" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">Reihenfolge; ein Repo meldet</text>
+<text x="40" y="454" fill="#47505c" font-size="13" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">immer den ersten Grund.</text>
+        <line x1="40" y1="636" x2="960" y2="636" stroke="rgba(28,33,40,0.10)" stroke-width="0.8"/><text x="40" y="652" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">LEGENDE</text>
         <polygon points="132,642 144,648 132,654 120,648" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-        <text x="152" y="652" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">Prüfung</text>
+        <text x="152" y="652" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Prüfung</text>
         <line x1="230" y1="648" x2="256" y2="648" stroke="#b02a8a" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
-        <text x="264" y="652" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">Erfolgspfad</text>
-        <text x="350" y="653" fill="#24774a" font-size="11" font-family="'Chakra Petch', system-ui, sans-serif">●</text>
-        <text x="364" y="652" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">erledigt</text>
-        <text x="446" y="653" fill="#13738a" font-size="11" font-family="'Chakra Petch', system-ui, sans-serif">◆</text>
-        <text x="460" y="652" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">Hinweis</text>
-        <text x="538" y="653" fill="#8f6200" font-size="11" font-family="'Chakra Petch', system-ui, sans-serif">▲</text>
-        <text x="552" y="652" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">Achtung</text>
-        <text x="630" y="653" fill="#b42f25" font-size="11" font-family="'Chakra Petch', system-ui, sans-serif">✖</text>
-        <text x="644" y="652" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">Warnung</text>
-        <text x="722" y="653" fill="#47505c" font-size="11" font-family="'Chakra Petch', system-ui, sans-serif">○</text>
-        <text x="736" y="652" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif">neutral</text>
-
+        <text x="264" y="652" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Erfolgspfad</text>
+        <text x="350" y="653" fill="#24774a" font-size="11" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">●</text>
+        <text x="364" y="652" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">erledigt</text>
+        <text x="442" y="653" fill="#8f6200" font-size="11" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">▲</text>
+        <text x="456" y="652" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Achtung</text>
+        <text x="534" y="653" fill="#b42f25" font-size="11" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">✖</text>
+        <text x="548" y="652" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Warnung</text>
+        <text x="626" y="653" fill="#47505c" font-size="11" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">○</text>
+        <text x="640" y="652" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">neutral</text>
       </svg>
     </div>
   </div>

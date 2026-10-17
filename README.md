@@ -49,14 +49,14 @@ A typical machine carries dozens of repositories, three package managers and a c
 
 | | |
 | --- | --- |
-| **Overview** | CPU, memory and process totals with two-minute sparklines, a single list of what needs attention across repos and updates, and contribution graphs of your AI answers and own commits over the last 53 weeks. |
-| **Workspaces** | Point hud at your project folders. It finds every Git repository and shows branch, upstream, local changes and ahead/behind counts. |
-| **Auto fast-forward** | Every 15 minutes hud fetches quietly and fast-forwards repos that are clean and only behind. On by default, switchable off per workspace. |
-| **Updates** | Outdated Homebrew formulae and casks, global npm packages and installed skills, each with the state of its CLI. Update one, or all, after a confirmation. |
+| **Overview** | CPU and memory with two-minute sparklines and the process count, a single list of what needs attention across repos and updates, and contribution graphs of your AI answers and own commits over the last 53 weeks. |
+| **Workspaces** | Point hud at your project folders. It finds every Git repository and shows branch, ahead/behind counts and its state, or why it was skipped. |
+| **Auto fast-forward** | Every 15 minutes (configurable) hud fetches quietly and fast-forwards repos that are clean and only behind. On by default, switchable off per workspace. |
+| **Updates** | Outdated Homebrew formulae and casks, global npm packages and installed skills, each with the state of its CLI. Update one package, or all skills at once, after a confirmation. Pinned packages are shown but never installed. |
 | **Automatic installs** | Separate opt-ins for Homebrew formulae, casks and npm. Casks that ask for a password are flagged as manual and not retried. |
 | **AI dashboard** | Claude Code tokens, cost, models, cache hit rate, subagents, thinking, activity by hour or day, current context use and top projects, for today, 7 days, 30 days, this month or last month. Optionally Claude Code's OpenTelemetry metrics (active time, lines of code, commits, PRs), received on localhost. Codex as an optional second source, with reasoning tokens and its plan usage per limit window. |
-| **Log** | Every action, manual or automatic, with trigger, target, result and the tail of its output. |
-| **Your terminal** | Light and dark detected from the terminal background, `NO_COLOR` respected, English and German, keyboard first with full mouse support. |
+| **Log** | Every fast-forward, every installation and every failed fetch, with trigger, target, result, duration and the tail of its output. Filter by automatic, manual or problems, and search. |
+| **Your terminal** | Light and dark detected from the terminal background, `NO_COLOR` respected, English and German. Keyboard first; the mouse switches tabs and periods, selects rows and runs footer actions. |
 
 ### Status at a glance
 
@@ -70,16 +70,18 @@ The colours follow the crew-alerting code of glass cockpits. Every state also ha
 | ✖ | warning | error, diverged history, CLI not found |
 | ○ | normal | nothing to do |
 
-With a [Nerd Font](https://www.nerdfonts.com) such as Hack Nerd Font, set `icons = "nerd"` for Git, Homebrew, npm and AI source icons. Plain `ascii` is there for minimal terminals.
+With a [Nerd Font](https://www.nerdfonts.com) such as Hack Nerd Font, set `icons = "nerd"` for Nerd Font status glyphs and Git, Homebrew, npm, Skills and AI source icons. Plain `ascii` is there for minimal terminals.
 
 ## Safe by construction
 
 hud fast-forwards a repository only when all of these hold:
 
 1. no merge, rebase, cherry-pick, revert or bisect in progress
-2. a branch is checked out and it has an upstream
+2. a branch with at least one commit is checked out and it has an upstream
 3. no modified or staged tracked files (untracked files are fine; Git refuses to overwrite them)
 4. the branch is behind its upstream and not ahead of it
+
+Automatic runs also respect the per-workspace opt-out; `f` fast-forwards an opted-out repo by hand under the same rules.
 
 The rule lives in a pure function in the domain layer. Passing it is the only way to obtain a `FastForwardPermit`, and `fast_forward` cannot be called without one. The permit pins both commit IDs, so if you commit in the meantime, hud notices and does nothing. Package installs work the same way with an `InstallPermit`.
 
@@ -115,35 +117,37 @@ Requirements: macOS, Rust via [rustup](https://rustup.rs) (the toolchain is pinn
 hud
 ```
 
-On first start hud asks for your workspace folders and shows a preview of both symbol sets. It writes `~/.config/hud/config.toml`, then scans. Add or remove workspaces later in **Settings**.
+On first start hud asks for your workspace folders, then shows all three symbol sets and lets you pick the one that renders correctly. `Esc` cancels without writing anything. It writes `~/.config/hud/config.toml`, then scans. Add or remove workspaces later in **Settings**.
 
 To start over, delete the configuration, the database, or both. hud lists the files and asks before deleting; `--yes` skips the question.
 
 ```bash
 hud --reset-config          # next start runs the setup again
-hud --reset-data            # scan cache, action log, install history
+hud --reset-data            # the whole database, including received telemetry
 hud --reset-config --reset-data --yes
 ```
+
+`--reset-data` deletes `hud.db`: scan cache, action log, install history, the AI usage read from logs (read again on the next start) and received telemetry (cannot be rebuilt). Without a terminal, a reset needs `--yes`. `hud --help` and `hud --version` print and exit.
 
 ## Keys
 
 | Key | Action |
 | --- | --- |
 | `Tab` / `Shift-Tab` | next / previous tab |
-| `↑` `↓` | move selection (wraps around at both ends) |
-| `Enter` | run the selected action |
+| `↑` `↓` / `k` `j` | move selection (wraps around at both ends) |
+| `Enter` | Updates: open the install dialog; Settings: change the value; dialogs: confirm |
 | `f` | fast-forward the selected repo; in Log: cycle the filter |
 | `u` | update the selected package |
-| `←` `→` / `1`–`5` | switch the period for the whole AI tab |
+| `←` `→` / `h` `l` / `1`–`5` | switch the period for the whole AI tab |
 | `t` | switch on telemetry in Claude Code (AI, asks first) |
 | `/` / `Esc` | search the log / drop the search |
-| `a` / `d` | add / remove a workspace (Settings) |
-| `r` | refresh now; in Settings: reload the config file |
+| `a` / `d` | add / remove a workspace (Settings); `Space` and `←` `→` change values there too |
+| `r` | fetch and sync now; in Updates: check sources; in Log: reload; in Settings: reload the config file |
 | `?` | help for the current tab |
-| `q` | quit; while an installation runs, choose to wait for it or cancel it |
+| `q` | quit; while an installation runs, choose to wait (`Enter`) or cancel (`a`); `Esc` or `n` goes back, a second `q` quits at once |
 | `Ctrl-C` | quit, even from an input |
 
-With the mouse, click a tab, a period, a row or any action in the footer. A second click on the selected row acts like `Enter`, and the wheel moves the selection. Dialogs only answer to keys.
+With the mouse, click a tab, a period, a row or any action in the footer. A second click on the selected row acts like `Enter` (Updates, Settings), and the wheel moves the selection. Dialogs only answer to keys; a click closes the help. The setup screen is keyboard only.
 
 ## Configuration
 
@@ -175,7 +179,7 @@ enabled = true               # OTLP receiver on 127.0.0.1
 port = 4318
 ```
 
-hud rereads the file before it writes changes from **Settings**, and keeps your comments. The full reference is in [the architecture document](docs/ARCHITECTURE.md#87-konfiguration).
+The file lives in `$XDG_CONFIG_HOME/hud/` if that is set, else in `~/.config/hud/`. hud rereads it before it writes changes from **Settings**, and keeps your comments. Tool paths, the enabled sources (Claude Code, Codex, Skills) and the telemetry settings are read at start only; change them and restart hud. The full reference is in [the architecture document](docs/ARCHITECTURE.md#87-konfiguration).
 
 ## Data and privacy
 
@@ -185,7 +189,7 @@ hud rereads the file before it writes changes from **Settings**, and keeps your 
 | History and cache | `~/Library/Application Support/hud/hud.db` |
 | Logs | `~/Library/Logs/hud/` |
 
-hud reads usage fields from Claude Code and Codex session logs and nothing else: no prompts, no responses, no credentials. In `~/.codex` it opens only `sessions` and `archived_sessions`. While it runs, it listens on `127.0.0.1` for Claude Code's OpenTelemetry metrics and keeps only names, values, times, session and model; it changes `~/.claude/settings.json` only after you confirm with `t`. The only outgoing network traffic is what `git fetch`, `brew`, `npm` and `npx` do themselves.
+hud reads usage fields from Claude Code session logs (`~/.claude/projects`, or `$CLAUDE_CONFIG_DIR`) and Codex session logs (`sessions` and `archived_sessions` in `~/.codex`, or `$CODEX_HOME`) and nothing else: no prompts, no responses, no credentials. While it runs, it listens on `127.0.0.1` for Claude Code's OpenTelemetry metrics and keeps only metric name, value, time, session, model and type. It reads the `env` block of `~/.claude/settings.json` to show the telemetry state and adds entries only after you confirm with `t`; it never replaces existing values. For the Git calendar it reads your own commit times with `git log`. Logs rotate daily and seven files are kept; `HUD_LOG` sets the level. The only outgoing network traffic is what `git fetch`, `brew`, `npm` and `npx` do themselves.
 
 ## Architecture
 
@@ -194,8 +198,8 @@ Five crates in four layers. Dependencies point inwards only, and the domain know
 ```
 hud                        binary, composition root
 ├── hud-tui                Ratatui presentation, Elm architecture, i18n
-├── hud-infrastructure     adapters: git, brew, npm, skills, Claude, Codex, SQLite, config
-└── hud-application        use cases and ports
+├── hud-infrastructure     adapters: git, brew, npm, skills, Claude, Codex, OTLP, SQLite, config, system
+└── hud-application        agents, use cases and ports
     └── hud-domain         rules as pure functions, permits, value types
 ```
 

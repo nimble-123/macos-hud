@@ -4,27 +4,49 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Automatischer Fast-Forward</title>
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Serif:ital@0;1&amp;display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --paper: #f2f3f1; --ink: #1c2128; --muted: #47505c; --soft: #5a6470;
-      --accent: #b02a8a; --accent-tint: rgba(176,42,138,0.08); --link: #13738a;
-      --sans: 'Chakra Petch', system-ui, sans-serif; --mono: 'IBM Plex Mono', ui-monospace, monospace; --serif: 'IBM Plex Serif', serif;
+      --color-paper:   #f2f3f1;
+      --color-ink:     #1c2128;
+      --color-muted:   #47505c;
+      --color-accent:  #b02a8a;
+      --font-sans:     'Chakra Petch', system-ui, sans-serif;
+      --font-serif:    'Chakra Petch', system-ui, sans-serif;
+      --font-mono:     'IBM Plex Mono', ui-monospace, monospace;
     }
-    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
-    .frame { width: 100%; max-width: 1200px; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
     .diagram-container { width: 100%; overflow-x: auto; }
-    .eyebrow { margin-bottom: 0.5rem; color: var(--muted); font: 500 0.66rem var(--mono); letter-spacing: 0.18em; text-transform: uppercase; }
-    h1 { margin-bottom: 1.5rem; color: var(--ink); font: 600 clamp(1.5rem, 2.4vw + 0.75rem, 1.75rem)/1.15 var(--sans); letter-spacing: -0.01em; }
-    svg { width: 100%; min-width: 1040px; display: block; }
-    .node-name { fill: var(--ink); font: 600 12px var(--sans); text-anchor: middle; }
-    .sublabel { fill: var(--soft); font: 400 9px var(--mono); text-anchor: middle; }
-    .arrow-label { fill: var(--soft); font: 400 8px var(--mono); letter-spacing: 0.06em; text-anchor: middle; }
-    .eyebrow-svg { fill: var(--muted); font: 500 8px var(--mono); letter-spacing: 0.14em; }
-    .legend { fill: var(--muted); font: 400 8px var(--mono); letter-spacing: 0.06em; }
-    .callout { fill: var(--ink); font: italic 400 14px var(--serif); }
-
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
     @media print {
       .diagram-container { overflow-x: visible; }
       svg { min-width: 0; }
@@ -33,105 +55,87 @@
 </head>
 <body>
   <div class="frame">
-    <p class="eyebrow">Sequenz · Laufzeitsicht 6.2</p>
+    <p class="eyebrow">Laufzeitsicht · Sequence</p>
     <h1>Automatischer Fast-Forward</h1>
     <div class="diagram-container">
-      <svg viewBox="0 0 1040 784" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="seq-auto-ff-title seq-auto-ff-desc">
+      <svg viewBox="0 0 960 664" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="seq-auto-ff-title seq-auto-ff-desc">
         <title id="seq-auto-ff-title">Automatischer Fast-Forward</title>
-        <desc id="seq-auto-ff-desc">Sequenz des automatischen Fast-Forward: Der Use Case holt Status per Git, die Domain erteilt einen Permit, der Adapter führt den Fast-Forward nur bei unverändertem HEAD aus, beide Schritte werden protokolliert und die TUI informiert.</desc>
-        <defs>
-          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker>
-          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker>
-          <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker>
-          <marker id="arrow-soft" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#5a6470"/></marker>
-          <marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#47505c" stroke-width="1.2"/></marker>
-        </defs>
-        <rect width="1040" height="784" fill="#f2f3f1"/>
-        <line x1="120" y1="88" x2="120" y2="712" stroke="rgba(28,33,40,0.22)" stroke-width="1" stroke-dasharray="3,3"/>
-        <line x1="320" y1="88" x2="320" y2="712" stroke="rgba(28,33,40,0.22)" stroke-width="1" stroke-dasharray="3,3"/>
-        <line x1="520" y1="88" x2="520" y2="712" stroke="rgba(28,33,40,0.22)" stroke-width="1" stroke-dasharray="3,3"/>
-        <line x1="720" y1="88" x2="720" y2="712" stroke="rgba(28,33,40,0.22)" stroke-width="1" stroke-dasharray="3,3"/>
-        <line x1="920" y1="88" x2="920" y2="712" stroke="rgba(28,33,40,0.22)" stroke-width="1" stroke-dasharray="3,3"/>
-        <rect x="64" y="436" width="604" height="176" rx="4" fill="rgba(28,33,40,0.02)" stroke="rgba(28,33,40,0.22)" stroke-width="1"/>
-        <rect x="64" y="436" width="40" height="16" rx="2" fill="#f2f3f1" stroke="rgba(28,33,40,0.22)" stroke-width="1"/>
-        <text x="84" y="448" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.12em">ALT</text>
-        <text x="136" y="448" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.04em">[HEAD == head_oid]</text>
-        <line x1="72" y1="560" x2="660" y2="560" stroke="rgba(28,33,40,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
-        <text x="136" y="576" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="0.04em">[sonst]</text>
-        <rect x="116" y="132" width="8" height="556" fill="rgba(28,33,40,0.06)" stroke="#47505c" stroke-width="0.8"/>
-        <rect x="516" y="192" width="8" height="44" fill="rgba(28,33,40,0.06)" stroke="#47505c" stroke-width="0.8"/>
-        <rect x="316" y="280" width="8" height="44" fill="rgba(28,33,40,0.06)" stroke="#47505c" stroke-width="0.8"/>
-        <rect x="516" y="416" width="8" height="180" fill="rgba(28,33,40,0.06)" stroke="#47505c" stroke-width="0.8"/>
-        <path d="M 124 140 L 160 140 L 160 164 L 124 164" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <line x1="124" y1="200" x2="516" y2="200" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <line x1="516" y1="232" x2="124" y2="232" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-        <line x1="124" y1="288" x2="316" y2="288" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <line x1="316" y1="320" x2="124" y2="320" stroke="#b02a8a" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
-        <line x1="124" y1="368" x2="720" y2="368" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-open)"/>
-        <line x1="124" y1="408" x2="516" y2="408" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <path d="M 524 476 L 560 476 L 560 500 L 524 500" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <line x1="516" y1="536" x2="124" y2="536" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-        <line x1="516" y1="596" x2="124" y2="596" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-        <line x1="124" y1="640" x2="720" y2="640" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-open)"/>
-        <line x1="124" y1="684" x2="920" y2="684" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-open)"/>
-        <rect x="168" y="146" width="76" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="206" y="155" class="arrow-label">TICK 15 MIN</text>
-        <rect x="380" y="182" width="80" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="420" y="191" class="arrow-label">FETCH+STATUS</text>
-        <rect x="386" y="214" width="68" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="420" y="223" class="arrow-label">REPOSTATUS</text>
-        <rect x="178" y="270" width="84" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="220" y="279" class="arrow-label">SYNC_DECISION</text>
-        <rect x="186" y="302" width="68" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="220" y="311" class="arrow-label" style="fill:#b02a8a">FF(PERMIT)</text>
-        <rect x="582" y="350" width="76" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="620" y="359" class="arrow-label">LOG STARTED</text>
-        <rect x="380" y="390" width="80" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="420" y="399" class="arrow-label">FAST_FORWARD</text>
-        <rect x="568" y="482" width="80" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="608" y="491" class="arrow-label">MERGE FF-ONLY</text>
-        <rect x="392" y="518" width="56" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="420" y="527" class="arrow-label">ADVANCED</text>
-        <rect x="380" y="578" width="80" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="420" y="587" class="arrow-label">STATECHANGED</text>
-        <rect x="580" y="622" width="80" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="620" y="631" class="arrow-label">LOG FINISHED</text>
-        <rect x="786" y="666" width="68" height="12" rx="2" fill="#f2f3f1"/>
-        <text x="820" y="675" class="arrow-label">REPOSYNCED</text>
-        <rect x="40" y="40" width="160" height="48" rx="6" fill="#f2f3f1"/>
-        <rect x="40" y="40" width="160" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-        <text x="120" y="62" class="node-name">SyncRepositories</text>
-        <text x="120" y="77" class="sublabel">Use Case</text>
-        <rect x="240" y="40" width="160" height="48" rx="6" fill="#f2f3f1"/>
-        <rect x="240" y="40" width="160" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-        <text x="320" y="62" class="node-name">Domain</text>
-        <text x="320" y="77" class="sublabel">sync_decision</text>
-        <rect x="440" y="40" width="160" height="48" rx="6" fill="#f2f3f1"/>
-        <rect x="440" y="40" width="160" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-        <text x="520" y="62" class="node-name">GitCli</text>
-        <text x="520" y="77" class="sublabel">GitPort-Adapter</text>
-        <rect x="640" y="40" width="160" height="48" rx="6" fill="#f2f3f1"/>
-        <rect x="640" y="40" width="160" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-        <text x="720" y="62" class="node-name">ActionLog</text>
-        <text x="720" y="77" class="sublabel">SQLite</text>
-        <rect x="840" y="40" width="160" height="48" rx="6" fill="#f2f3f1"/>
-        <rect x="840" y="40" width="160" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
-        <text x="920" y="62" class="node-name">TUI</text>
-        <text x="920" y="77" class="sublabel">Elm-Schleife</text>
-        <text x="900" y="710" class="callout" text-anchor="end">zeigt ● ok für 30 s</text>
-        <path d="M 904 705 Q 911 703 917 702" fill="none" stroke="rgba(28,33,40,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
-        <circle cx="920" cy="702" r="2" fill="#1c2128"/>
-        <line x1="40" y1="724" x2="1000" y2="724" stroke="rgba(28,33,40,0.10)" stroke-width="0.8"/>
-        <text x="40" y="744" class="eyebrow-svg">LEGENDE</text>
-        <line x1="136" y1="741" x2="164" y2="741" stroke="#47505c" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <text x="172" y="744" class="legend">Aufruf</text>
-        <line x1="238" y1="741" x2="266" y2="741" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-        <text x="274" y="744" class="legend">Antwort</text>
-        <line x1="345" y1="741" x2="373" y2="741" stroke="#47505c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-open)"/>
-        <text x="381" y="744" class="legend">asynchron</text>
-        <line x1="462" y1="741" x2="490" y2="741" stroke="#b02a8a" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
-        <text x="498" y="744" class="legend">Permit erteilt</text>
-
+        <desc id="seq-auto-ff-desc">Ein Sync des WorkspaceAgent: Fetch und Status je Repo, Speichern im ScanCache, sync_decision, bei einem Permit ActionLog-Start, merge --ff-only nur bei unverändertem HEAD und ActionLog-Ende, danach RepoScanned je Repo und Workspaces am Ende an die TUI.</desc>
+        <defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker><marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker><marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker><marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#47505c" stroke-width="1.2"/></marker></defs>
+        <rect width="100%" height="100%" fill="#f2f3f1"/>
+        <line x1="110" y1="72" x2="110" y2="588" stroke="rgba(28,33,40,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="310" y1="72" x2="310" y2="588" stroke="rgba(28,33,40,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="510" y1="72" x2="510" y2="588" stroke="rgba(28,33,40,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="690" y1="72" x2="690" y2="588" stroke="rgba(28,33,40,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="870" y1="72" x2="870" y2="588" stroke="rgba(28,33,40,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+        <rect x="106" y="100" width="8" height="468" fill="rgba(28,33,40,0.06)" stroke="#47505c" stroke-width="0.8"/>
+        <rect x="306" y="140" width="8" height="388" fill="rgba(28,33,40,0.06)" stroke="#47505c" stroke-width="0.8"/>
+        <rect x="506" y="176" width="8" height="48" fill="rgba(28,33,40,0.06)" stroke="#47505c" stroke-width="0.8"/>
+        <rect x="506" y="400" width="8" height="48" fill="rgba(28,33,40,0.06)" stroke="#47505c" stroke-width="0.8"/>
+        <rect x="686" y="244" width="8" height="16" fill="rgba(28,33,40,0.06)" stroke="#47505c" stroke-width="0.8"/>
+        <rect x="686" y="368" width="8" height="16" fill="rgba(28,33,40,0.06)" stroke="#47505c" stroke-width="0.8"/>
+        <rect x="686" y="464" width="8" height="16" fill="rgba(28,33,40,0.06)" stroke="#47505c" stroke-width="0.8"/>
+        <line x1="114" y1="112" x2="864" y2="112" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow-open)"/>
+        <rect x="746.9" y="93" width="66.3" height="12" rx="2" fill="#f2f3f1"/><text x="780.0" y="102" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">SYNCSTARTED</text>
+        <line x1="114" y1="148" x2="304" y2="148" stroke="#47505c" stroke-width="1" marker-end="url(#arrow)"/>
+        <rect x="168.9" y="129" width="82.2" height="12" rx="2" fill="#f2f3f1"/><text x="210.0" y="138" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">EXECUTE(FETCH)</text>
+        <line x1="314" y1="184" x2="504" y2="184" stroke="#47505c" stroke-width="1" marker-end="url(#arrow)"/>
+        <rect x="371.6" y="165" width="76.9" height="12" rx="2" fill="#f2f3f1"/><text x="410.0" y="174" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">FETCH, STATUS</text>
+        <line x1="506" y1="216" x2="316" y2="216" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="379.5" y="197" width="61.0" height="12" rx="2" fill="#f2f3f1"/><text x="410.0" y="206" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">REPOSTATUS</text>
+        <line x1="314" y1="252" x2="684" y2="252" stroke="#47505c" stroke-width="1" marker-end="url(#arrow)"/>
+        <rect x="558.9" y="233" width="82.2" height="12" rx="2" fill="#f2f3f1"/><text x="600.0" y="242" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">SCANCACHE.SAVE</text>
+        <path d="M314 284 H342 Q350 284 350 292 V300 Q350 308 342 308 H320" fill="none" stroke="#47505c" stroke-width="1" marker-end="url(#arrow)"/>
+        <rect x="361.6" y="289" width="76.9" height="12" rx="2" fill="#f2f3f1"/><text x="400.0" y="298" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">SYNC_DECISION</text>
+        <rect x="240" y="328" width="474" height="164" rx="4" fill="rgba(28,33,40,0.02)" stroke="rgba(28,33,40,0.22)" stroke-width="1"/><rect x="240" y="328" width="40" height="16" rx="2" fill="#f2f3f1" stroke="rgba(28,33,40,0.22)" stroke-width="1"/><text x="260" y="340" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.12em">OPT</text><text x="252" y="358" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.04em">[Permit]</text>
+        <line x1="314" y1="376" x2="684" y2="376" stroke="#47505c" stroke-width="1" marker-end="url(#arrow)"/>
+        <rect x="569.5" y="357" width="61.0" height="12" rx="2" fill="#f2f3f1"/><text x="600.0" y="366" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">LOG: START</text>
+        <line x1="314" y1="408" x2="504" y2="408" stroke="#b02a8a" stroke-width="1" marker-end="url(#arrow-accent)"/>
+        <rect x="371.6" y="389" width="76.9" height="12" rx="2" fill="#f2f3f1"/><text x="410.0" y="398" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">MERGE FF-ONLY</text>
+        <line x1="506" y1="440" x2="316" y2="440" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="384.8" y="421" width="50.4" height="12" rx="2" fill="#f2f3f1"/><text x="410.0" y="430" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ERGEBNIS</text>
+        <line x1="314" y1="472" x2="684" y2="472" stroke="#47505c" stroke-width="1" marker-end="url(#arrow)"/>
+        <rect x="566.9" y="453" width="66.3" height="12" rx="2" fill="#f2f3f1"/><text x="600.0" y="462" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">LOG: FINISH</text>
+        <line x1="314" y1="520" x2="864" y2="520" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow-open)"/>
+        <rect x="746.9" y="501" width="66.3" height="12" rx="2" fill="#f2f3f1"/><text x="780.0" y="510" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">REPOSCANNED</text>
+        <line x1="114" y1="556" x2="864" y2="556" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow-open)"/>
+        <rect x="749.5" y="537" width="61.0" height="12" rx="2" fill="#f2f3f1"/><text x="780.0" y="546" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">WORKSPACES</text>
+        <rect x="30" y="24" width="160" height="48" rx="6" fill="#f2f3f1"/>
+<rect x="30" y="24" width="160" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="110.0" y="45.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">WorkspaceAgent</text>
+<text x="110.0" y="60.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Timer oder r</text>
+        <rect x="230" y="24" width="160" height="48" rx="6" fill="#f2f3f1"/>
+<rect x="230" y="24" width="160" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="310.0" y="45.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">SyncRepositories</text>
+<text x="310.0" y="60.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Use Case + Domain</text>
+        <rect x="430" y="24" width="160" height="48" rx="6" fill="#f2f3f1"/>
+<rect x="430" y="24" width="160" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="510.0" y="45.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">GitCli</text>
+<text x="510.0" y="60.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">git, ProcessRunner</text>
+        <rect x="610" y="24" width="160" height="48" rx="6" fill="#f2f3f1"/>
+<rect x="610" y="24" width="160" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="690.0" y="45.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">SqliteStore</text>
+<text x="690.0" y="60.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">ScanCache, ActionLog</text>
+        <rect x="790" y="24" width="160" height="48" rx="6" fill="#f2f3f1"/>
+<rect x="790" y="24" width="160" height="48" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<text x="870.0" y="45.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">TUI</text>
+<text x="870.0" y="60.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Model, Anzeige</text>
+        <text x="140" y="196" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">je Repo, bis zu 8</text>
+<text x="140" y="214" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">parallel; Fetch-</text>
+<text x="140" y="232" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">Fehler ins ActionLog</text>
+        <text x="724" y="384" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">nur bei HEAD =</text>
+<text x="724" y="402" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">head_oid; sonst</text>
+<text x="724" y="420" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">übersprungen</text>
+        <line x1="40" y1="612" x2="920" y2="612" stroke="rgba(28,33,40,0.1)" stroke-width="0.8"/>
+<text x="40" y="628" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">LEGENDE</text>
+<line x1="128" y1="627" x2="156" y2="627" stroke="#47505c" stroke-width="1" marker-end="url(#arrow)"/>
+<text x="164" y="631" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Aufruf</text>
+<line x1="212.2" y1="627" x2="240.2" y2="627" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+<text x="248.2" y="631" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Antwort</text>
+<line x1="301.09999999999997" y1="627" x2="329.09999999999997" y2="627" stroke="#47505c" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow-open)"/>
+<text x="337.09999999999997" y="631" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Ereignis an die TUI</text>
+<line x1="446.4" y1="627" x2="474.4" y2="627" stroke="#b02a8a" stroke-width="1" marker-end="url(#arrow-accent)"/>
+<text x="482.4" y="631" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Fast-Forward</text>
       </svg>
     </div>
   </div>

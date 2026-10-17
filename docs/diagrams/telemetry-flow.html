@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Telemetrie von Claude Code</title>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Serif:ital@0;1&amp;display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f2f3f1;
+      --color-ink:     #1c2128;
+      --color-muted:   #47505c;
+      --color-accent:  #b02a8a;
+      --font-sans:     'Chakra Petch', system-ui, sans-serif;
+      --font-serif:    'Chakra Petch', system-ui, sans-serif;
+      --font-mono:     'IBM Plex Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 1040px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Laufzeitsicht · Data flow</p>
+    <h1>Telemetrie von Claude Code</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 1040 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="telemetry-flow-title telemetry-flow-desc">
+        <title id="telemetry-flow-title">Telemetrie von Claude Code</title>
+        <desc id="telemetry-flow-desc">Claude Code sendet OTLP-Metriken an den lokalen Empfänger von hud, der TelemetryAgent speichert sie in otel_metric; die Taste t ergänzt nach Rückfrage nur fehlende env-Einträge in ~/.claude/settings.json und schreibt bei Konflikten nichts.</desc>
+        <defs>
+<marker id="arr-muted" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker>
+<marker id="arr-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker>
+<marker id="arr-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#13738a"/></marker>
+<marker id="arr-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#47505c" stroke-width="1.2"/></marker>
+</defs>
+        <rect width="100%" height="100%" fill="#f2f3f1"/>
+        <text x="40" y="52" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.18em">EMPFANGEN · SOLANGE HUD LÄUFT</text>
+        <line x1="40" y1="192" x2="1000" y2="192" stroke="rgba(28,33,40,0.12)" stroke-width="0.8"/>
+        <text x="40" y="220" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.18em">EINSCHALTEN · NUR NACH BESTÄTIGUNG</text>
+        <path d="M208,120 L286,120" fill="none" stroke="#13738a" stroke-width="1.2" marker-end="url(#arr-link)"/>
+        <rect x="219.0" y="101" width="56" height="12" rx="2" fill="#f2f3f1"/><text x="247" y="110" fill="#13738a" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">OTLP/HTTP</text>
+        <path d="M496,120 L574,120" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arr-muted)"/>
+        <rect x="517.0" y="101" width="36" height="12" rx="2" fill="#f2f3f1"/><text x="535" y="110" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">KANAL</text>
+        <path d="M744,120 L822,120" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arr-muted)"/>
+        <rect x="755.0" y="101" width="56" height="12" rx="2" fill="#f2f3f1"/><text x="783" y="110" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">SPEICHERN</text>
+        <path d="M208,288 L286,288" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arr-muted)"/>
+        <rect x="227.0" y="269" width="40" height="12" rx="2" fill="#f2f3f1"/><text x="247" y="278" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ENABLE</text>
+        <path d="M496,288 L590,288" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arr-muted)"/>
+        <path d="M728,288 L822,288" fill="none" stroke="#b02a8a" stroke-width="1.2" marker-end="url(#arr-accent)"/>
+        <rect x="765.0" y="269" width="20" height="12" rx="2" fill="#f2f3f1"/><text x="775" y="278" fill="#b02a8a" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">JA</text>
+        <path d="M660,328 L660,374" fill="none" stroke="#47505c" stroke-width="1.2" marker-end="url(#arr-muted)"/>
+        <rect x="668" y="346" width="28" height="12" rx="2" fill="#f2f3f1"/><text x="682.0" y="355" fill="#5a6470" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NEIN</text>
+        <rect x="40" y="80" width="168" height="80" rx="6" fill="#f2f3f1"/>
+        <rect x="40" y="80" width="168" height="80" rx="6" fill="rgba(28,33,40,0.03)" stroke="rgba(28,33,40,0.30)" stroke-width="1"/>
+        <rect x="48" y="86" width="36" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.40)" stroke-width="0.8"/>
+        <text x="66.0" y="95" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">EXTERN</text>
+        <text x="124.0" y="128.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Claude Code</text>
+        <text x="124.0" y="143.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">exportiert Metriken</text>
+        <rect x="288" y="72" width="208" height="96" rx="6" fill="#f2f3f1"/>
+        <rect x="288" y="72" width="208" height="96" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <rect x="296" y="78" width="40" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.40)" stroke-width="0.8"/>
+        <text x="316.0" y="87" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">ADAPTER</text>
+        <text x="392.0" y="115.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">OtlpReceiver</text>
+        <text x="392.0" y="130.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">127.0.0.1:4318</text>
+        <text x="392.0" y="143.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">POST /v1/metrics, ≤ 4 MiB</text>
+        <text x="392.0" y="156.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">nur Delta-Summen</text>
+        <rect x="576" y="80" width="168" height="80" rx="6" fill="#f2f3f1"/>
+        <rect x="576" y="80" width="168" height="80" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <rect x="584" y="86" width="32" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.40)" stroke-width="0.8"/>
+        <text x="600.0" y="95" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">AGENT</text>
+        <text x="660.0" y="128.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">TelemetryAgent</text>
+        <text x="660.0" y="143.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">speichert die Punkte</text>
+        <rect x="824" y="72" width="176" height="96" rx="6" fill="#f2f3f1"/>
+        <rect x="824" y="72" width="176" height="96" rx="6" fill="rgba(28,33,40,0.05)" stroke="#47505c" stroke-width="1"/>
+        <rect x="832" y="78" width="36" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.40)" stroke-width="0.8"/>
+        <text x="850.0" y="87" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">SQLITE</text>
+        <text x="912.0" y="115.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">otel_metric</text>
+        <text x="912.0" y="130.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Name, Wert, Zeit,</text>
+        <text x="912.0" y="143.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Session, Modell, Typ</text>
+        <text x="912.0" y="156.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">→ UsageAgent, immer ~</text>
+        <rect x="40" y="248" width="168" height="80" rx="6" fill="#f2f3f1"/>
+        <rect x="40" y="248" width="168" height="80" rx="6" fill="rgba(71,80,92,0.10)" stroke="#5a6470" stroke-width="1"/>
+        <rect x="48" y="254" width="28" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.40)" stroke-width="0.8"/>
+        <text x="62.0" y="263" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">TUI</text>
+        <text x="124.0" y="290.0" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">Taste t</text>
+        <text x="124.0" y="305.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Rückfrage im KI-Tab</text>
+        <text x="124.0" y="318.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">zeigt alle Einträge</text>
+        <rect x="288" y="248" width="208" height="80" rx="6" fill="#f2f3f1"/>
+        <rect x="288" y="248" width="208" height="80" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <rect x="296" y="254" width="32" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.40)" stroke-width="0.8"/>
+        <text x="312.0" y="263" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">AGENT</text>
+        <text x="392.0" y="290.0" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">TelemetrySetupAgent</text>
+        <text x="392.0" y="305.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">liest env erneut</text>
+        <text x="392.0" y="318.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">classify(env, port)</text>
+        <polygon points="660,248 728,288 660,328 592,288" fill="#f2f3f1"/>
+        <polygon points="660,248 728,288 660,328 592,288" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="660" y="285" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Status</text>
+        <text x="660" y="298" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">Disabled?</text>
+        <rect x="824" y="240" width="176" height="96" rx="6" fill="#f2f3f1"/>
+        <rect x="824" y="240" width="176" height="96" rx="6" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+        <rect x="832" y="246" width="32" height="12" rx="2" fill="transparent" stroke="rgba(176,42,138,0.40)" stroke-width="0.8"/>
+        <text x="848.0" y="255" fill="#b02a8a" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">DATEI</text>
+        <text x="912.0" y="283.5" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">settings.json</text>
+        <text x="912.0" y="298.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">~/.claude, Block env</text>
+        <text x="912.0" y="311.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">nur fehlende Einträge</text>
+        <text x="912.0" y="324.5" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">nie ersetzen</text>
+        <rect x="584" y="376" width="152" height="64" rx="6" fill="#f2f3f1"/>
+        <rect x="584" y="376" width="152" height="64" rx="6" fill="rgba(28,33,40,0.02)" stroke="rgba(28,33,40,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="660.0" y="399.0" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle" font-weight="600">nichts schreiben</text>
+        <text x="660.0" y="414.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">aktiv, Konflikt</text>
+        <text x="660.0" y="427.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">oder unlesbar</text>
+        <text x="824" y="368" fill="#1c2128" font-size="13" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">Claude Code liest die Einträge</text>
+        <text x="824" y="386" fill="#1c2128" font-size="13" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">beim nächsten Start.</text>
+        <line x1="40" y1="472" x2="1000" y2="472" stroke="rgba(28,33,40,0.10)" stroke-width="0.8"/>
+        <text x="40" y="492" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">LEGENDE</text>
+        <rect x="120" y="483" width="20" height="12" rx="3" fill="rgba(176,42,138,0.08)" stroke="#b02a8a" stroke-width="1"/>
+        <text x="148" y="492" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">einzige Schreibstelle</text>
+        <rect x="289" y="483" width="20" height="12" rx="3" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+        <text x="317" y="492" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Adapter, Agent</text>
+        <rect x="421" y="483" width="20" height="12" rx="3" fill="rgba(28,33,40,0.05)" stroke="#47505c" stroke-width="1"/>
+        <text x="449" y="492" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Tabelle</text>
+        <rect x="515" y="483" width="20" height="12" rx="3" fill="rgba(28,33,40,0.03)" stroke="rgba(28,33,40,0.30)" stroke-width="1"/>
+        <text x="543" y="492" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Claude Code</text>
+        <rect x="630" y="483" width="20" height="12" rx="3" fill="rgba(71,80,92,0.10)" stroke="#5a6470" stroke-width="1"/>
+        <text x="658" y="492" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Bedienung</text>
+        <line x1="735" y1="489" x2="753" y2="489" stroke="#13738a" stroke-width="1.2" marker-end="url(#arr-link)"/>
+        <text x="763" y="492" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">lokales HTTP</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>
