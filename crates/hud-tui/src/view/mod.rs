@@ -9,6 +9,7 @@ use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 mod ai;
 mod ai_kpis;
 mod calendar;
+mod help;
 mod log;
 mod overview;
 mod settings;
@@ -46,6 +47,9 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Tab::Overview => overview::render(model, frame, body),
     }
     render_footer(model, frame, footer);
+    if model.help {
+        help::render(model, frame, body);
+    }
     if model.quit == crate::model::Quit::Asking {
         render_quit(model, frame, body);
     }
@@ -104,7 +108,7 @@ fn render_quit(model: &Model, frame: &mut Frame, area: Rect) {
     frame.render_widget(Paragraph::new(lines).block(block), dialog);
 }
 
-fn tab_message(tab: Tab) -> &'static str {
+pub(crate) fn tab_message(tab: Tab) -> &'static str {
     match tab {
         Tab::Overview => "tab-overview",
         Tab::Workspaces => "tab-workspaces",
@@ -221,6 +225,7 @@ fn footer_hints(model: &Model) -> Vec<(&'static str, &'static str)> {
     hints.extend([
         ("key-r", refresh),
         ("key-tab", "hint-switch"),
+        ("help-key-help", "hint-help"),
         ("key-quit", "hint-quit"),
     ]);
     hints
@@ -610,6 +615,17 @@ mod tests {
     #[test]
     fn ai_tab_in_english() {
         insta::assert_snapshot!(render_wide(&ai_tab(Language::En)).backend());
+    }
+
+    #[test]
+    fn help_overlay_on_the_log_tab_in_german() {
+        let mut model = german();
+        model.tab = Tab::Log;
+        update(
+            &mut model,
+            Msg::Key(KeyEvent::new(KeyCode::Char('?'), KeyModifiers::NONE)),
+        );
+        insta::assert_snapshot!(render_wide(&model).backend());
     }
 
     #[test]

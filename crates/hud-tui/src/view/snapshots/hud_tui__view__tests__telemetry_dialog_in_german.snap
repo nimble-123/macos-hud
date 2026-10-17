@@ -23,4 +23,4 @@ expression: render_wide(&model).backend()
 "    claude-opus-5-5                     1.537        3,1 k      212,4 k       12,4 M      180,2 M     ≈ 137,48 $   "
 "                                                                                                                   "
 "  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
-"  ←→ Zeitraum   t einschalten   r aktualisieren   tab wechseln   q beenden                                         "
+"  ←→ Zeitraum   t einschalten   r aktualisieren   tab wechseln   ? Hilfe   q beenden                               "

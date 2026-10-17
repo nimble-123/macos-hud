@@ -45,6 +45,11 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
     if model.quit == Quit::Asking {
         return on_quit_key(model, key);
     }
+    // The overlay takes all keys; any key closes it, nothing else happens.
+    if model.help {
+        model.help = false;
+        return Vec::new();
+    }
     if model.confirm.is_some() {
         return on_confirm_key(model, key);
     }
@@ -74,6 +79,7 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
             }
         }
         KeyCode::Char('q') => return request_quit(model),
+        KeyCode::Char('?') => model.help = true,
         KeyCode::Char('r') if model.tab == Tab::Updates => {
             return vec![Command::Updates(UpdateCommand::CheckNow)];
         }
@@ -481,6 +487,16 @@ mod tests {
         let mut model = ai_with_telemetry(ClaudeTelemetry::Conflict(vec!["X=1".into()]));
         update(&mut model, key(KeyCode::Char('t')));
         assert_eq!(model.telemetry_flow, TelemetryFlow::Idle);
+    }
+
+    #[test]
+    fn question_mark_opens_help_and_any_key_closes_it() {
+        let mut model = Model::default();
+        update(&mut model, key(KeyCode::Char('?')));
+        assert!(model.help);
+        update(&mut model, key(KeyCode::Char('q')));
+        assert!(!model.help);
+        assert!(!model.should_quit(), "the closing key does nothing else");
     }
 
     #[test]
