@@ -59,6 +59,15 @@ Snapshot-Tests prüfen und annehmen: `cargo insta review`.
 
 release-please pflegt auf `main` einen Release-PR mit Versionssprung und `CHANGELOG.md`. Wird er gemergt, entstehen Tag und GitHub-Release.
 
+## TUI-Screenshots
+
+Für Reviews (z. B. am Smartphone) rendert dieses Skript jeden Tab als PNG nach `target/screenshots/`, im Format eines etwa 1800 × 1800 px großen Terminalfensters mit Hack Nerd Font:
+
+```sh
+scripts/tui-screenshots.sh            # 115 × 50 Zellen
+scripts/tui-screenshots.sh 160 60     # eigene Größe
+```
+
 ## README-Grafiken
 
 Logo, Wortmarke und Showcase in `docs/assets/` werden erzeugt, nicht von Hand bearbeitet:

@@ -1,0 +1,16 @@
+---
+source: crates/hud-tui/src/view.rs
+expression: "render(&Model::default()).backend()"
+---
+"  Overview    Workspaces    Updates    AI    Log    Settings                    "
+"  ────────────────────────────────────────────────────────────────────────────  "
+"                                                                                "
+"  Overview is not built yet.                                                    "
+"                                                                                "
+"                                                                                "
+"                                                                                "
+"                                                                                "
+"                                                                                "
+"                                                                                "
+"  ────────────────────────────────────────────────────────────────────────────  "
+"  tab switch   q quit                                                           "
