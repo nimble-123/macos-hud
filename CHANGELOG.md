@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.0](https://github.com/nimble-123/macos-hud/compare/v0.2.0...v0.3.0) (2026-10-17)
+
+
+### Neue Funktionen
+
+* **app:** run update checks and installations as jobs ([#66](https://github.com/nimble-123/macos-hud/issues/66)) ([727757b](https://github.com/nimble-123/macos-hud/commit/727757b114671097277f3f840f36032f8c9f1fae))
+* **tui:** add updates tab with confirmation dialog ([#67](https://github.com/nimble-123/macos-hud/issues/67)) ([95245c2](https://github.com/nimble-123/macos-hud/commit/95245c2563b67c496b23094ef6859a12bb9aa5ec))
+* **updates:** add adapter for global npm packages ([#64](https://github.com/nimble-123/macos-hud/issues/64)) ([5975a65](https://github.com/nimble-123/macos-hud/commit/5975a656ee8184451cc867f71b273afa03a17efa))
+* **updates:** add install decision, update source port and Homebrew adapter ([#62](https://github.com/nimble-123/macos-hud/issues/62)) ([f1c6631](https://github.com/nimble-123/macos-hud/commit/f1c6631a189caf298f0738b875dec3af5f104381))
+* **updates:** add Skills CLI adapter with update-all ([#65](https://github.com/nimble-123/macos-hud/issues/65)) ([6b979da](https://github.com/nimble-123/macos-hud/commit/6b979da89d795e031bfee9a0744344074af4a080))
+
 ## [0.2.0](https://github.com/nimble-123/macos-hud/compare/v0.1.0...v0.2.0) (2026-10-17)
 
 
