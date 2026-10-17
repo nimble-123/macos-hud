@@ -15,11 +15,16 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::path::PathBuf;
 use std::time::Instant;
 
+use hud_application::ports::updates::{Availability, SourceCheck};
+use hud_application::usecases::updates::{JobId, JobState, JobUpdate, SourceReport};
 use hud_application::usecases::workspaces::{RepoReport, RepoState, WorkspaceReport};
 use hud_application::{AppEvent, ReportSource};
 use hud_domain::WorkspacePath;
 use hud_domain::git::{
     BranchName, CommitId, GitOperation, Head, RepoPath, RepoStatus, SkipReason, Upstream,
+};
+use hud_domain::update::{
+    InstallTarget, PackageKind, PackageName, SourceId, UpdateCandidate, Version,
 };
 use hud_tui::{
     Appearance, Language, Model, Msg, SetupModel, Tab, UiSettings, update, update_setup, view,
@@ -83,11 +88,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     render_scanning(&out, cols, rows)?;
+    render_confirm(&out, cols, rows)?;
 
     // Every tab in English on dark, plus the overview in the other variants.
     let variants = [
         ("en-dark", Language::En, Appearance::Dark, Tab::ALL.len()),
-        ("de-dark", Language::De, Appearance::Dark, 2),
+        ("de-dark", Language::De, Appearance::Dark, 3),
         ("en-light", Language::En, Appearance::Light, 2),
     ];
     for (suffix, language, appearance, tabs) in variants {
@@ -99,6 +105,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut model = Model::new(settings);
         update(&mut model, Msg::Tick(Instant::now()));
         update(&mut model, Msg::App(sample_workspaces()));
+        for event in sample_updates() {
+            update(&mut model, Msg::App(event));
+        }
         for tab in Tab::ALL.into_iter().take(tabs) {
             let mut terminal = Terminal::new(TestBackend::new(cols, rows))?;
             terminal.draw(|frame| view(&model, frame))?;
@@ -173,6 +182,147 @@ fn render_scanning(
     let mut terminal = Terminal::new(TestBackend::new(cols, rows))?;
     terminal.draw(|frame| view(&model, frame))?;
     let name = "02-workspaces-scanning-de-dark.svg";
+    std::fs::write(
+        out.join(name),
+        to_svg(terminal.backend().buffer(), Appearance::Dark),
+    )?;
+    println!("{}", out.join(name).display());
+    Ok(())
+}
+
+fn package(
+    source: SourceId,
+    kind: PackageKind,
+    name: &str,
+    current: &str,
+    latest: &str,
+) -> UpdateCandidate {
+    UpdateCandidate {
+        source,
+        kind,
+        name: PackageName::try_from(name.to_owned()).expect("BUG: name"),
+        current: Version::new(current),
+        latest: Version::new(latest),
+        pinned: false,
+    }
+}
+
+/// Update sources with a running npm installation.
+fn sample_updates() -> Vec<AppEvent> {
+    let check = |candidates| {
+        Some(Ok(SourceCheck {
+            candidates,
+            installed: Vec::new(),
+            updates_known: true,
+        }))
+    };
+    let mut pinned = package(
+        SourceId::Homebrew,
+        PackageKind::Formula,
+        "node@20",
+        "20.11.0",
+        "20.18.1",
+    );
+    pinned.pinned = true;
+    let wrangler = package(
+        SourceId::Npm,
+        PackageKind::NpmGlobal,
+        "wrangler",
+        "4.81.0",
+        "4.151.1",
+    );
+    let skills: Vec<String> = (0..72).map(|i| format!("skill-{i}")).collect();
+    vec![
+        AppEvent::Updates(vec![
+            SourceReport {
+                source: SourceId::Homebrew,
+                availability: Availability::Available("7.0.9".into()),
+                check: check(vec![
+                    package(
+                        SourceId::Homebrew,
+                        PackageKind::Formula,
+                        "wget",
+                        "1.21.4",
+                        "1.24.5",
+                    ),
+                    package(
+                        SourceId::Homebrew,
+                        PackageKind::Cask,
+                        "firefox",
+                        "118.0",
+                        "119.0",
+                    ),
+                    pinned,
+                ]),
+            },
+            SourceReport {
+                source: SourceId::Npm,
+                availability: Availability::Available("11.6.2".into()),
+                check: check(vec![
+                    package(
+                        SourceId::Npm,
+                        PackageKind::NpmGlobal,
+                        "@sap/cds-dk",
+                        "9.7.2",
+                        "10.1.0",
+                    ),
+                    package(
+                        SourceId::Npm,
+                        PackageKind::NpmGlobal,
+                        "@ui5/cli",
+                        "4.0.49",
+                        "4.0.71",
+                    ),
+                    wrangler.clone(),
+                ]),
+            },
+            SourceReport {
+                source: SourceId::Skills,
+                availability: Availability::Available("1.7.2".into()),
+                check: Some(Ok(SourceCheck {
+                    candidates: Vec::new(),
+                    installed: skills,
+                    updates_known: false,
+                })),
+            },
+        ]),
+        AppEvent::Job(JobUpdate {
+            id: JobId(1),
+            target: InstallTarget::Package(wrangler),
+            state: JobState::Running,
+        }),
+    ]
+}
+
+/// Updates tab with the confirmation dialog for a major npm update.
+fn render_confirm(
+    out: &std::path::Path,
+    cols: u16,
+    rows: u16,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let settings = UiSettings {
+        language: Language::De,
+        ..UiSettings::default()
+    };
+    let mut model = Model::new(settings);
+    update(&mut model, Msg::Tick(Instant::now()));
+    for event in sample_updates() {
+        update(&mut model, Msg::App(event));
+    }
+    let press = |code| Msg::Key(KeyEvent::new(code, KeyModifiers::NONE));
+    for code in [
+        KeyCode::Tab,
+        KeyCode::Tab,
+        KeyCode::Down,
+        KeyCode::Down,
+        KeyCode::Down,
+        KeyCode::Char('u'),
+    ] {
+        update(&mut model, press(code));
+    }
+    let mut terminal = Terminal::new(TestBackend::new(cols, rows))?;
+    terminal.draw(|frame| view(&model, frame))?;
+    let name = "03-updates-confirm-de-dark.svg";
     std::fs::write(
         out.join(name),
         to_svg(terminal.backend().buffer(), Appearance::Dark),

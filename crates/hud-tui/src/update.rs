@@ -3,6 +3,8 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use hud_application::{AppEvent, Command, UpdateCommand, WorkspaceCommand};
 
+use hud_domain::update::InstallTarget;
+
 use crate::model::{OK_HIGHLIGHT, ScanProgress};
 use crate::{Model, Msg, Tab};
 
@@ -26,6 +28,9 @@ pub fn update(model: &mut Model, msg: Msg) -> Vec<Command> {
 }
 
 fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
+    if model.confirm.is_some() {
+        return on_confirm_key(model, key);
+    }
     match key.code {
         KeyCode::Tab => model.tab = model.tab.next(),
         KeyCode::BackTab => model.tab = model.tab.previous(),
@@ -43,6 +48,22 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
         KeyCode::Up | KeyCode::Char('k') if model.tab == Tab::Workspaces => {
             move_selection(model, -1);
         }
+        KeyCode::Down | KeyCode::Char('j') if model.tab == Tab::Updates => {
+            move_update_selection(model, 1);
+        }
+        KeyCode::Up | KeyCode::Char('k') if model.tab == Tab::Updates => {
+            move_update_selection(model, -1);
+        }
+        KeyCode::Char('u') | KeyCode::Enter if model.tab == Tab::Updates => {
+            let rows = model.update_rows();
+            let selectable = rows
+                .get(model.update_selected)
+                .filter(|target| match target {
+                    InstallTarget::Package(candidate) => !candidate.pinned,
+                    InstallTarget::AllSkills => true,
+                });
+            model.confirm = selectable.cloned();
+        }
         KeyCode::Char('f') if model.tab == Tab::Workspaces => {
             if let Some(report) = model.selected_repo() {
                 return vec![Command::Workspaces(WorkspaceCommand::FastForward(
@@ -53,6 +74,38 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
         _ => {}
     }
     Vec::new()
+}
+
+/// The dialog takes all keys: Enter installs, Esc closes, everything else is ignored.
+fn on_confirm_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
+    match key.code {
+        KeyCode::Enter => model
+            .confirm
+            .take()
+            .map(|target| {
+                vec![Command::Updates(UpdateCommand::Install {
+                    target,
+                    confirmed: true,
+                })]
+            })
+            .unwrap_or_default(),
+        KeyCode::Esc | KeyCode::Char('n') => {
+            model.confirm = None;
+            Vec::new()
+        }
+        _ => Vec::new(),
+    }
+}
+
+fn move_update_selection(model: &mut Model, delta: isize) {
+    let count = model.update_rows().len();
+    if count == 0 {
+        return;
+    }
+    model.update_selected = model
+        .update_selected
+        .saturating_add_signed(delta)
+        .min(count - 1);
 }
 
 fn move_selection(model: &mut Model, delta: isize) {
@@ -103,7 +156,11 @@ fn on_app_event(model: &mut Model, event: AppEvent) {
                 }
             }
         }
-        AppEvent::Updates(reports) => model.updates = reports,
+        AppEvent::Updates(reports) => {
+            model.updates = reports;
+            let count = model.update_rows().len();
+            model.update_selected = model.update_selected.min(count.saturating_sub(1));
+        }
         AppEvent::SourceUpdated(report) => {
             match model
                 .updates
@@ -348,6 +405,89 @@ mod tests {
             Msg::App(workspaces(vec![report("/ws/a", RepoState::UpToDate)])),
         );
         assert_eq!(model.scan, None);
+    }
+
+    use hud_application::ports::updates::{Availability, SourceCheck};
+    use hud_application::usecases::updates::SourceReport;
+    use hud_domain::update::{PackageKind, PackageName, SourceId, UpdateCandidate, Version};
+
+    fn npm_candidate(name: &str, pinned: bool) -> UpdateCandidate {
+        UpdateCandidate {
+            source: SourceId::Npm,
+            kind: PackageKind::NpmGlobal,
+            name: PackageName::try_from(name.to_owned()).expect("BUG"),
+            current: Version::new("1.0.0"),
+            latest: Version::new("1.1.0"),
+            pinned,
+        }
+    }
+
+    fn on_updates_tab(candidates: Vec<UpdateCandidate>) -> Model {
+        let mut model = Model::default();
+        update(&mut model, key(KeyCode::Tab));
+        update(&mut model, key(KeyCode::Tab));
+        let check = SourceCheck {
+            candidates,
+            installed: Vec::new(),
+            updates_known: true,
+        };
+        let report = SourceReport {
+            source: SourceId::Npm,
+            availability: Availability::Available("11".into()),
+            check: Some(Ok(check)),
+        };
+        update(&mut model, Msg::App(AppEvent::Updates(vec![report])));
+        model
+    }
+
+    #[test]
+    fn u_opens_the_dialog_and_enter_sends_a_confirmed_install() {
+        let mut model = on_updates_tab(vec![npm_candidate("a", false), npm_candidate("b", false)]);
+        update(&mut model, key(KeyCode::Down));
+        assert_eq!(update(&mut model, key(KeyCode::Char('u'))), Vec::new());
+        assert!(model.confirm.is_some());
+        let commands = update(&mut model, key(KeyCode::Enter));
+        assert_eq!(
+            commands,
+            vec![Command::Updates(UpdateCommand::Install {
+                target: InstallTarget::Package(npm_candidate("b", false)),
+                confirmed: true,
+            })]
+        );
+        assert_eq!(model.confirm, None);
+    }
+
+    #[test]
+    fn escape_closes_the_dialog_without_installing() {
+        let mut model = on_updates_tab(vec![npm_candidate("a", false)]);
+        update(&mut model, key(KeyCode::Char('u')));
+        assert_eq!(update(&mut model, key(KeyCode::Esc)), Vec::new());
+        assert_eq!(model.confirm, None);
+    }
+
+    #[test]
+    fn q_does_not_quit_while_the_dialog_is_open() {
+        let mut model = on_updates_tab(vec![npm_candidate("a", false)]);
+        update(&mut model, key(KeyCode::Char('u')));
+        update(&mut model, key(KeyCode::Char('q')));
+        assert!(!model.should_quit());
+        assert!(model.confirm.is_some());
+    }
+
+    #[test]
+    fn pinned_packages_do_not_open_the_dialog() {
+        let mut model = on_updates_tab(vec![npm_candidate("a", true)]);
+        update(&mut model, key(KeyCode::Char('u')));
+        assert_eq!(model.confirm, None);
+    }
+
+    #[test]
+    fn r_on_the_updates_tab_checks_sources_instead_of_syncing() {
+        let mut model = on_updates_tab(vec![]);
+        assert_eq!(
+            update(&mut model, key(KeyCode::Char('r'))),
+            vec![Command::Updates(UpdateCommand::CheckNow)]
+        );
     }
 
     #[test]

@@ -69,3 +69,34 @@ hint-move = move
 scan-local = Local scan
 scan-sync = Fetch and sync
 ws-scanning = Looking for repositories …
+src-homebrew = Homebrew
+src-npm = npm (global)
+src-skills = Skills
+src-missing = not found
+src-broken = error: { $message }
+src-checking = checking …
+src-up-to-date = everything up to date
+src-skills-installed = { $count ->
+    [one] 1 skill installed, updates unknown
+   *[other] { $count } skills installed, updates unknown
+}
+src-update-all = Update all skills
+bump-major = major update
+pinned = pinned
+job-queued = waiting
+job-running = running
+job-succeeded = installed
+job-needs-interaction = needs a password, run it in a terminal
+job-denied = not allowed
+job-failed = failed: { $message }
+job-timed-out = timed out
+key-u = u
+hint-install = install
+confirm-title = Install update?
+confirm-major = Major update: it may contain incompatible changes.
+confirm-install = install
+confirm-cancel = cancel
+jobs-running = { $count ->
+    [one] 1 installation running
+   *[other] { $count } installations running
+}

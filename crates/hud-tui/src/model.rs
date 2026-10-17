@@ -55,6 +55,7 @@ use std::time::{Duration, Instant};
 use hud_application::usecases::updates::{JobId, JobUpdate, SourceReport};
 use hud_application::usecases::workspaces::{RepoReport, RepoState, WorkspaceReport};
 use hud_domain::git::RepoPath;
+use hud_domain::update::InstallTarget;
 
 use crate::settings::UiSettings;
 use crate::theme::Theme;
@@ -88,6 +89,10 @@ pub struct Model {
     pub(crate) jobs: BTreeMap<JobId, JobUpdate>,
     /// Installation jobs that ended in this session.
     pub(crate) finished_jobs: BTreeMap<JobId, JobUpdate>,
+    /// Index into [`Model::update_rows`].
+    pub(crate) update_selected: usize,
+    /// Installation waiting for confirmation in the dialog.
+    pub(crate) confirm: Option<InstallTarget>,
 }
 
 /// Progress of a running scan.
@@ -123,7 +128,38 @@ impl Model {
             updates: Vec::new(),
             jobs: BTreeMap::new(),
             finished_jobs: BTreeMap::new(),
+            update_selected: 0,
+            confirm: None,
         }
+    }
+
+    /// Actionable rows of the Updates tab in display order.
+    pub(crate) fn update_rows(&self) -> Vec<InstallTarget> {
+        let mut rows = Vec::new();
+        for report in &self.updates {
+            let Some(Ok(check)) = &report.check else {
+                continue;
+            };
+            if check.updates_known {
+                rows.extend(check.candidates.iter().cloned().map(InstallTarget::Package));
+            } else if report.source == hud_domain::update::SourceId::Skills {
+                rows.push(InstallTarget::AllSkills);
+            }
+        }
+        rows
+    }
+
+    /// The job that last touched `target`: a running one first, else the latest finished one.
+    pub(crate) fn job_for(&self, target: &InstallTarget) -> Option<&JobUpdate> {
+        self.jobs
+            .values()
+            .find(|job| job.target == *target)
+            .or_else(|| {
+                self.finished_jobs
+                    .values()
+                    .rev()
+                    .find(|job| job.target == *target)
+            })
     }
 
     /// All repositories in display order, across workspaces.
