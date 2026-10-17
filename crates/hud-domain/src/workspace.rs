@@ -9,6 +9,15 @@ pub enum DomainError {
     /// A workspace path must be absolute so it does not depend on the working directory.
     #[error("workspace path must be absolute: {0}")]
     RelativeWorkspacePath(PathBuf),
+    /// A repository path must be absolute.
+    #[error("repository path must be absolute: {0}")]
+    RelativeRepoPath(PathBuf),
+    /// Branch names are non-empty and contain no whitespace.
+    #[error("invalid branch name: {0:?}")]
+    InvalidBranchName(String),
+    /// Commit ids are 40 or 64 hexadecimal digits.
+    #[error("invalid commit id: {0:?}")]
+    InvalidCommitId(String),
 }
 
 /// Absolute path of a workspace folder. Existence is not required: a missing

@@ -182,12 +182,12 @@ pub struct RepoStatus {
 pub enum SyncDecision { UpToDate, FastForward(FastForwardPermit), Skip(SkipReason) }
 
 pub enum SkipReason {
-    OperationInProgress(GitOperation), DetachedHead, NoUpstream,
+    OperationInProgress(GitOperation), DetachedHead, NoCommits, NoUpstream,
     TrackedChanges, Diverged { ahead: u32, behind: u32 }, Ahead(u32), OptedOut,
 }
 ```
 
-Regel: `pub fn sync_decision(repo: &RepoPath, status: &RepoStatus, mode: SyncMode) -> SyncDecision` mit `SyncMode::{Auto { opted_out: bool }, Manual}` (PRD, Abbildung 2, und Abschnitt 6.2). Im Modus `Manual` entfällt nur die Opt-out-Prüfung; alle Sicherheitsregeln gelten weiter. Liefert `Auto` den Grund `OptedOut`, bietet die UI den manuellen Fast-Forward an.
+Regel: `pub fn sync_decision(repo: &RepoPath, status: &RepoStatus, mode: SyncMode) -> SyncDecision` mit `SyncMode::{Auto { opted_out: bool }, Manual}` (PRD, Abbildung 2, und Abschnitt 6.2). Im Modus `Manual` entfällt nur die Opt-out-Prüfung; alle Sicherheitsregeln gelten weiter. Ein Branch ohne Commits (`NoCommits`) hat keine `head_oid` und kann daher keinen Permit erhalten. Liefert `Auto` den Grund `OptedOut`, bietet die UI den manuellen Fast-Forward an.
 
 **Updates**
 
@@ -355,12 +355,13 @@ Pfade werden aus `$HOME` und `XDG_CONFIG_HOME` gebildet; ein zusätzliches Crate
 ```rust
 /// Nur `sync_decision` kann einen Permit erzeugen: Felder privat, Konstruktor `pub(crate)`.
 #[must_use]
-pub struct FastForwardPermit { repo: RepoPath, head_oid: CommitId, target_oid: CommitId }
+pub struct FastForwardPermit { repo: RepoPath, head_oid: CommitId, target_oid: CommitId, commits: u32 }
 
 impl FastForwardPermit {
     pub fn repo(&self) -> &RepoPath { &self.repo }
     pub fn head_oid(&self) -> &CommitId { &self.head_oid }
     pub fn target_oid(&self) -> &CommitId { &self.target_oid }
+    pub fn commits(&self) -> u32 { self.commits }
 }
 
 pub trait GitPort: Send + Sync {
