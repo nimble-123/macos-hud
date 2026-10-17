@@ -447,6 +447,84 @@ fn longest_match<'a, T: Copy>(entries: impl Iterator<Item = (&'a str, T)>, id: &
         .map(|(_, value)| value)
 }
 
+/// What a telemetry data point from Claude Code measures.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum TelemetryMetric {
+    /// Cost as Claude Code computes it, in micro-USD.
+    Cost,
+    /// Tokens; the detail says which kind.
+    Tokens,
+    /// Active time in milliseconds; the detail says `user` or `cli`.
+    ActiveTime,
+    /// Lines added by Claude Code.
+    LinesAdded,
+    /// Lines removed by Claude Code.
+    LinesRemoved,
+    /// Commits created.
+    Commits,
+    /// Pull requests created.
+    PullRequests,
+    /// Sessions started.
+    Sessions,
+}
+
+/// One delta data point. Only these fields are ever kept (ADR 0011).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TelemetryPoint {
+    /// End of the interval the delta covers.
+    pub at: Timestamp,
+    /// What it measures.
+    pub metric: TelemetryMetric,
+    /// Sub-kind such as `input` tokens or `user` active time.
+    pub detail: Option<String>,
+    /// Model, where the metric has one.
+    pub model: Option<ModelId>,
+    /// Session.
+    pub session: Option<String>,
+    /// Amount in the metric's unit.
+    pub value: u64,
+}
+
+/// Telemetry summed over a period.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct TelemetryTotals {
+    /// Cost according to Claude Code, micro-USD.
+    pub cost_micro_usd: u64,
+    /// Active time typing and reading, milliseconds.
+    pub active_user_ms: u64,
+    /// Active time of tools and responses, milliseconds.
+    pub active_cli_ms: u64,
+    /// Lines added.
+    pub lines_added: u64,
+    /// Lines removed.
+    pub lines_removed: u64,
+    /// Commits.
+    pub commits: u64,
+    /// Pull requests.
+    pub pull_requests: u64,
+    /// Sessions started.
+    pub sessions: u64,
+}
+
+impl TelemetryTotals {
+    /// Adds one data point.
+    pub fn add(&mut self, point: &TelemetryPoint) {
+        let target = match (point.metric, point.detail.as_deref()) {
+            (TelemetryMetric::Cost, _) => &mut self.cost_micro_usd,
+            (TelemetryMetric::ActiveTime, Some("user")) => &mut self.active_user_ms,
+            (TelemetryMetric::ActiveTime, _) => &mut self.active_cli_ms,
+            (TelemetryMetric::LinesAdded, _) => &mut self.lines_added,
+            (TelemetryMetric::LinesRemoved, _) => &mut self.lines_removed,
+            (TelemetryMetric::Commits, _) => &mut self.commits,
+            (TelemetryMetric::PullRequests, _) => &mut self.pull_requests,
+            (TelemetryMetric::Sessions, _) => &mut self.sessions,
+            // Token counts come from the logs, which cover every session.
+            (TelemetryMetric::Tokens, _) => return,
+        };
+        *target += point.value;
+    }
+}
+
 /// An estimated cost; there is deliberately no type for exact costs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CostEstimate {

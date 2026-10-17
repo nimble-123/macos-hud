@@ -4,6 +4,7 @@ pub mod clock;
 pub mod config;
 pub mod discovery;
 pub mod git;
+pub mod otlp;
 pub mod process;
 pub mod sqlite;
 pub mod updates;

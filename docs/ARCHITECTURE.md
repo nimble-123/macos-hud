@@ -50,7 +50,7 @@ Alle Diagramme liegen als Quelle in `docs/diagrams/*.html` und eingebettet als `
 | Persistenz | SQLite (rusqlite, `bundled`) |
 | Konfiguration | TOML (`toml` zum Lesen über Serde, `toml_edit` zum kommentarerhaltenden Schreiben) |
 | Fremdwerkzeuge | `git`, `brew`, `npm`, `npx skills` werden als Prozesse aufgerufen, nicht als Bibliotheken eingebunden |
-| Netzwerk | Keine eigenen Netzwerkzugriffe; nur die der aufgerufenen Werkzeuge |
+| Netzwerk | Keine ausgehenden Verbindungen außer denen der aufgerufenen Werkzeuge; einziger eingehender Zugang ist der OTLP-Empfänger auf `127.0.0.1` (ADR 0011) |
 
 ### 2.2 Organisatorisch
 
@@ -150,6 +150,7 @@ Abhängigkeitsversionen stehen zentral in `[workspace.dependencies]`; Crates erb
 | `UpdateSource` | Verfügbarkeit, Kandidaten, Installation mit Permit | `Brew`, `NpmGlobal`, `Skills` | **dynamisch** (`Vec<Arc<dyn UpdateSource>>`) |
 | `UsageSource` | inkrementeller Ingest von KI-Nutzung | `ClaudeLogs`, `CodexLogs` | **dynamisch** |
 | `UsageStore` | Nutzung speichern und abfragen | `SqliteStore` | statisch |
+| `TelemetryStore` | Telemetrie-Datenpunkte speichern und summieren | `SqliteStore` | statisch |
 | `ActionLog` | Aktionen protokollieren und lesen | `SqliteStore` | statisch |
 | `ScanCache` | letzte Scan-Ergebnisse für schnellen Start | `SqliteStore` | statisch |
 | `SettingsStore` | Config lesen und kommentarerhaltend schreiben | `TomlSettings` | statisch |
@@ -241,6 +242,7 @@ pub enum Outcome { Succeeded, Failed(String), Skipped(String), Cancelled, TimedO
 | `FastForwardRepo` | manueller FF für ein Repo (ignoriert Opt-out, nicht die übrigen Regeln) |
 | `CheckUpdates` | alle `UpdateSource`s parallel, Fehler pro Quelle isoliert → `AppEvent::UpdatesChecked` |
 | `InstallUpdates` | Decision je Kandidat → Installation mit Permit, Sperre pro Paketmanager → `ActionLog` |
+| `TelemetryAgent` | speichert die Datenpunkte, die der `OtlpReceiver` (Infrastruktur, Composition Root) über einen Kanal liefert |
 | `UsageAgent` | liest beim Start, alle 60 s und nach jeder Änderung der Einstellungen alle `UsageSource`s inkrementell in den `UsageStore`, fasst die Nutzung mit `summarize` je `Period`, Provider und Modell zusammen (Sessions, Antworten, Token, `CostEstimate`, jeweils mit `Accuracy`) und sendet `AppEvent::Usage(UsageReport)` |
 | `SettingsAgent` | wendet `SettingsCommand::Change(SettingsChange)` über `SettingsStore::update` an (Sprache, Theme, Symbolsatz, Workspace hinzufügen/entfernen, Fast-Forward-Opt-out, Installations-Opt-ins) und liest auf `SettingsCommand::Reload` die Datei neu; veröffentlicht das Ergebnis über einen `watch`-Kanal und sendet `AppEvent::Settings` bzw. bei Fehlern `SettingsRejected` (die bisherigen Einstellungen bleiben dann gültig); sendet beim Start die aktuellen Einstellungen |
 | `LogAgent` | liest auf `LogCommand::Load` die letzten 500 Einträge aus dem `ActionLog` und sendet `AppEvent::Actions`; die TUI fordert sie beim Öffnen des Protokoll-Tabs an und, solange er offen ist, nach jedem beendeten Job, manuellen Fast-Forward und Sync |
@@ -334,6 +336,8 @@ Alle drei `select!`-Zweige sind cancel-safe. Die Schleife macht kein I/O außer 
 5. Claude: Schlüssel `message.id:requestId`. Mehrere Zeilen derselben Antwort werden beim Speichern zusammengeführt, je Token-Art zählt der höchste Wert. Der Cache-Schreibanteil wird nach 5 Minuten und 1 Stunde getrennt; ältere Logs ohne Aufteilung zählen als 5 Minuten. `speed` und `inference_geo` bestimmen den Tarif.
 6. `summarize` berechnet je Zeitraum Sessions, Token und `CostEstimate` aus der Preistabelle und den Overrides der Config, gesamt und je Modell (teuerstes zuerst).
 
+**Telemetrie von Claude Code (ADR 0011).** Ist `[ai.telemetry]` aktiv (Standard), öffnet das Binary beim Start den `OtlpReceiver` auf `127.0.0.1:4318`. Ein belegter Port wird als `ReceiverState::Unavailable` geführt, hud startet trotzdem. Ausgewertet werden die Delta-Summen von `claude_code.cost.usage` (USD → Mikro-USD), `token.usage`, `active_time.total` (s → ms, `type` = `user`/`cli`), `lines_of_code.count` (`added`/`removed`), `commit.count`, `pull_request.count` und `session.count`; kumulative Reihen und andere Metriken werden übersprungen. Der `TelemetryAgent` speichert die Punkte in `otel_metric`.
+
 ### 6.6 Beenden während einer laufenden Aktion
 
 ![Lebenszyklus eines Jobs und Beenden](diagrams/job-lifecycle.svg)
@@ -358,6 +362,7 @@ Alle drei `select!`-Zweige sind cancel-safe. Die Schleife macht kein I/O außer 
 | Logs | `~/Library/Logs/hud/hud.log.YYYY-MM-DD`, 7 Tage aufbewahrt |
 | Gelesen | `~/.claude/projects/**/*.jsonl`, `~/.codex/sessions/**/*.jsonl`, Workspace-Ordner |
 | Aufgerufen | `git`, `brew`, `npm`, `npx` aus dem PATH der Login-Shell |
+| Lauscht | `127.0.0.1:4318` (OTLP/HTTP+JSON, nur solange hud läuft; Port über `[ai.telemetry]`) |
 
 Pfade werden aus `$HOME` und `XDG_CONFIG_HOME` gebildet; ein zusätzliches Crate für Pfade ist nicht nötig.
 
@@ -455,6 +460,7 @@ Alle Fremdwerkzeuge laufen über den internen `ProcessRunner`:
 | `install_history` | Installationsergebnis je Paket und Version (`installed`, `needs_interaction`, `failed`) | `id`, Index auf `source`, `name` |
 | `ingest_offset` | Lesefortschritt je JSONL-Datei | `file` |
 | `ai_usage` | Nutzung je Antwort bzw. Token-Ereignis | `provider`, `message_key` |
+| `otel_metric` | Telemetrie-Datenpunkte von Claude Code (Delta je Exportintervall) | `id`, Index auf `at_ms` |
 
 - `rusqlite` (`bundled`), WAL-Modus, `foreign_keys=ON`.
 - Ein **dedizierter DB-Thread** besitzt die einzige Verbindung (Actor). Anfragen kommen über `mpsc`, Antworten über `oneshot`. Dadurch blockiert SQLite nie die Runtime, und es gibt nur einen Schreiber.
@@ -506,6 +512,10 @@ billing = "subscription"     # subscription | api
 enabled = false
 billing = "subscription"
 
+[ai.telemetry]
+enabled = true               # OTLP-Empfänger auf 127.0.0.1 (ADR 0011)
+port = 4318
+
 # Optional: feste Pfade statt Suche im Login-PATH
 # [tools]
 # npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
@@ -556,7 +566,8 @@ Jeder angezeigte Wert ist ein `Measured<T>`:
 
 ### 8.12 Sicherheit und Datenschutz
 
-- Keine eigenen Netzwerkzugriffe, keine Telemetrie.
+- Keine ausgehenden Verbindungen, keine Telemetrie von hud selbst.
+- Der OTLP-Empfänger (ADR 0011) lauscht nur auf `127.0.0.1`, nimmt nur `POST /v1/metrics` mit `application/json` ohne Kompression an (höchstens 4 MiB) und behält je Datenpunkt nur Metrikname, Wert, Zeit, `session.id`, `model` und `type`; `user.email`, Konto- und Organisations-IDs werden beim Parsen verworfen. `/v1/logs` und `/v1/traces` werden angenommen und nicht ausgewertet.
 - Fremdwerkzeuge laufen ohne Shell-Interpolation (Argumente als Liste, nie als String an `sh -c`; einzige Ausnahme: das einmalige Auslesen des Login-PATH).
 - `npx skills` läuft mit gepinnter Version, damit kein ungeprüfter neuer Code ausgeführt wird, und mit abgeschalteter Telemetrie (`DISABLE_TELEMETRY`, `DO_NOT_TRACK`).
 - Die Skills-CLI kennt keinen reinen Prüfmodus: `update` vergleicht den Hash aus `~/.agents/.skill-lock.json` mit dem aktuellen Git-Stand der Quelle und installiert sofort.
@@ -596,6 +607,7 @@ Architekturentscheidungen stehen als einzelne Dateien in [`docs/adr/`](adr/) (Vo
 | [0008](adr/0008-kein-hintergrunddienst.md) | Kein Hintergrunddienst | akzeptiert |
 | [0009](adr/0009-geldbetraege-als-ganzzahlige-mikro-dollar.md) | Geldbeträge als ganzzahlige Mikro-Dollar | akzeptiert |
 | [0010](adr/0010-untracked-dateien-blockieren-fast-forward-nicht.md) | Untracked Dateien blockieren den Fast-Forward nicht | akzeptiert |
+| [0011](adr/0011-otlp-empfaenger-auf-localhost.md) | OTLP-Empfänger auf localhost für Claude-Code-Telemetrie | akzeptiert |
 
 ---
 

@@ -127,6 +127,24 @@ pub struct ProviderSettings {
     pub billing: Billing,
 }
 
+/// The OTLP receiver for Claude Code telemetry (ADR 0011).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TelemetrySettings {
+    /// Whether hud listens at all.
+    pub enabled: bool,
+    /// Port on `127.0.0.1`.
+    pub port: u16,
+}
+
+impl Default for TelemetrySettings {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            port: 4318,
+        }
+    }
+}
+
 /// Explicit paths for external tools; `None` means look up in the login PATH.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ToolPaths {
@@ -163,6 +181,8 @@ pub struct Settings {
     pub claude: ProviderSettings,
     /// Codex.
     pub codex: ProviderSettings,
+    /// OTLP receiver.
+    pub telemetry: TelemetrySettings,
     /// Price overrides by model id, in micro-USD per million tokens (ADR 0009).
     pub prices: BTreeMap<String, hud_domain::usage::Price>,
     /// Explicit tool paths.
@@ -189,6 +209,7 @@ impl Default for Settings {
                 enabled: false,
                 billing: Billing::Subscription,
             },
+            telemetry: TelemetrySettings::default(),
             prices: BTreeMap::new(),
             tools: ToolPaths::default(),
         }

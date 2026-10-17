@@ -7,7 +7,8 @@ use std::time::Duration;
 use hud_application::settings::{
     AutoInstallKind, AutoInstallSettings, Billing, IconPreference, InitialSetup,
     LanguagePreference, ProviderSettings, ScanSettings, Settings, SettingsChange, SettingsError,
-    SettingsStore, SkillsSettings, ThemePreference, ToolPaths, WorkspaceSettings,
+    SettingsStore, SkillsSettings, TelemetrySettings, ThemePreference, ToolPaths,
+    WorkspaceSettings,
 };
 use hud_domain::WorkspacePath;
 use serde::Deserialize;
@@ -411,7 +412,25 @@ impl Default for Skills {
 struct Ai {
     claude: Provider,
     codex: CodexProvider,
+    telemetry: Telemetry,
     prices: BTreeMap<String, Price>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+struct Telemetry {
+    enabled: bool,
+    port: u16,
+}
+
+impl Default for Telemetry {
+    fn default() -> Self {
+        let defaults = TelemetrySettings::default();
+        Self {
+            enabled: defaults.enabled,
+            port: defaults.port,
+        }
+    }
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -522,6 +541,10 @@ impl File {
             },
             claude: provider(self.ai.claude.enabled, &self.ai.claude.billing),
             codex: provider(self.ai.codex.enabled, &self.ai.codex.billing),
+            telemetry: TelemetrySettings {
+                enabled: self.ai.telemetry.enabled,
+                port: self.ai.telemetry.port,
+            },
             prices,
             tools: ToolPaths {
                 git: self.tools.git.map(|p| expand_home(&p, home)),
