@@ -66,3 +66,6 @@ hint-next = weiter
 hint-finish = fertig
 hint-cancel = abbrechen
 hint-move = bewegen
+scan-local = Lokaler Scan
+scan-sync = Fetch und Sync
+ws-scanning = Suche Repositories …

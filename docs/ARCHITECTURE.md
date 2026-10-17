@@ -229,7 +229,7 @@ pub enum Outcome { Succeeded, Failed(String), Skipped(String), Cancelled, TimedO
 | Use Case | Ablauf |
 |---|---|
 | `LoadCachedRepos` | letzte Status aus `ScanCache`, gruppiert nach Workspace, Zustand neu berechnet; für einen sofortigen Start |
-| `SyncRepositories` | Discovery → je Repo (parallel, höchstens 8): optional Fetch → Status → `ScanCache` → Decision → bei Permit Fast-Forward mit `ActionLog` (Abschnitt 6.2); ohne Fetch ein reiner lokaler Scan |
+| `SyncRepositories` | zuerst Discovery aller Workspaces (Gesamtzahl bekannt, `AppEvent::ScanStarted { total, fetch }`), dann je Repo (parallel, höchstens 8): optional Fetch → Status → `ScanCache` → Decision → bei Permit Fast-Forward mit `ActionLog` (Abschnitt 6.2); jedes fertige Repo wird sofort als `AppEvent::RepoScanned` gemeldet; ohne Fetch ein reiner lokaler Scan |
 | `FastForwardRepo` | manueller FF für ein Repo (ignoriert Opt-out, nicht die übrigen Regeln) |
 | `CheckUpdates` | alle `UpdateSource`s parallel, Fehler pro Quelle isoliert → `AppEvent::UpdatesChecked` |
 | `InstallUpdates` | Decision je Kandidat → Installation mit Permit, Sperre pro Paketmanager → `ActionLog` |

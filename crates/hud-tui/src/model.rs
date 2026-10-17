@@ -77,6 +77,18 @@ pub struct Model {
     pub(crate) selected: usize,
     /// Repositories fast-forwarded recently, with the time it happened.
     pub(crate) recent_ok: HashMap<RepoPath, Instant>,
+    /// Progress of the running scan, if any.
+    pub(crate) scan: Option<ScanProgress>,
+    /// Number of ticks so far; drives the spinner.
+    pub(crate) ticks: u64,
+}
+
+/// Progress of a running scan.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct ScanProgress {
+    pub(crate) done: usize,
+    pub(crate) total: usize,
+    pub(crate) fetch: bool,
 }
 
 impl Default for Model {
@@ -99,6 +111,8 @@ impl Model {
             syncing: false,
             selected: 0,
             recent_ok: HashMap::new(),
+            scan: None,
+            ticks: 0,
         }
     }
 

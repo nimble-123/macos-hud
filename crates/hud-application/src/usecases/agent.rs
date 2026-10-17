@@ -74,7 +74,7 @@ where
         }
         let reports = self
             .sync
-            .execute(workspaces, &self.config.scan, false)
+            .execute(workspaces, &self.config.scan, false, Some(&events))
             .await;
         if send(
             &events,
@@ -107,7 +107,10 @@ where
                     if send(&events, AppEvent::SyncStarted).await.is_err() {
                         return;
                     }
-                    let reports = self.sync.execute(workspaces, &self.config.scan, true).await;
+                    let reports = self
+                        .sync
+                        .execute(workspaces, &self.config.scan, true, Some(&events))
+                        .await;
                     timer.reset();
                     AppEvent::Workspaces {
                         reports,
@@ -192,7 +195,10 @@ mod tests {
                     }
                     sources.push(source);
                 }
-                AppEvent::SyncStarted | AppEvent::RepoUpdated(_) => {}
+                AppEvent::SyncStarted
+                | AppEvent::RepoUpdated(_)
+                | AppEvent::ScanStarted { .. }
+                | AppEvent::RepoScanned { .. } => {}
             }
         }
         assert_eq!(

@@ -136,7 +136,8 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 
 ## 6. Bewegung
 
-- Einzige Dauerbewegung: Braille-Spinner `⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏` für laufende Aktionen (100 ms pro Frame).
+- Einzige Dauerbewegung: Braille-Spinner `⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏` für laufende Aktionen (ein Frame pro Render-Tick, 250 ms).
+- Läuft ein Scan, zeigt die Fußzeile auf allen Tabs eine zusätzliche Zeile: Spinner, Art des Laufs („Lokaler Scan“ oder „Fetch und Sync“), Balken aus `█`/`░` (20 Zellen) und `erledigt / gesamt`. Repos erscheinen einzeln, sobald ihr Status gelesen ist; leere Workspaces zeigen währenddessen „Suche Repositories …“.
 - Sparklines rollen pro Messintervall (2 s) um einen Wert weiter, ohne Übergang.
 - Kein Blinken, keine Farbanimation. Ein erledigter Status bleibt 30 s grün und kehrt dann in den Normalzustand zurück.
 
