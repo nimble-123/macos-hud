@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/nimble-123/macos-hud/compare/v0.3.0...v0.4.0) (2026-10-17)
+
+
+### Neue Funktionen
+
+* ask before quitting while installations run ([#77](https://github.com/nimble-123/macos-hud/issues/77)) ([9034f08](https://github.com/nimble-123/macos-hud/commit/9034f08ba15285e3c5308aa0b175a688e4bd8935))
+* **cli:** add flags to reset configuration and data ([#71](https://github.com/nimble-123/macos-hud/issues/71)) ([9b4fd6b](https://github.com/nimble-123/macos-hud/commit/9b4fd6bcf9657ddc8508e0f005419ada3ef82b44))
+* **tui:** add log tab with search and filter ([#75](https://github.com/nimble-123/macos-hud/issues/75)) ([d299b89](https://github.com/nimble-123/macos-hud/commit/d299b8984cc43d48704d315ec874e2ce169346c3))
+* **tui:** add settings tab that writes the config in place ([#72](https://github.com/nimble-123/macos-hud/issues/72)) ([00591fc](https://github.com/nimble-123/macos-hud/commit/00591fccd74e7d33d99c6502ae653d321c7bf4a6))
+* **tui:** wrap list selection at both ends ([#76](https://github.com/nimble-123/macos-hud/issues/76)) ([c69f29d](https://github.com/nimble-123/macos-hud/commit/c69f29d292cbfa1eda5082a3e9f9d5ea5fc31e29))
+* **updates:** install opted-in updates automatically ([#68](https://github.com/nimble-123/macos-hud/issues/68)) ([1317131](https://github.com/nimble-123/macos-hud/commit/131713137815f1faec74fe6d2e8fa5d5796e6b0b))
+* **updates:** log the end of the output of successful installs ([#78](https://github.com/nimble-123/macos-hud/issues/78)) ([1e3e41d](https://github.com/nimble-123/macos-hud/commit/1e3e41d030c417c045f0128ef4bd66a40dade5ed))
+
 ## [0.3.0](https://github.com/nimble-123/macos-hud/compare/v0.2.0...v0.3.0) (2026-10-17)
 
 
