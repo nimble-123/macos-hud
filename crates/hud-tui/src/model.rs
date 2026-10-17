@@ -49,14 +49,42 @@ impl Tab {
     }
 }
 
+use crate::settings::UiSettings;
+use crate::theme::Theme;
+
 /// Complete UI state. Changed only by [`crate::update`].
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Model {
+    pub(crate) settings: UiSettings,
+    pub(crate) theme: Theme,
     pub(crate) tab: Tab,
     pub(crate) quit: bool,
 }
 
+impl Default for Model {
+    fn default() -> Self {
+        Self::new(UiSettings::default())
+    }
+}
+
 impl Model {
+    /// A fresh model for the given presentation settings.
+    #[must_use]
+    pub fn new(settings: UiSettings) -> Self {
+        Self {
+            theme: Theme::new(settings.appearance, settings.color_depth),
+            settings,
+            tab: Tab::default(),
+            quit: false,
+        }
+    }
+
+    /// Presentation settings.
+    #[must_use]
+    pub fn settings(&self) -> UiSettings {
+        self.settings
+    }
+
     /// The active tab.
     #[must_use]
     pub fn tab(&self) -> Tab {

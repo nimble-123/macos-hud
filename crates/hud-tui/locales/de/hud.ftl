@@ -1,0 +1,11 @@
+tab-overview = Übersicht
+tab-workspaces = Workspaces
+tab-updates = Updates
+tab-ai = KI
+tab-log = Protokoll
+tab-settings = Einstellungen
+tab-placeholder = { $tab } ist noch nicht gebaut.
+key-tab = tab
+key-quit = q
+hint-switch = wechseln
+hint-quit = beenden

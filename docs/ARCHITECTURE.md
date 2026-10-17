@@ -266,7 +266,7 @@ Jeder Use Case ist eine Struct mit Abhängigkeiten im Konstruktor und einer Meth
 3. Config lesen. Fehlt sie oder enthält sie keinen Workspace: Einrichtungsdialog, danach Config schreiben.
 4. SQLite öffnen, Migrationen ausführen.
 5. PATH der Login-Shell ermitteln (`$SHELL -lic 'printf %s "$PATH"'`, Timeout 3 s, Fallback: aktueller PATH).
-6. Theme (OSC 11, 100 ms) und Sprache (`LANG`) bestimmen, sofern nicht in der Config festgelegt.
+6. Theme (OSC 11, 100 ms) und Sprache (Systemsprache von macOS über `sys-locale`) bestimmen, sofern nicht in der Config festgelegt.
 7. Composition Root baut Adapter und Use Cases, startet Scheduler und Job-Runner.
 8. Letzte Ergebnisse aus `ScanCache` anzeigen, dann ersten Scan anstoßen.
 
