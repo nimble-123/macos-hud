@@ -5,5 +5,6 @@
 #![warn(missing_docs)]
 
 mod event;
+pub mod settings;
 
 pub use event::{AppEvent, Command};
