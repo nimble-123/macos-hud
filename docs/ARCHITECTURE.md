@@ -464,9 +464,8 @@ Alle Fremdwerkzeuge laufen über den internen `ProcessRunner`:
 |---|---|---|
 | `action_log` | Protokoll aller Aktionen | `id` |
 | `repo_cache` | letzter Status je Repo für schnellen Start (Branch, Upstream, Ahead/Behind, Änderungen, Entscheidung) | `path` |
-| `update_cache` | letzte Update-Kandidaten je Quelle | `source`, `name` |
 | `install_history` | Installationsergebnis je Paket und Version (`installed`, `needs_interaction`, `failed`) | `id`, Index auf `source`, `name` |
-| `ingest_offset` | Lesefortschritt je JSONL-Datei | `file` |
+| `ingest_offset` | Lesefortschritt je JSONL-Datei | `provider`, `file` |
 | `ai_usage` | Nutzung je Antwort bzw. Token-Ereignis | `provider`, `message_key` |
 | `ai_tool_call` | Tool-Calls aus den Logs, einmal je ID | `provider`, `call_id` |
 | `otel_metric` | Telemetrie-Datenpunkte von Claude Code (Delta je Exportintervall) | `id`, Index auf `at_ms` |
@@ -474,7 +473,8 @@ Alle Fremdwerkzeuge laufen über den internen `ProcessRunner`:
 - `rusqlite` (`bundled`), WAL-Modus, `foreign_keys=ON`.
 - Ein **dedizierter DB-Thread** besitzt die einzige Verbindung (Actor). Anfragen kommen über `mpsc`, Antworten über `oneshot`. Dadurch blockiert SQLite nie die Runtime, und es gibt nur einen Schreiber.
 - Migrationen mit `rusqlite_migration`, versioniert im Code, beim Start ausgeführt.
-- Aufbewahrung: `action_log` 90 Tage, `ai_usage` unbegrenzt (klein), `repo_cache`/`update_cache` werden überschrieben.
+- Aufbewahrung: `action_log` 90 Tage, `ai_usage` unbegrenzt (klein), `repo_cache` wird überschrieben.
+- Update-Kandidaten werden nicht gespeichert: Die Update-Quellen werden bei jedem Start neu geprüft.
 
 ### 8.7 Konfiguration
 
