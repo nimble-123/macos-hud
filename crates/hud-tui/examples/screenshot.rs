@@ -4,6 +4,10 @@
 //! defaults to 115 × 50 cells, roughly a 1800 × 1800 px Warp window on Retina.
 //!
 //! Usage: `cargo run -p hud-tui --example screenshot -- <out-dir> [cols] [rows]`
+#![expect(
+    clippy::expect_used,
+    reason = "hard-coded sample data must fail loudly when it becomes invalid"
+)]
 
 use std::fmt::Write as _;
 
@@ -81,6 +85,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Realistic sample data so reviews show every state at once.
+#[expect(clippy::too_many_lines, reason = "one literal list of sample repositories")]
 fn sample_workspaces() -> AppEvent {
     let ws = |path: &str| WorkspacePath::try_from(PathBuf::from(path)).expect("BUG: absolute");
     let report = |path: &str, branch: &str, ahead: u32, behind: u32, state: RepoState| RepoReport {
