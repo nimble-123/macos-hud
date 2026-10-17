@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/nimble-123/macos-hud/compare/v0.6.0...v0.7.0) (2026-10-17)
+
+
+### Neue Funktionen
+
+* **ai:** read Codex usage and show its plan usage ([#102](https://github.com/nimble-123/macos-hud/issues/102)) ([f07ec7d](https://github.com/nimble-123/macos-hud/commit/f07ec7d46697fe5c564e7cb7071c6e45c2dde4ec))
+
 ## [0.6.0](https://github.com/nimble-123/macos-hud/compare/v0.5.0...v0.6.0) (2026-10-17)
 
 
