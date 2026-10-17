@@ -4,6 +4,7 @@
 //! Serde formats, Ratatui or any other infrastructure.
 #![warn(missing_docs)]
 
+pub mod git;
 mod workspace;
 
 pub use workspace::{DomainError, WorkspacePath};

@@ -21,6 +21,7 @@ fluent-templates = "0.15.1"
 crossterm = { version = "0.29.0", features = ["event-stream"] }
 futures = "0.3.34"
 insta = "1.49.0"
+proptest = "1.12.0"
 ratatui = "0.30.2"
 serde = { version = "1.0.229", features = ["derive"] }
 sys-locale = "0.3.2"
