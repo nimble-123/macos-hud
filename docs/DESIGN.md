@@ -134,6 +134,25 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 | `?` | Hilfe |
 | `q` | beenden (fragt nach, wenn noch etwas läuft) |
 
+### 5.2 Updates-Tab
+
+```
+Homebrew   7.0.9                                                       Quelle und Werkzeugversion
+▌ ◆ wget                  1.21.4 → 1.24.5                              Auswahl in focus
+  ▲ firefox               118.0 → 119.0          Major-Update
+  ○ node@20               20.11.0 → 20.18.1      gepinnt
+  ⠋ wrangler              4.81.0 → 4.151.1       läuft                 Spinner statt Statussymbol
+Skills   1.7.2
+  72 Skills installiert, Updates unbekannt
+  ◆ Alle Skills aktualisieren
+```
+
+- Je Quelle ein Kopf mit Werkzeugversion; fehlt das Werkzeug oder ist es defekt, steht das an dieser Stelle statt der Pakete.
+- Je Paket Statussymbol, Name, `aktuell → neu` und eine Notiz: Zustand der Installation, „Major-Update“ oder „gepinnt“. Gepinnte Pakete sind nicht installierbar.
+- Skills meldet keine einzelnen Updates; der Tab zeigt die Zahl installierter Skills und eine Zeile „Alle Skills aktualisieren“.
+- `u` oder `Enter` öffnet einen zentrierten Bestätigungsdialog in `focus` mit dem genauen Befehl. Bei einem Major-Update warnt eine Zeile in `advisory`. `Enter` installiert, `Esc` oder `n` bricht ab; solange der Dialog offen ist, gehen alle Tasten an ihn.
+- Laufende Installationen erscheinen auf allen Tabs in der Fortschrittszeile der Fußzeile, vor Scan und Sync.
+
 ## 6. Bewegung
 
 - Einzige Dauerbewegung: Braille-Spinner `⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏` für laufende Aktionen (ein Frame pro Render-Tick, 250 ms).

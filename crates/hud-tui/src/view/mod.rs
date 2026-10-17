@@ -6,6 +6,7 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
 
+mod updates;
 mod workspaces;
 
 use crate::i18n::{t, t_args};
@@ -16,7 +17,7 @@ use crate::{Model, Tab};
 /// Renders the model into a frame. Pure: reads the model, writes the frame.
 pub fn view(model: &Model, frame: &mut Frame) {
     // While work runs in the background the footer gets an extra progress line.
-    let busy = model.scan.is_some() || model.syncing;
+    let busy = model.scan.is_some() || model.syncing || !model.jobs.is_empty();
     let [tabs, body, footer] = Layout::vertical([
         Constraint::Length(2),
         Constraint::Fill(1),
@@ -30,6 +31,7 @@ pub fn view(model: &Model, frame: &mut Frame) {
     let body = body.inner(Margin::new(0, 1));
     match model.tab() {
         Tab::Workspaces => workspaces::render(model, frame, body),
+        Tab::Updates => updates::render(model, frame, body),
         tab => render_placeholder(tab, language, &model.theme, frame, body),
     }
     render_footer(model, frame, footer);
@@ -84,6 +86,9 @@ fn render_footer(model: &Model, frame: &mut Frame, area: Rect) {
     let language = model.settings.language;
     let theme = &model.theme;
     let mut hints = Vec::with_capacity(5);
+    if model.tab() == Tab::Updates {
+        hints.extend([("key-arrows", "hint-select"), ("key-u", "hint-install")]);
+    }
     if model.tab() == Tab::Workspaces {
         hints.extend([
             ("key-arrows", "hint-select"),
@@ -111,7 +116,9 @@ fn render_footer(model: &Model, frame: &mut Frame, area: Rect) {
         .border_style(Style::new().fg(theme.rule));
     let inner = block.inner(area);
     frame.render_widget(block, area);
+    // Running installations matter most: they change the system.
     let progress = match model.scan {
+        _ if !model.jobs.is_empty() => jobs_progress(model),
         Some(scan) => scan_progress(model, scan),
         None if model.syncing => vec![Span::styled(
             t(language, "syncing"),
@@ -125,6 +132,28 @@ fn render_footer(model: &Model, frame: &mut Frame, area: Rect) {
     }
     lines.push(Line::from(spans));
     frame.render_widget(Paragraph::new(lines), inner);
+}
+
+/// Spinner, number of running installations and the first one's command.
+fn jobs_progress(model: &Model) -> Vec<Span<'static>> {
+    let theme = &model.theme;
+    let accent = theme.status(crate::icons::Status::Advisory);
+    let count = u32::try_from(model.jobs.len()).unwrap_or(u32::MAX);
+    let mut spans = vec![Span::styled(
+        format!(
+            "{} {}",
+            updates::spinner(model),
+            crate::i18n::t_count(model.settings.language, "jobs-running", "count", count)
+        ),
+        Style::new().fg(accent),
+    )];
+    if let Some(job) = model.jobs.values().next() {
+        spans.push(Span::styled(
+            format!("   {}", updates::command_preview(&job.target)),
+            Style::new().fg(theme.muted),
+        ));
+    }
+    spans
 }
 
 const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];

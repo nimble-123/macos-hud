@@ -293,7 +293,7 @@ Protokolliert werden jeder Fast-Forward und jeder fehlgeschlagene Fetch. Erfolgr
 
 1. `CheckUpdates` ruft alle `UpdateSource`s parallel auf (`futures::future::join_all`); ein Fehler in einer Quelle betrifft die anderen nicht.
 2. Bei aktivem Opt-in erzeugt `install_decision(…, Trigger::Auto, …)` Permits für erlaubte Kandidaten (PRD, Abbildung 3).
-3. Manuelle Installation: Die TUI zeigt einen Bestätigungsdialog; erst danach wird `install_decision(…, Trigger::Manual { confirmed: true }, …)` aufgerufen.
+3. Manuelle Installation: Die TUI zeigt einen Bestätigungsdialog mit dem genauen Befehl und warnt bei Major-Updates; erst nach `Enter` sendet sie `UpdateCommand::Install { confirmed: true }`, und erst danach wird `install_decision(…, Trigger::Manual { confirmed: true }, …)` aufgerufen.
 4. `InstallUpdates` übernimmt die Sperre der Quelle (nie zwei `brew`- oder `npm -g`-Prozesse gleichzeitig) und installiert sequenziell.
 5. Bricht ein Cask mit einer Passwortabfrage ab (stdin ist geschlossen, `sudo` meldet „a terminal is required“), wird er als `NeedsInteraction` im Verlauf markiert und künftig nicht automatisch versucht.
 
