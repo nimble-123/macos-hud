@@ -92,7 +92,9 @@ impl<R: ProcessRunner> Brew<R> {
         };
         let output = self.run(&args, UPGRADE).await?;
         if output.code == Some(0) {
-            return Ok(InstallOutcome::Installed);
+            return Ok(InstallOutcome::Installed {
+                output: super::success_output(&output),
+            });
         }
         if needs_interaction(&output.stderr) || needs_interaction(&output.stdout) {
             return Ok(InstallOutcome::NeedsInteraction);
@@ -338,12 +340,27 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn successful_upgrade_reports_the_end_of_the_output() {
+        let stdout = "==> Upgrading wget\n==> Pouring wget--1.24.5.arm64_sequoia.bottle.tar.gz\n🍺  /opt/homebrew/Cellar/wget/1.24.5: 92 files, 4.6MB\n";
+        let runner = FakeRunner::default().answer(&["upgrade"], 0, stdout, "");
+        let outcome = Brew::new(runner, "brew")
+            .install(permit_for(cask("firefox")))
+            .await;
+        let Ok(InstallOutcome::Installed { output }) = outcome else {
+            panic!("expected an installation, got {outcome:?}")
+        };
+        assert!(output.ends_with("92 files, 4.6MB"), "{output}");
+    }
+
+    #[tokio::test]
     async fn cask_upgrade_uses_the_cask_flag_and_noninteractive_env() {
         let runner = FakeRunner::default().answer(&["upgrade"], 0, "", "");
         let brew = Brew::new(runner, "brew");
         assert_eq!(
             brew.install(permit_for(cask("firefox"))).await,
-            Ok(InstallOutcome::Installed)
+            Ok(InstallOutcome::Installed {
+                output: String::new()
+            })
         );
         let calls = brew.runner.calls.lock().expect("BUG").clone();
         assert_eq!(calls[0].args, vec!["upgrade", "--cask", "firefox"]);

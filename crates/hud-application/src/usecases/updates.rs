@@ -363,8 +363,12 @@ impl<L: ActionLog, H: InstallHistory, C: Clock> Shared<L, H, C> {
         if let Err(error) = &action {
             tracing::warn!(%error, "could not log installation start");
         }
+        let mut summary = None;
         let state = match source.install(permit).await {
-            Ok(InstallOutcome::Installed) => JobState::Succeeded,
+            Ok(InstallOutcome::Installed { output }) => {
+                summary = Some(output).filter(|output| !output.is_empty());
+                JobState::Succeeded
+            }
             Ok(InstallOutcome::NeedsInteraction) => JobState::NeedsInteraction,
             Err(UpdateError::TimedOut(_)) => JobState::TimedOut,
             Err(UpdateError::Cancelled(_)) => JobState::Cancelled,
@@ -373,7 +377,7 @@ impl<L: ActionLog, H: InstallHistory, C: Clock> Shared<L, H, C> {
         if let Ok(action) = action
             && let Err(error) = self
                 .log
-                .finish(action, self.clock.now(), log_outcome(&state), None)
+                .finish(action, self.clock.now(), log_outcome(&state), summary)
                 .await
         {
             tracing::warn!(%error, "could not log installation result");
@@ -479,7 +483,9 @@ mod tests {
                 running: AtomicUsize::new(0),
                 max_parallel: AtomicUsize::new(0),
                 delay: Duration::ZERO,
-                outcome: InstallOutcome::Installed,
+                outcome: InstallOutcome::Installed {
+                    output: "🍺 wget 1.1".into(),
+                },
                 cancel: CancellationToken::new(),
             }
         }
@@ -664,6 +670,7 @@ mod tests {
         let records = agent.log.records.lock().expect("BUG").clone();
         assert_eq!(records[0].kind, ActionKind::Install);
         assert_eq!(records[0].outcome, Some(Outcome::Succeeded));
+        assert_eq!(records[0].summary.as_deref(), Some("🍺 wget 1.1"));
         agent.stop().await;
     }
 
