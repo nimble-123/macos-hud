@@ -1,6 +1,6 @@
 ---
-source: crates/hud-tui/src/view.rs
-expression: render(&german()).backend()
+source: crates/hud-tui/src/view/mod.rs
+expression: render(&model).backend()
 ---
 "  Übersicht    Workspaces    Updates    KI    Protokoll    Einstellungen        "
 "  ────────────────────────────────────────────────────────────────────────────  "
@@ -11,6 +11,6 @@ expression: render(&german()).backend()
 "                                                                                "
 "                                                                                "
 "                                                                                "
-"                                                                                "
 "  ────────────────────────────────────────────────────────────────────────────  "
-"  tab wechseln   q beenden                                                      "
+"  ⠋ Lokaler Scan ░░░░░░░░░░░░░░░░░░░░ 0 / 4                                     "
+"  r aktualisieren   tab wechseln   q beenden                                    "

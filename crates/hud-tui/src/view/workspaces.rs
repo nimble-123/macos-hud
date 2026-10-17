@@ -37,8 +37,13 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         match &workspace.repos {
             None => {}
             Some(repos) if repos.is_empty() => {
+                let message = if model.scan.is_some() {
+                    "ws-scanning"
+                } else {
+                    "ws-empty"
+                };
                 lines.push(Line::styled(
-                    format!("  {}", t(language, "ws-empty")),
+                    format!("  {}", t(language, message)),
                     Style::new().fg(theme.soft),
                 ));
             }

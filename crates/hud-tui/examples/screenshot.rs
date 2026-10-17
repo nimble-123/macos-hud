@@ -82,6 +82,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    render_scanning(&out, cols, rows)?;
+
     // Every tab in English on dark, plus the overview in the other variants.
     let variants = [
         ("en-dark", Language::En, Appearance::Dark, Tab::ALL.len()),
@@ -116,6 +118,66 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
     }
+    Ok(())
+}
+
+/// A first scan in progress: four of 79 repositories are done.
+fn render_scanning(
+    out: &std::path::Path,
+    cols: u16,
+    rows: u16,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let settings = UiSettings {
+        language: Language::De,
+        ..UiSettings::default()
+    };
+    let mut model = Model::new(settings);
+    update(&mut model, Msg::Tick(Instant::now()));
+    update(
+        &mut model,
+        Msg::Key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE)),
+    );
+    let AppEvent::Workspaces { reports, .. } = sample_workspaces() else {
+        unreachable!()
+    };
+    let mut empty = reports.clone();
+    for workspace in &mut empty {
+        if workspace.repos.is_some() {
+            workspace.repos = Some(Vec::new());
+        }
+    }
+    update(
+        &mut model,
+        Msg::App(AppEvent::Workspaces {
+            reports: empty,
+            source: ReportSource::Cache,
+        }),
+    );
+    update(
+        &mut model,
+        Msg::App(AppEvent::ScanStarted {
+            total: 79,
+            fetch: false,
+        }),
+    );
+    let first = &reports[0];
+    for report in first.repos.iter().flatten().take(4) {
+        update(
+            &mut model,
+            Msg::App(AppEvent::RepoScanned {
+                workspace: first.workspace.clone(),
+                report: report.clone(),
+            }),
+        );
+    }
+    let mut terminal = Terminal::new(TestBackend::new(cols, rows))?;
+    terminal.draw(|frame| view(&model, frame))?;
+    let name = "02-workspaces-scanning-de-dark.svg";
+    std::fs::write(
+        out.join(name),
+        to_svg(terminal.backend().buffer(), Appearance::Dark),
+    )?;
+    println!("{}", out.join(name).display());
     Ok(())
 }
 

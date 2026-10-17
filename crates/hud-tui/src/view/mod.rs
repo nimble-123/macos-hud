@@ -15,10 +15,12 @@ use crate::{Model, Tab};
 
 /// Renders the model into a frame. Pure: reads the model, writes the frame.
 pub fn view(model: &Model, frame: &mut Frame) {
+    // While work runs in the background the footer gets an extra progress line.
+    let busy = model.scan.is_some() || model.syncing;
     let [tabs, body, footer] = Layout::vertical([
         Constraint::Length(2),
         Constraint::Fill(1),
-        Constraint::Length(2),
+        Constraint::Length(if busy { 3 } else { 2 }),
     ])
     .horizontal_margin(2)
     .areas(frame.area());
@@ -104,16 +106,55 @@ fn render_footer(model: &Model, frame: &mut Frame, area: Rect) {
             Style::new().fg(theme.soft),
         ));
     }
-    if model.syncing {
-        spans.push(Span::styled(
-            format!("   {}", t(language, "syncing")),
-            Style::new().fg(theme.status(crate::icons::Status::Advisory)),
-        ));
-    }
     let block = Block::new()
         .borders(Borders::TOP)
         .border_style(Style::new().fg(theme.rule));
-    frame.render_widget(Paragraph::new(Line::from(spans)).block(block), area);
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+    let progress = match model.scan {
+        Some(scan) => scan_progress(model, scan),
+        None if model.syncing => vec![Span::styled(
+            t(language, "syncing"),
+            Style::new().fg(theme.status(crate::icons::Status::Advisory)),
+        )],
+        None => Vec::new(),
+    };
+    let mut lines = Vec::with_capacity(2);
+    if !progress.is_empty() {
+        lines.push(Line::from(progress));
+    }
+    lines.push(Line::from(spans));
+    frame.render_widget(Paragraph::new(lines), inner);
+}
+
+const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+const BAR_WIDTH: usize = 20;
+
+/// Spinner, label, bar and count, e.g. `⠋ Lokaler Scan ████████░░░░ 23 / 79`.
+fn scan_progress(model: &Model, scan: crate::model::ScanProgress) -> Vec<Span<'static>> {
+    let theme = &model.theme;
+    let accent = theme.status(crate::icons::Status::Advisory);
+    let frame = SPINNER[usize::try_from(model.ticks % 10).unwrap_or(0)];
+    let label = t(
+        model.settings.language,
+        if scan.fetch {
+            "scan-sync"
+        } else {
+            "scan-local"
+        },
+    );
+    let filled = (scan.done * BAR_WIDTH)
+        .checked_div(scan.total)
+        .unwrap_or(BAR_WIDTH);
+    vec![
+        Span::styled(format!("{frame} {label} "), Style::new().fg(accent)),
+        Span::styled("█".repeat(filled), Style::new().fg(accent)),
+        Span::styled("░".repeat(BAR_WIDTH - filled), Style::new().fg(theme.rule)),
+        Span::styled(
+            format!(" {} / {}", scan.done, scan.total),
+            Style::new().fg(theme.muted),
+        ),
+    ]
 }
 
 #[cfg(test)]
@@ -152,6 +193,20 @@ mod tests {
         update(
             &mut model,
             Msg::Key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE)),
+        );
+        insta::assert_snapshot!(render(&model).backend());
+    }
+
+    #[test]
+    fn footer_shows_scan_progress_on_every_tab() {
+        use hud_application::AppEvent;
+        let mut model = german();
+        update(
+            &mut model,
+            Msg::App(AppEvent::ScanStarted {
+                total: 4,
+                fetch: false,
+            }),
         );
         insta::assert_snapshot!(render(&model).backend());
     }

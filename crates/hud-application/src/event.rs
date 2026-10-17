@@ -1,5 +1,6 @@
 //! Messages between the presentation layer and the use cases.
 
+use hud_domain::WorkspacePath;
 use hud_domain::git::RepoPath;
 
 use crate::usecases::workspaces::{RepoReport, WorkspaceReport};
@@ -27,6 +28,20 @@ pub enum AppEvent {
     },
     /// A sync with fetch started.
     SyncStarted,
+    /// A scan is about to read `total` repositories.
+    ScanStarted {
+        /// Repositories that will be read.
+        total: usize,
+        /// Whether remotes are fetched first.
+        fetch: bool,
+    },
+    /// One repository is done; sent while a scan is still running.
+    RepoScanned {
+        /// Workspace the repository belongs to.
+        workspace: WorkspacePath,
+        /// Its result.
+        report: RepoReport,
+    },
     /// One repository changed through a manual action.
     RepoUpdated(RepoReport),
 }

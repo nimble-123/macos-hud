@@ -3,7 +3,7 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use hud_application::{AppEvent, Command};
 
-use crate::model::OK_HIGHLIGHT;
+use crate::model::{OK_HIGHLIGHT, ScanProgress};
 use crate::{Model, Msg, Tab};
 
 /// Applies a message to the model and returns the commands to run.
@@ -15,6 +15,7 @@ pub fn update(model: &mut Model, msg: Msg) -> Vec<Command> {
         Msg::App(event) => on_app_event(model, event),
         Msg::Tick(now) => {
             model.now = Some(now);
+            model.ticks = model.ticks.wrapping_add(1);
             model
                 .recent_ok
                 .retain(|_, at| now.duration_since(*at) < OK_HIGHLIGHT);
@@ -65,11 +66,36 @@ fn on_app_event(model: &mut Model, event: AppEvent) {
                 .collect();
             model.workspaces = reports;
             model.syncing = false;
+            model.scan = None;
             model.mark_fast_forwards(&finished);
             let count = model.repo_rows().count();
             model.selected = model.selected.min(count.saturating_sub(1));
         }
         AppEvent::SyncStarted => model.syncing = true,
+        AppEvent::ScanStarted { total, fetch } => {
+            model.scan = Some(ScanProgress {
+                done: 0,
+                total,
+                fetch,
+            });
+        }
+        AppEvent::RepoScanned { workspace, report } => {
+            if let Some(scan) = &mut model.scan {
+                scan.done = (scan.done + 1).min(scan.total);
+            }
+            model.mark_fast_forwards(std::slice::from_ref(&report));
+            if let Some(entry) = model
+                .workspaces
+                .iter_mut()
+                .find(|w| w.workspace == workspace)
+            {
+                let repos = entry.repos.get_or_insert_with(Vec::new);
+                match repos.binary_search_by(|existing| existing.repo.cmp(&report.repo)) {
+                    Ok(position) => repos[position] = report,
+                    Err(position) => repos.insert(position, report),
+                }
+            }
+        }
         AppEvent::RepoUpdated(report) => {
             model.mark_fast_forwards(std::slice::from_ref(&report));
             let slot = model
@@ -253,6 +279,49 @@ mod tests {
         update(&mut model, Msg::App(AppEvent::SyncStarted));
         update(&mut model, Msg::App(workspaces(vec![])));
         assert!(!model.syncing);
+    }
+
+    #[test]
+    fn scan_progress_counts_and_inserts_repositories_in_order() {
+        let mut model = Model::default();
+        update(&mut model, Msg::App(workspaces(vec![])));
+        update(
+            &mut model,
+            Msg::App(AppEvent::ScanStarted {
+                total: 2,
+                fetch: false,
+            }),
+        );
+        let ws = WorkspacePath::try_from(PathBuf::from("/ws")).expect("BUG");
+        for path in ["/ws/b", "/ws/a"] {
+            update(
+                &mut model,
+                Msg::App(AppEvent::RepoScanned {
+                    workspace: ws.clone(),
+                    report: report(path, RepoState::UpToDate),
+                }),
+            );
+        }
+        assert_eq!(model.scan.map(|s| (s.done, s.total)), Some((2, 2)));
+        let order: Vec<_> = model.repo_rows().map(|r| r.repo.to_string()).collect();
+        assert_eq!(order, vec!["/ws/a", "/ws/b"]);
+    }
+
+    #[test]
+    fn complete_report_ends_the_scan_progress() {
+        let mut model = Model::default();
+        update(
+            &mut model,
+            Msg::App(AppEvent::ScanStarted {
+                total: 1,
+                fetch: true,
+            }),
+        );
+        update(
+            &mut model,
+            Msg::App(workspaces(vec![report("/ws/a", RepoState::UpToDate)])),
+        );
+        assert_eq!(model.scan, None);
     }
 
     #[test]

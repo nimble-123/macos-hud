@@ -4,7 +4,9 @@ use futures::StreamExt;
 use hud_domain::WorkspacePath;
 use hud_domain::action::{ActionKind, Outcome, Trigger};
 use hud_domain::git::{RepoPath, RepoStatus, SkipReason, SyncDecision, SyncMode, sync_decision};
+use tokio::sync::mpsc;
 
+use crate::event::AppEvent;
 use crate::ports::discovery::{DiscoveryError, RepoDiscovery};
 use crate::ports::git::{FfOutcome, GitError, GitPort};
 use crate::ports::store::{ActionLog, CachedRepo, Clock, ScanCache};
@@ -140,44 +142,100 @@ where
 
     /// One full run. With `fetch = false` only local state is read, which is
     /// fast and never touches the network.
+    ///
+    /// With `progress`, the run first reports how many repositories it will
+    /// look at and then every repository as soon as it is done, so the UI can
+    /// show progress on slow disks or with many repositories.
     pub async fn execute(
         &self,
         workspaces: &[WorkspaceSettings],
         scan: &ScanSettings,
         fetch: bool,
+        progress: Option<&mpsc::Sender<AppEvent>>,
     ) -> Vec<WorkspaceReport> {
-        let mut reports = Vec::with_capacity(workspaces.len());
-        let mut seen = Vec::new();
+        // Discover everything first: the total is known before the slow part.
+        let mut discovered = Vec::with_capacity(workspaces.len());
         for workspace in workspaces {
-            let report = match self.discovery.discover(&workspace.path, scan).await {
-                Ok(repos) => {
-                    seen.extend(repos.iter().cloned());
-                    let results: Vec<RepoReport> = futures::stream::iter(repos)
-                        .map(|repo| self.sync_one(repo, workspace.auto_fast_forward, fetch))
-                        .buffer_unordered(PARALLEL_STATUS)
-                        .collect()
-                        .await;
-                    let mut results = results;
-                    results.sort_by(|a, b| a.repo.cmp(&b.repo));
-                    WorkspaceReport {
-                        workspace: workspace.path.clone(),
-                        auto_fast_forward: workspace.auto_fast_forward,
-                        repos: Some(results),
-                        unavailable: None,
+            discovered.push((
+                workspace,
+                self.discovery.discover(&workspace.path, scan).await,
+            ));
+        }
+        let jobs: Vec<(usize, RepoPath, bool)> = discovered
+            .iter()
+            .enumerate()
+            .filter_map(|(index, (workspace, result))| {
+                result
+                    .as_ref()
+                    .ok()
+                    .map(|repos| (index, repos, workspace.auto_fast_forward))
+            })
+            .flat_map(|(index, repos, auto)| {
+                repos.iter().map(move |repo| (index, repo.clone(), auto))
+            })
+            .collect();
+        if let Some(sender) = progress {
+            let _ = sender
+                .send(AppEvent::ScanStarted {
+                    total: jobs.len(),
+                    fetch,
+                })
+                .await;
+        }
+        let seen: Vec<RepoPath> = jobs.iter().map(|(_, repo, _)| repo.clone()).collect();
+        let paths: Vec<WorkspacePath> = discovered.iter().map(|(w, _)| w.path.clone()).collect();
+        let paths = &paths;
+
+        let mut finished: Vec<(usize, RepoReport)> =
+            futures::stream::iter(jobs)
+                .map(|(index, repo, auto)| async move {
+                    (index, self.sync_one(repo, auto, fetch).await)
+                })
+                .buffer_unordered(PARALLEL_STATUS)
+                .then(|(index, report)| async move {
+                    if let Some(sender) = progress {
+                        let workspace = paths[index].clone();
+                        // A closed channel only means nobody watches the progress.
+                        let _ = sender
+                            .send(AppEvent::RepoScanned {
+                                workspace,
+                                report: report.clone(),
+                            })
+                            .await;
                     }
-                }
+                    (index, report)
+                })
+                .collect()
+                .await;
+        finished.sort_by(|a, b| a.1.repo.cmp(&b.1.repo));
+
+        let reports = discovered
+            .iter()
+            .enumerate()
+            .map(|(index, (workspace, result))| match result {
+                Ok(_) => WorkspaceReport {
+                    workspace: workspace.path.clone(),
+                    auto_fast_forward: workspace.auto_fast_forward,
+                    repos: Some(
+                        finished
+                            .iter()
+                            .filter(|(i, _)| *i == index)
+                            .map(|(_, report)| report.clone())
+                            .collect(),
+                    ),
+                    unavailable: None,
+                },
                 Err(error) => WorkspaceReport {
                     workspace: workspace.path.clone(),
                     auto_fast_forward: workspace.auto_fast_forward,
                     repos: None,
                     unavailable: Some(match error {
                         DiscoveryError::Unavailable(_) => "unavailable".to_owned(),
-                        DiscoveryError::Unreadable { message, .. } => message,
+                        DiscoveryError::Unreadable { message, .. } => message.clone(),
                     }),
                 },
-            };
-            reports.push(report);
-        }
+            })
+            .collect();
         if let Err(error) = self.cache.retain(seen).await {
             tracing::warn!(%error, "could not prune scan cache");
         }
@@ -369,7 +427,7 @@ mod tests {
             FakeClock,
         );
         let reports = use_case
-            .execute(workspaces, &ScanSettings::default(), true)
+            .execute(workspaces, &ScanSettings::default(), true, None)
             .await;
         (reports, use_case)
     }
@@ -477,7 +535,12 @@ mod tests {
             FakeClock,
         );
         let _ = use_case
-            .execute(&[workspace("/ws", true)], &ScanSettings::default(), false)
+            .execute(
+                &[workspace("/ws", true)],
+                &ScanSettings::default(),
+                false,
+                None,
+            )
             .await;
         assert!(use_case.git.fetched.lock().expect("BUG").is_empty());
     }
@@ -545,7 +608,12 @@ mod tests {
             FakeClock,
         );
         let _ = use_case
-            .execute(&[workspace("/ws", true)], &ScanSettings::default(), true)
+            .execute(
+                &[workspace("/ws", true)],
+                &ScanSettings::default(),
+                true,
+                None,
+            )
             .await;
 
         let cached: Vec<_> = use_case
@@ -557,6 +625,63 @@ mod tests {
             .map(|e| e.repo.clone())
             .collect();
         assert_eq!(cached, vec![repo("/ws/api")]);
+    }
+
+    #[tokio::test]
+    async fn progress_reports_the_total_first_and_then_every_repository() {
+        let git = FakeGit::with(&[
+            ("/ws/a", behind(0)),
+            ("/ws/b", behind(0)),
+            ("/other/c", behind(0)),
+        ]);
+        let discovery = discovery(&[("/ws", &["/ws/a", "/ws/b"]), ("/other", &["/other/c"])]);
+        let use_case = SyncRepositories::new(
+            git,
+            discovery,
+            FakeLog::default(),
+            FakeCache::default(),
+            FakeClock,
+        );
+        let (sender, mut receiver) = mpsc::channel(16);
+        let workspaces = [
+            workspace("/ws", true),
+            workspace("/other", true),
+            workspace("/gone", true),
+        ];
+        let reports = use_case
+            .execute(&workspaces, &ScanSettings::default(), false, Some(&sender))
+            .await;
+        drop(sender);
+
+        let mut events = Vec::new();
+        while let Some(event) = receiver.recv().await {
+            events.push(event);
+        }
+        assert!(
+            matches!(
+                events[0],
+                AppEvent::ScanStarted {
+                    total: 3,
+                    fetch: false
+                }
+            ),
+            "{:?}",
+            events[0]
+        );
+        let mut scanned: Vec<String> = events[1..]
+            .iter()
+            .map(|event| match event {
+                AppEvent::RepoScanned { workspace, report } => {
+                    format!("{workspace}:{}", report.repo)
+                }
+                other => panic!("unexpected {other:?}"),
+            })
+            .collect();
+        scanned.sort();
+        assert_eq!(scanned, vec!["/other:/other/c", "/ws:/ws/a", "/ws:/ws/b"]);
+        assert_eq!(reports[0].repos.as_ref().expect("BUG").len(), 2);
+        assert_eq!(reports[1].repos.as_ref().expect("BUG").len(), 1);
+        assert!(reports[2].repos.is_none());
     }
 
     #[tokio::test]
