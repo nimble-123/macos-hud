@@ -111,6 +111,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Msg::App(AppEvent::Settings(Box::new(sample_settings()))),
         );
         update(&mut model, Msg::App(AppEvent::Actions(sample_actions())));
+        for sample in sample_load() {
+            update(&mut model, Msg::App(AppEvent::System(sample)));
+        }
         update(
             &mut model,
             Msg::App(AppEvent::Usage(Box::new(sample_usage()))),
@@ -139,6 +142,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     Ok(())
+}
+
+/// Two minutes of load with a short build peak.
+fn sample_load() -> Vec<hud_application::ports::system::SystemSample> {
+    (0..60u64)
+        .map(|step| hud_application::ports::system::SystemSample {
+            cpu_percent: u8::try_from(match step {
+                30..=38 => 70 + step % 5 * 5,
+                _ => 12 + step * 7 % 15,
+            })
+            .expect("BUG: percent"),
+            memory_used: 10_400_000_000 + step * 15_000_000,
+            memory_total: 17_179_869_184,
+            processes: 612,
+        })
+        .collect()
 }
 
 /// A busy day with Opus and a few Haiku subagent calls.

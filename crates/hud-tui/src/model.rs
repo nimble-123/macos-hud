@@ -123,6 +123,10 @@ pub struct Model {
     pub(crate) telemetry: Option<Box<hud_application::usecases::telemetry::TelemetryStatus>>,
     /// Where switching telemetry on stands.
     pub(crate) telemetry_flow: TelemetryFlow,
+    /// Recent load readings, oldest first, at most the last two minutes.
+    pub(crate) load: std::collections::VecDeque<hud_application::ports::system::SystemSample>,
+    /// When the last sync with fetch ended.
+    pub(crate) last_sync: Option<Instant>,
     /// Period shown in the AI tab.
     pub(crate) ai_period: hud_domain::usage::Period,
     /// AI usage per period, once the logs were read.
@@ -201,6 +205,8 @@ impl Model {
             usage: None,
             ai_period: hud_domain::usage::Period::default(),
             telemetry: None,
+            load: std::collections::VecDeque::new(),
+            last_sync: None,
             telemetry_flow: TelemetryFlow::Idle,
             time_zone: jiff::tz::TimeZone::UTC,
         }

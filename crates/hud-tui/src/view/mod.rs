@@ -8,14 +8,17 @@ use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 
 mod ai;
 mod log;
+mod overview;
 mod settings;
 mod updates;
 mod workspaces;
 
-use crate::i18n::{t, t_args};
+use crate::i18n::t;
 use crate::settings::Language;
 use crate::theme::Theme;
 use crate::{Model, Tab};
+
+pub(crate) use overview::SPARK_SAMPLES;
 
 /// Renders the model into a frame. Pure: reads the model, writes the frame.
 pub fn view(model: &Model, frame: &mut Frame) {
@@ -38,7 +41,7 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Tab::Settings => settings::render(model, frame, body),
         Tab::Log => log::render(model, frame, body),
         Tab::Ai => ai::render(model, frame, body),
-        Tab::Overview => render_placeholder(Tab::Overview, language, &model.theme, frame, body),
+        Tab::Overview => overview::render(model, frame, body),
     }
     render_footer(model, frame, footer);
     if model.quit == crate::model::Quit::Asking {
@@ -127,21 +130,6 @@ fn render_tabs(active: Tab, language: Language, theme: &Theme, frame: &mut Frame
         .borders(Borders::BOTTOM)
         .border_style(Style::new().fg(theme.rule));
     frame.render_widget(Paragraph::new(Line::from(spans)).block(block), area);
-}
-
-fn render_placeholder(
-    active: Tab,
-    language: Language,
-    theme: &Theme,
-    frame: &mut Frame,
-    area: Rect,
-) {
-    let title = t(language, tab_message(active));
-    let text = t_args(language, "tab-placeholder", &[("tab", &title)]);
-    frame.render_widget(
-        Paragraph::new(Line::styled(text, Style::new().fg(theme.soft))),
-        area,
-    );
 }
 
 fn render_footer(model: &Model, frame: &mut Frame, area: Rect) {
@@ -618,6 +606,75 @@ mod tests {
             Msg::Key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE)),
         );
         insta::assert_snapshot!(render_tall(&model).backend());
+    }
+
+    fn loaded_overview(repos: Vec<hud_application::usecases::workspaces::RepoReport>) -> Model {
+        use hud_application::ports::system::SystemSample;
+        use hud_application::usecases::workspaces::WorkspaceReport;
+        use hud_application::{AppEvent, ReportSource};
+        let mut model = german();
+        update(&mut model, Msg::Tick(std::time::Instant::now()));
+        for step in 0..40u8 {
+            let sample = SystemSample {
+                cpu_percent: (step % 9) * 7 + 5,
+                memory_used: 10 * 1024 * 1024 * 1024 + u64::from(step) * 20_000_000,
+                memory_total: 16 * 1024 * 1024 * 1024,
+                processes: 512,
+            };
+            update(&mut model, Msg::App(AppEvent::System(sample)));
+        }
+        let workspace = WorkspaceReport {
+            workspace: hud_domain::WorkspacePath::try_from(std::path::PathBuf::from("/ws"))
+                .expect("BUG: absolute"),
+            auto_fast_forward: true,
+            repos: Some(repos),
+            unavailable: None,
+        };
+        update(
+            &mut model,
+            Msg::App(AppEvent::Workspaces {
+                reports: vec![workspace],
+                source: ReportSource::Sync,
+            }),
+        );
+        model
+    }
+
+    fn repo(
+        path: &str,
+        state: hud_application::usecases::workspaces::RepoState,
+    ) -> hud_application::usecases::workspaces::RepoReport {
+        hud_application::usecases::workspaces::RepoReport {
+            repo: hud_domain::git::RepoPath::try_from(std::path::PathBuf::from(path)).expect("BUG"),
+            status: None,
+            state,
+        }
+    }
+
+    #[test]
+    fn overview_lists_only_deviations() {
+        use hud_application::usecases::workspaces::RepoState;
+        use hud_domain::git::SkipReason;
+        let model = loaded_overview(vec![
+            repo("/ws/a", RepoState::Behind(2)),
+            repo("/ws/b", RepoState::Skipped(SkipReason::TrackedChanges)),
+            repo(
+                "/ws/c",
+                RepoState::Skipped(SkipReason::Diverged {
+                    ahead: 2,
+                    behind: 5,
+                }),
+            ),
+            repo("/ws/d", RepoState::UpToDate),
+        ]);
+        insta::assert_snapshot!(render_wide(&model).backend());
+    }
+
+    #[test]
+    fn overview_is_calm_when_nothing_deviates() {
+        use hud_application::usecases::workspaces::RepoState;
+        let model = loaded_overview(vec![repo("/ws/a", RepoState::UpToDate)]);
+        insta::assert_snapshot!(render_wide(&model).backend());
     }
 
     #[test]

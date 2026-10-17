@@ -97,7 +97,7 @@ mod tests {
 
     #[test]
     fn arguments_are_inserted_without_isolation_marks() {
-        let text = t_args(Language::En, "tab-placeholder", &[("tab", "Log")]);
-        assert_eq!(text, "Log is not built yet.");
+        let text = t_args(Language::En, "overview-calm-since", &[("minutes", "4")]);
+        assert_eq!(text, "All up to date. Last check 4 min ago.");
     }
 }

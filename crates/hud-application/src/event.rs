@@ -69,6 +69,8 @@ pub enum AppEvent {
     Usage(Box<UsageReport>),
     /// Telemetry receiver and Claude Code setup.
     Telemetry(Box<TelemetryStatus>),
+    /// A fresh reading of CPU, memory and processes.
+    System(crate::ports::system::SystemSample),
 }
 
 /// Request from the presentation layer to run a use case, grouped by the

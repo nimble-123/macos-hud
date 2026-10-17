@@ -151,6 +151,7 @@ Abhängigkeitsversionen stehen zentral in `[workspace.dependencies]`; Crates erb
 | `UsageSource` | inkrementeller Ingest von KI-Nutzung | `ClaudeLogs`, `CodexLogs` | **dynamisch** |
 | `UsageStore` | Nutzung speichern und abfragen | `SqliteStore` | statisch |
 | `TelemetryStore` | Telemetrie-Datenpunkte speichern und summieren | `SqliteStore` | statisch |
+| `SystemProbe` | CPU-Last, Speicher, Prozessanzahl | `SysinfoProbe` (`sysinfo`, in `spawn_blocking`) | statisch |
 | `ActionLog` | Aktionen protokollieren und lesen | `SqliteStore` | statisch |
 | `ScanCache` | letzte Scan-Ergebnisse für schnellen Start | `SqliteStore` | statisch |
 | `SettingsStore` | Config lesen und kommentarerhaltend schreiben | `TomlSettings` | statisch |
@@ -243,6 +244,7 @@ pub enum Outcome { Succeeded, Failed(String), Skipped(String), Cancelled, TimedO
 | `CheckUpdates` | alle `UpdateSource`s parallel, Fehler pro Quelle isoliert → `AppEvent::UpdatesChecked` |
 | `InstallUpdates` | Decision je Kandidat → Installation mit Permit, Sperre pro Paketmanager → `ActionLog` |
 | `TelemetrySetupAgent` | meldet beim Start und nach jedem `TelemetryCommand` den Zustand von Empfänger und Claude Code (`AppEvent::Telemetry`); `TelemetryCommand::Enable` ergänzt über den Port `ClaudeSettings` fehlende Einträge in `~/.claude/settings.json`, aber nur, wenn `classify` keinen Konflikt findet |
+| `SystemAgent` | misst alle 2 s über `SystemProbe` und sendet `AppEvent::System`; die TUI behält die letzten 60 Werte (2 min) für die Sparklines |
 | `TelemetryAgent` | speichert die Datenpunkte, die der `OtlpReceiver` (Infrastruktur, Composition Root) über einen Kanal liefert |
 | `UsageAgent` | liest beim Start, alle 60 s und nach jeder Änderung der Einstellungen alle `UsageSource`s inkrementell in den `UsageStore`, fasst die Nutzung mit `summarize` je `Period`, Provider und Modell zusammen (Sessions, Antworten, Token, `CostEstimate`, jeweils mit `Accuracy`), ergänzt je Zeitraum die Summen aus dem `TelemetryStore` (immer `Accuracy::Partial`, ADR 0011) und sendet `AppEvent::Usage(UsageReport)` |
 | `SettingsAgent` | wendet `SettingsCommand::Change(SettingsChange)` über `SettingsStore::update` an (Sprache, Theme, Symbolsatz, Workspace hinzufügen/entfernen, Fast-Forward-Opt-out, Installations-Opt-ins) und liest auf `SettingsCommand::Reload` die Datei neu; veröffentlicht das Ergebnis über einen `watch`-Kanal und sendet `AppEvent::Settings` bzw. bei Fehlern `SettingsRejected` (die bisherigen Einstellungen bleiben dann gültig); sendet beim Start die aktuellen Einstellungen |

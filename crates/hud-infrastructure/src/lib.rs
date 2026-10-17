@@ -8,5 +8,6 @@ pub mod git;
 pub mod otlp;
 pub mod process;
 pub mod sqlite;
+pub mod system;
 pub mod updates;
 pub mod usage;
