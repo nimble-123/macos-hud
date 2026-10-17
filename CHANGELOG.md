@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0](https://github.com/nimble-123/macos-hud/compare/v0.4.0...v0.5.0) (2026-10-17)
+
+
+### Neue Funktionen
+
+* **domain:** add usage model and price table ([#82](https://github.com/nimble-123/macos-hud/issues/82)) ([d92f723](https://github.com/nimble-123/macos-hud/commit/d92f723fdd55fecba5d8324c12040375fef9c771))
+* **tui:** add AI tab with usage and cost per period ([#85](https://github.com/nimble-123/macos-hud/issues/85)) ([a6556d2](https://github.com/nimble-123/macos-hud/commit/a6556d21ac05f2fe40fe6bbaf618f9b261698511))
+* **tui:** show telemetry values in the AI tab ([#88](https://github.com/nimble-123/macos-hud/issues/88)) ([3012936](https://github.com/nimble-123/macos-hud/commit/30129369ec9f0138d5100bf4aaeb65ffe259bbc9))
+* **usage:** read Claude Code logs and summarise usage per period ([#84](https://github.com/nimble-123/macos-hud/issues/84)) ([cbbd8eb](https://github.com/nimble-123/macos-hud/commit/cbbd8eb560aec40ec7f1beaabb43e73dc3e5e608))
+* **usage:** receive Claude Code telemetry on localhost ([#86](https://github.com/nimble-123/macos-hud/issues/86)) ([4fbfbf9](https://github.com/nimble-123/macos-hud/commit/4fbfbf9bfabd794b7ca67e7566f9d9549d8fd0c1))
+* **usage:** switch on Claude Code telemetry from the AI tab ([#87](https://github.com/nimble-123/macos-hud/issues/87)) ([578e4f2](https://github.com/nimble-123/macos-hud/commit/578e4f26a5ea46caab55d6c55687ca12104aeb49))
+
 ## [0.4.0](https://github.com/nimble-123/macos-hud/compare/v0.3.0...v0.4.0) (2026-10-17)
 
 
