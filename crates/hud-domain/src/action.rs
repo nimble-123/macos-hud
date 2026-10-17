@@ -13,6 +13,8 @@ pub enum ActionKind {
     Fetch,
     /// Fast-forward of a branch.
     FastForward,
+    /// Installation of a package update.
+    Install,
 }
 
 /// Who started the action.

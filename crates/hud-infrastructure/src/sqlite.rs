@@ -280,6 +280,7 @@ fn kind_str(kind: ActionKind) -> &'static str {
     match kind {
         ActionKind::Fetch => "fetch",
         ActionKind::FastForward => "fast_forward",
+        ActionKind::Install => "install",
     }
 }
 
@@ -333,6 +334,7 @@ fn parse_kind(text: &str, column: usize) -> rusqlite::Result<ActionKind> {
     match text {
         "fetch" => Ok(ActionKind::Fetch),
         "fast_forward" => Ok(ActionKind::FastForward),
+        "install" => Ok(ActionKind::Install),
         other => Err(conversion(column, UnknownValue(other.to_owned()))),
     }
 }

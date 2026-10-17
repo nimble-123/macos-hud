@@ -49,9 +49,10 @@ impl Tab {
     }
 }
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::time::{Duration, Instant};
 
+use hud_application::usecases::updates::{JobId, JobUpdate, SourceReport};
 use hud_application::usecases::workspaces::{RepoReport, RepoState, WorkspaceReport};
 use hud_domain::git::RepoPath;
 
@@ -81,6 +82,12 @@ pub struct Model {
     pub(crate) scan: Option<ScanProgress>,
     /// Number of ticks so far; drives the spinner.
     pub(crate) ticks: u64,
+    /// Last report per update source.
+    pub(crate) updates: Vec<SourceReport>,
+    /// Installation jobs that are queued or running.
+    pub(crate) jobs: BTreeMap<JobId, JobUpdate>,
+    /// Installation jobs that ended in this session.
+    pub(crate) finished_jobs: BTreeMap<JobId, JobUpdate>,
 }
 
 /// Progress of a running scan.
@@ -113,6 +120,9 @@ impl Model {
             recent_ok: HashMap::new(),
             scan: None,
             ticks: 0,
+            updates: Vec::new(),
+            jobs: BTreeMap::new(),
+            finished_jobs: BTreeMap::new(),
         }
     }
 

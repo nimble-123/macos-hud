@@ -6,7 +6,7 @@ use tokio::sync::mpsc;
 use tokio::time::MissedTickBehavior;
 use tokio_util::sync::CancellationToken;
 
-use crate::event::{AppEvent, Command, ReportSource};
+use crate::event::{AppEvent, ReportSource, WorkspaceCommand};
 use crate::ports::discovery::RepoDiscovery;
 use crate::ports::git::GitPort;
 use crate::ports::store::{ActionLog, Clock, ScanCache};
@@ -54,7 +54,7 @@ where
     /// interval tick or command. Stops between steps once `cancel` fires.
     pub async fn run(
         self,
-        mut commands: mpsc::Receiver<Command>,
+        mut commands: mpsc::Receiver<WorkspaceCommand>,
         events: mpsc::Sender<AppEvent>,
         cancel: CancellationToken,
     ) {
@@ -95,7 +95,7 @@ where
         loop {
             let next = tokio::select! {
                 () = cancel.cancelled() => return,
-                _ = timer.tick() => Some(Command::SyncNow),
+                _ = timer.tick() => Some(WorkspaceCommand::SyncNow),
                 command = commands.recv() => command,
             };
             let Some(command) = next else { return };
@@ -103,7 +103,7 @@ where
                 return;
             }
             let event = match command {
-                Command::SyncNow => {
+                WorkspaceCommand::SyncNow => {
                     if send(&events, AppEvent::SyncStarted).await.is_err() {
                         return;
                     }
@@ -117,7 +117,7 @@ where
                         source: ReportSource::Sync,
                     }
                 }
-                Command::FastForward(repo) => {
+                WorkspaceCommand::FastForward(repo) => {
                     AppEvent::RepoUpdated(self.manual.execute(&repo).await)
                 }
             };
@@ -185,20 +185,16 @@ mod tests {
 
         let mut sources = Vec::new();
         while sources.len() < 3 {
-            match events.recv().await.expect("BUG: agent alive") {
-                AppEvent::Workspaces { source, reports } => {
-                    if source == ReportSource::Sync {
-                        assert_eq!(
-                            reports[0].repos.as_ref().expect("BUG")[0].state,
-                            RepoState::FastForwarded(2)
-                        );
-                    }
-                    sources.push(source);
+            if let AppEvent::Workspaces { source, reports } =
+                events.recv().await.expect("BUG: agent alive")
+            {
+                if source == ReportSource::Sync {
+                    assert_eq!(
+                        reports[0].repos.as_ref().expect("BUG")[0].state,
+                        RepoState::FastForwarded(2)
+                    );
                 }
-                AppEvent::SyncStarted
-                | AppEvent::RepoUpdated(_)
-                | AppEvent::ScanStarted { .. }
-                | AppEvent::RepoScanned { .. } => {}
+                sources.push(source);
             }
         }
         assert_eq!(
@@ -222,7 +218,7 @@ mod tests {
         let cancel = CancellationToken::new();
         let task = tokio::spawn(agent.run(commands, events_tx, cancel.clone()));
         commands_tx
-            .send(Command::FastForward(repo("/ws/api")))
+            .send(WorkspaceCommand::FastForward(repo("/ws/api")))
             .await
             .expect("BUG");
 

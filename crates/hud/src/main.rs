@@ -13,14 +13,19 @@ use futures::StreamExt;
 use std::path::PathBuf;
 
 use hud_application::settings::{IconPreference, InitialSetup, Settings, SettingsStore};
+use std::sync::Arc;
+
+use hud_application::ports::updates::UpdateSource;
 use hud_application::usecases::agent::{WorkspaceAgent, WorkspaceConfig};
-use hud_application::{AppEvent, Command};
+use hud_application::usecases::updates::UpdatesAgent;
+use hud_application::{AppEvent, Command, UpdateCommand, WorkspaceCommand};
 use hud_infrastructure::clock::SystemClock;
 use hud_infrastructure::config::TomlSettings;
 use hud_infrastructure::discovery::FsDiscovery;
 use hud_infrastructure::git::GitCli;
 use hud_infrastructure::process::TokioProcessRunner;
 use hud_infrastructure::sqlite::SqliteStore;
+use hud_infrastructure::updates::{brew::Brew, npm::NpmGlobal, skills::Skills};
 use hud_tui::{
     IconSet, Model, Msg, SetupModel, SetupOutcome, update, update_setup, view, view_setup,
 };
@@ -55,7 +60,7 @@ async fn main() -> anyhow::Result<std::process::ExitCode> {
 
     let home = PathBuf::from(std::env::var_os("HOME").context("HOME is not set")?);
     let config = config_store(&home);
-    let mut preferences = load_settings(&config).await?;
+    let preferences = load_settings(&config).await?;
 
     // Resolving the login shell PATH can take seconds; start it now and let
     // the first external process wait for it instead of the UI.
@@ -70,43 +75,92 @@ async fn main() -> anyhow::Result<std::process::ExitCode> {
         }
     });
 
-    let mut settings = environment::ui_settings(&preferences);
+    let settings = environment::ui_settings(&preferences);
     let mut session = terminal::Session::enter().context("failed to prepare the terminal")?;
-
-    if preferences.needs_setup() {
-        let mut setup = SetupModel::new(settings, workspace_suggestions(&home));
-        match run_setup(session.terminal(), &mut setup).await? {
-            SetupOutcome::Cancelled => {
+    let (preferences, settings) = if preferences.needs_setup() {
+        match ensure_setup(&mut session, &config, &home, settings).await {
+            Ok(Some(done)) => done,
+            Ok(None) => {
                 drop(session);
                 tracing::info!("setup cancelled, nothing written");
                 return Ok(std::process::ExitCode::SUCCESS);
             }
-            SetupOutcome::Done(choice) => {
-                let initial = InitialSetup {
-                    workspaces: choice.workspaces,
-                    icons: match choice.icons {
-                        IconSet::Unicode => IconPreference::Unicode,
-                        IconSet::Nerd => IconPreference::Nerd,
-                        IconSet::Ascii => IconPreference::Ascii,
-                    },
-                };
-                match config.apply_setup(&initial).await {
-                    Ok(saved) => {
-                        tracing::info!(workspaces = saved.workspaces.len(), "setup saved");
-                        preferences = saved;
-                        settings.icons = choice.icons;
-                    }
-                    Err(error) => {
-                        // Leave the alternate screen first so the message stays readable.
-                        drop(session);
-                        return Err(error).context("failed to save the setup");
-                    }
-                }
+            Err(error) => {
+                // Leave the alternate screen first so the message stays readable.
+                drop(session);
+                return Err(error);
             }
         }
-    }
+    } else {
+        (preferences, settings)
+    };
 
-    // Composition root: the only place where adapters meet use cases.
+    let mut background = start_background(&preferences, runner)?;
+    let result = run(
+        session.terminal(),
+        Model::new(settings),
+        &mut background.events,
+        &background.commands,
+    )
+    .await;
+    drop(session);
+
+    background.cancel.cancel();
+    drop(background.commands);
+    if tokio::time::timeout(
+        SHUTDOWN_GRACE,
+        futures::future::join_all(background.handles),
+    )
+    .await
+    .is_err()
+    {
+        tracing::warn!("background work still running at exit");
+    }
+    tracing::info!("stopping hud");
+    result.map(|()| std::process::ExitCode::SUCCESS)
+}
+
+/// Runs the first-run setup; `None` when the user cancelled it.
+async fn ensure_setup(
+    session: &mut terminal::Session,
+    config: &TomlSettings,
+    home: &std::path::Path,
+    mut settings: hud_tui::UiSettings,
+) -> anyhow::Result<Option<(Settings, hud_tui::UiSettings)>> {
+    let mut setup = SetupModel::new(settings, workspace_suggestions(home));
+    let SetupOutcome::Done(choice) = run_setup(session.terminal(), &mut setup).await? else {
+        return Ok(None);
+    };
+    let initial = InitialSetup {
+        workspaces: choice.workspaces,
+        icons: match choice.icons {
+            IconSet::Unicode => IconPreference::Unicode,
+            IconSet::Nerd => IconPreference::Nerd,
+            IconSet::Ascii => IconPreference::Ascii,
+        },
+    };
+    let saved = config
+        .apply_setup(&initial)
+        .await
+        .context("failed to save the setup")?;
+    tracing::info!(workspaces = saved.workspaces.len(), "setup saved");
+    settings.icons = choice.icons;
+    Ok(Some((saved, settings)))
+}
+
+/// Background agents and the channels to talk to them.
+struct Background {
+    commands: Router,
+    events: mpsc::Receiver<AppEvent>,
+    cancel: CancellationToken,
+    handles: Vec<tokio::task::JoinHandle<()>>,
+}
+
+/// Composition root: the only place where adapters meet use cases.
+fn start_background(
+    preferences: &Settings,
+    runner: TokioProcessRunner,
+) -> anyhow::Result<Background> {
     let store = SqliteStore::open(&database_path()?, jiff::Timestamp::now())
         .context("failed to open the database")?;
     let git_program = preferences
@@ -114,11 +168,12 @@ async fn main() -> anyhow::Result<std::process::ExitCode> {
         .git
         .as_ref()
         .map_or_else(|| "git".to_owned(), |path| path.display().to_string());
-    let agent = WorkspaceAgent::new(
+    let sources = update_sources(preferences, &runner);
+    let workspaces = WorkspaceAgent::new(
         GitCli::new(runner, git_program),
         FsDiscovery,
         store.clone(),
-        store,
+        store.clone(),
         SystemClock,
         WorkspaceConfig {
             workspaces: preferences.workspaces.clone(),
@@ -126,30 +181,82 @@ async fn main() -> anyhow::Result<std::process::ExitCode> {
             fetch_interval: preferences.fetch_interval,
         },
     );
-    let (app_events_tx, mut app_events) = mpsc::channel::<AppEvent>(APP_EVENT_CAPACITY);
-    let (commands, commands_rx) = mpsc::channel::<Command>(COMMAND_CAPACITY);
+    let (events_tx, events) = mpsc::channel::<AppEvent>(APP_EVENT_CAPACITY);
+    let (workspace_commands, workspace_rx) = mpsc::channel::<WorkspaceCommand>(COMMAND_CAPACITY);
+    let (update_commands, update_rx) = mpsc::channel::<UpdateCommand>(COMMAND_CAPACITY);
+    let updates = UpdatesAgent::new(
+        sources,
+        store,
+        SystemClock,
+        preferences.update_check_interval,
+        events_tx.clone(),
+    );
     let cancel = CancellationToken::new();
-    let background = tokio::spawn(agent.run(commands_rx, app_events_tx, cancel.clone()));
+    let handles = vec![
+        tokio::spawn(workspaces.run(workspace_rx, events_tx, cancel.clone())),
+        tokio::spawn(updates.run(update_rx, cancel.clone())),
+    ];
+    Ok(Background {
+        commands: Router {
+            workspaces: workspace_commands,
+            updates: update_commands,
+        },
+        events,
+        cancel,
+        handles,
+    })
+}
 
-    let result = run(
-        session.terminal(),
-        Model::new(settings),
-        &mut app_events,
-        &commands,
-    )
-    .await;
-    drop(session);
+/// Hands each command to the agent that handles it.
+struct Router {
+    workspaces: mpsc::Sender<WorkspaceCommand>,
+    updates: mpsc::Sender<UpdateCommand>,
+}
 
-    cancel.cancel();
-    drop(commands);
-    if tokio::time::timeout(SHUTDOWN_GRACE, background)
-        .await
-        .is_err()
-    {
-        tracing::warn!("background work still running at exit");
+impl Router {
+    async fn send(&self, command: Command) -> anyhow::Result<()> {
+        match command {
+            Command::Workspaces(command) => self.workspaces.send(command).await?,
+            Command::Updates(command) => self.updates.send(command).await?,
+        }
+        Ok(())
     }
-    tracing::info!("stopping hud");
-    result.map(|()| std::process::ExitCode::SUCCESS)
+}
+
+/// Update sources in display order; Skills only when enabled in the config.
+fn update_sources(
+    preferences: &Settings,
+    runner: &TokioProcessRunner,
+) -> Vec<Arc<dyn UpdateSource>> {
+    let program = |path: Option<&std::path::Path>, default: &str| {
+        path.map_or_else(|| default.to_owned(), |path| path.display().to_string())
+    };
+    let npm = program(preferences.tools.npm.as_deref(), "npm");
+    // npx lives next to npm; an explicit npm path implies its npx.
+    let npx = preferences
+        .tools
+        .npm
+        .as_deref()
+        .and_then(std::path::Path::parent)
+        .map_or_else(
+            || "npx".to_owned(),
+            |dir| dir.join("npx").display().to_string(),
+        );
+    let mut sources: Vec<Arc<dyn UpdateSource>> = vec![
+        Arc::new(Brew::new(
+            runner.clone(),
+            program(preferences.tools.brew.as_deref(), "brew"),
+        )),
+        Arc::new(NpmGlobal::new(runner.clone(), npm)),
+    ];
+    if preferences.skills.enabled {
+        sources.push(Arc::new(Skills::new(
+            runner.clone(),
+            npx,
+            preferences.skills.cli_version.as_deref(),
+        )));
+    }
+    sources
 }
 
 fn config_store(home: &std::path::Path) -> TomlSettings {
@@ -223,7 +330,7 @@ async fn run(
     terminal: &mut terminal::Tui,
     mut model: Model,
     app_events: &mut mpsc::Receiver<AppEvent>,
-    commands: &mpsc::Sender<Command>,
+    commands: &Router,
 ) -> anyhow::Result<()> {
     let mut input = EventStream::new();
     let mut render_tick = tokio::time::interval(RENDER_TICK);
