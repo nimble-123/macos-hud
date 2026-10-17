@@ -17,8 +17,19 @@ pub struct Theme {
     advisory: Color,
     caution: Color,
     warning: Color,
-    /// Five steps from `rule` to `advisory` for the activity calendar.
-    heat: [Color; 5],
+    /// Five steps from `rule` to `advisory`, for the AI calendar.
+    heat_ai: [Color; 5],
+    /// Five steps from `rule` to `ok`, for the Git calendar.
+    heat_git: [Color; 5],
+}
+
+/// Which activity a calendar shows; each has its own colour ramp.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Activity {
+    /// AI answers.
+    Ai,
+    /// Own commits.
+    Git,
 }
 
 /// Hex values per role: (dark, light).
@@ -51,34 +62,40 @@ impl Theme {
                 ColorDepth::None => Color::Reset,
             }
         };
-        let (rule, advisory) = match appearance {
-            Appearance::Dark => (&RULE.0, &ADVISORY.0),
-            Appearance::Light => (&RULE.1, &ADVISORY.1),
+        let side = |pair: &'static (Rgb, Rgb)| match appearance {
+            Appearance::Dark => &pair.0,
+            Appearance::Light => &pair.1,
         };
-        let heat = HEAT_STEPS.map(|step| {
-            let mix = |from: u8, to: u8| {
-                let value = (u16::from(from) * (100 - step) + u16::from(to) * step) / 100;
-                u8::try_from(value).unwrap_or(u8::MAX)
-            };
-            let (r, g, b) = (
-                mix(rule.0, advisory.0),
-                mix(rule.1, advisory.1),
-                mix(rule.2, advisory.2),
-            );
-            match depth {
-                ColorDepth::TrueColor => Color::Rgb(r, g, b),
-                ColorDepth::Ansi256 => Color::Indexed(nearest_xterm(r, g, b)),
-                ColorDepth::Ansi16 => match step {
-                    0 => Color::DarkGray,
-                    1..=60 => Color::Blue,
-                    61..=80 => Color::Cyan,
-                    _ => Color::LightCyan,
-                },
-                ColorDepth::None => Color::Reset,
-            }
-        });
+        let ramp = |to: &Rgb, ansi: [Color; 3]| {
+            let from = side(&RULE);
+            HEAT_STEPS.map(|step| {
+                let mix = |a: u8, b: u8| {
+                    let value = (u16::from(a) * (100 - step) + u16::from(b) * step) / 100;
+                    u8::try_from(value).unwrap_or(u8::MAX)
+                };
+                let (r, g, b) = (mix(from.0, to.0), mix(from.1, to.1), mix(from.2, to.2));
+                match depth {
+                    ColorDepth::TrueColor => Color::Rgb(r, g, b),
+                    ColorDepth::Ansi256 => Color::Indexed(nearest_xterm(r, g, b)),
+                    ColorDepth::Ansi16 => match step {
+                        0 => Color::DarkGray,
+                        1..=60 => ansi[0],
+                        61..=80 => ansi[1],
+                        _ => ansi[2],
+                    },
+                    ColorDepth::None => Color::Reset,
+                }
+            })
+        };
         Self {
-            heat,
+            heat_ai: ramp(
+                side(&ADVISORY),
+                [Color::Blue, Color::Cyan, Color::LightCyan],
+            ),
+            heat_git: ramp(
+                side(&OK),
+                [Color::DarkGray, Color::Green, Color::LightGreen],
+            ),
             ink: pick(&INK, Color::Reset),
             muted: pick(&MUTED, Color::DarkGray),
             soft: pick(&SOFT, Color::DarkGray),
@@ -93,8 +110,12 @@ impl Theme {
 
     /// Colour of an activity level from 0 (none) to 4 (most).
     #[must_use]
-    pub fn heat(&self, level: u8) -> Color {
-        self.heat[usize::from(level.min(4))]
+    pub fn heat(&self, activity: Activity, level: u8) -> Color {
+        let ramp = match activity {
+            Activity::Ai => &self.heat_ai,
+            Activity::Git => &self.heat_git,
+        };
+        ramp[usize::from(level.min(4))]
     }
 
     /// Whether colours are shown at all; without them levels need glyphs.

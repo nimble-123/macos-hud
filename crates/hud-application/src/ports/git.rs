@@ -66,6 +66,14 @@ pub trait GitPort: Send + Sync {
     /// Updates remote-tracking branches without ever asking for credentials.
     fn fetch(&self, repo: &RepoPath) -> impl Future<Output = Result<(), GitError>> + Send;
 
+    /// Commits on any branch since `since` whose author is the repository's
+    /// configured `user.email`; empty when no address is configured.
+    fn own_commits(
+        &self,
+        repo: &RepoPath,
+        since: jiff::Timestamp,
+    ) -> impl Future<Output = Result<Vec<(CommitId, jiff::Timestamp)>, GitError>> + Send;
+
     /// Moves the branch to the permitted upstream commit. Consumes the permit,
     /// so every fast-forward needs its own passed rule check.
     fn fast_forward(
@@ -81,6 +89,14 @@ impl<T: GitPort> GitPort for Arc<T> {
 
     fn fetch(&self, repo: &RepoPath) -> impl Future<Output = Result<(), GitError>> + Send {
         (**self).fetch(repo)
+    }
+
+    fn own_commits(
+        &self,
+        repo: &RepoPath,
+        since: jiff::Timestamp,
+    ) -> impl Future<Output = Result<Vec<(CommitId, jiff::Timestamp)>, GitError>> + Send {
+        (**self).own_commits(repo, since)
     }
 
     fn fast_forward(

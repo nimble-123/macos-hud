@@ -13,6 +13,7 @@ use crate::process::{ProcessError, ProcessOutput, ProcessRunner, ProcessSpec};
 const STATUS_TIMEOUT: Duration = Duration::from_secs(10);
 const FETCH_TIMEOUT: Duration = Duration::from_secs(60);
 const MERGE_TIMEOUT: Duration = Duration::from_secs(60);
+const LOG_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Runs `git` through a [`ProcessRunner`].
 #[derive(Debug, Clone)]
@@ -135,6 +136,67 @@ impl<R: ProcessRunner> GitPort for GitCli<R> {
         )
         .await?;
         Ok(())
+    }
+
+    async fn own_commits(
+        &self,
+        repo: &RepoPath,
+        since: jiff::Timestamp,
+    ) -> Result<Vec<(CommitId, jiff::Timestamp)>, GitError> {
+        let no_locks = [("GIT_OPTIONAL_LOCKS", "0")];
+        // `git config` exits with 1 when no address is set: nothing is "own" then.
+        let Ok(config) = self
+            .git(
+                repo,
+                "config",
+                &["config", "user.email"],
+                STATUS_TIMEOUT,
+                &no_locks,
+            )
+            .await
+        else {
+            return Ok(Vec::new());
+        };
+        let email = config.stdout.trim();
+        if email.is_empty() {
+            return Ok(Vec::new());
+        }
+        // `--author` is a regular expression; match the whole address in `<…>`.
+        let author = format!("--author=<{}>", regex_escape(email));
+        let since = format!("--since={since}");
+        let output = self
+            .git(
+                repo,
+                "log",
+                &[
+                    "log",
+                    "--all",
+                    "--no-color",
+                    &author,
+                    &since,
+                    "--format=%H %at",
+                ],
+                LOG_TIMEOUT,
+                &no_locks,
+            )
+            .await?;
+        output
+            .stdout
+            .lines()
+            .filter(|line| !line.trim().is_empty())
+            .map(|line| {
+                let (id, seconds) = line
+                    .split_once(' ')
+                    .ok_or_else(|| unparsable("log", line))?;
+                let at = seconds
+                    .trim()
+                    .parse::<i64>()
+                    .ok()
+                    .and_then(|seconds| jiff::Timestamp::from_second(seconds).ok())
+                    .ok_or_else(|| unparsable("log", line))?;
+                Ok((commit_id(id, "log")?, at))
+            })
+            .collect()
     }
 
     async fn fast_forward(&self, permit: FastForwardPermit) -> Result<FfOutcome, GitError> {
@@ -266,6 +328,21 @@ fn unparsable(action: &'static str, message: &str) -> GitError {
 fn path_str<'a>(path: &'a Path, action: &'static str) -> Result<&'a str, GitError> {
     path.to_str()
         .ok_or_else(|| unparsable(action, "repository path is not valid UTF-8"))
+}
+
+/// Escapes the characters a basic regular expression treats specially.
+fn regex_escape(text: &str) -> String {
+    let mut escaped = String::with_capacity(text.len());
+    for c in text.chars() {
+        if matches!(
+            c,
+            '.' | '*' | '[' | ']' | '^' | '$' | '\\' | '+' | '?' | '(' | ')' | '{' | '}' | '|'
+        ) {
+            escaped.push('\\');
+        }
+        escaped.push(c);
+    }
+    escaped
 }
 
 fn last_line(stderr: &str) -> String {

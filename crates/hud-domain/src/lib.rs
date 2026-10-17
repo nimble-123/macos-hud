@@ -5,6 +5,7 @@
 #![warn(missing_docs)]
 
 pub mod action;
+pub mod activity;
 pub mod git;
 pub mod update;
 pub mod usage;

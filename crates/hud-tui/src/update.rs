@@ -289,6 +289,7 @@ fn on_app_event(model: &mut Model, event: AppEvent) {
         }
         AppEvent::Usage(report) => model.usage = Some(report),
         AppEvent::Telemetry(status) => model.telemetry = Some(status),
+        AppEvent::GitActivity(calendar) => model.git_activity = Some(calendar),
         AppEvent::System(sample) => {
             if model.load.len() == crate::view::SPARK_SAMPLES {
                 model.load.pop_front();

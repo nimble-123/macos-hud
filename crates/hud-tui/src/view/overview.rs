@@ -16,6 +16,7 @@ use crate::Model;
 use crate::i18n::{t, t_args, t_count};
 use crate::icons::{Status, status_glyph};
 use crate::settings::Language;
+use crate::theme::Activity;
 
 const LABEL_WIDTH: usize = 12;
 /// One block per sample: 60 samples every 2 s are the last two minutes.
@@ -37,8 +38,19 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         lines.push(Line::raw(""));
         lines.push(line);
     }
-    if let Some(report) = &model.usage {
-        let calendar = super::calendar::lines(model, &report.calendar, usize::from(area.width));
+    let width = usize::from(area.width);
+    let calendars = [
+        model
+            .usage
+            .as_ref()
+            .map(|report| (Activity::Ai, &report.calendar)),
+        model
+            .git_activity
+            .as_ref()
+            .map(|calendar| (Activity::Git, calendar)),
+    ];
+    for (activity, calendar) in calendars.into_iter().flatten() {
+        let calendar = super::calendar::lines(model, activity, calendar, width);
         if !calendar.is_empty() {
             lines.push(Line::raw(""));
             lines.extend(calendar);

@@ -311,3 +311,5 @@ calendar-fri = Fr
 calendar-summary = { $answers } Antworten, { $days } aktive Tage, längste Serie { $streak } Tage
 calendar-less = weniger
 calendar-more = mehr
+calendar-git-title = Git-Aktivität
+calendar-git-summary = { $answers } Commits, { $days } aktive Tage, längste Serie { $streak } Tage
