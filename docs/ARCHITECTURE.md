@@ -228,8 +228,8 @@ pub enum Outcome { Succeeded, Failed(String), Skipped(String), Cancelled, TimedO
 
 | Use Case | Ablauf |
 |---|---|
-| `ScanWorkspaces` | Discovery → Status je Repo (parallel, `Semaphore` 8) → `SyncDecision` je Repo → `AppEvent::ReposScanned` |
-| `SyncRepositories` | Fetch → Status → Decision → bei Permit Fast-Forward → `ActionLog` → Event (Abschnitt 6.2) |
+| `LoadCachedRepos` | letzte Status aus `ScanCache`, gruppiert nach Workspace, Zustand neu berechnet; für einen sofortigen Start |
+| `SyncRepositories` | Discovery → je Repo (parallel, höchstens 8): optional Fetch → Status → `ScanCache` → Decision → bei Permit Fast-Forward mit `ActionLog` (Abschnitt 6.2); ohne Fetch ein reiner lokaler Scan |
 | `FastForwardRepo` | manueller FF für ein Repo (ignoriert Opt-out, nicht die übrigen Regeln) |
 | `CheckUpdates` | alle `UpdateSource`s parallel, Fehler pro Quelle isoliert → `AppEvent::UpdatesChecked` |
 | `InstallUpdates` | Decision je Kandidat → Installation mit Permit, Sperre pro Paketmanager → `ActionLog` |
@@ -280,6 +280,8 @@ Jeder Use Case ist eine Struct mit Abhängigkeiten im Konstruktor und einer Meth
 4. Der Use Case schreibt `ActionLog: started` und ruft `GitPort::fast_forward(permit)`.
 5. Der Adapter prüft, dass `HEAD` noch `head_oid` ist (sonst `StateChanged`), und führt `git merge --ff-only <target_oid>` aus. Git verweigert den Merge, falls lokale Änderungen überschrieben würden.
 6. Ergebnis → `ActionLog: finished` → `AppEvent::RepoSynced` → die TUI zeigt den Status `ok` für 30 s.
+
+Protokolliert werden jeder Fast-Forward und jeder fehlgeschlagene Fetch. Erfolgreiche Fetches werden nicht protokolliert, weil sie alle 15 Minuten für jedes Repo anfallen und die relevanten Einträge verdrängen würden. Für die Anzeige liefert der Use Case je Repo einen `RepoState` (`UpToDate`, `Behind`, `Skipped`, `Error`, `FastForwarded`); er enthält keinen Permit und kann daher frei gespeichert und verschickt werden.
 
 ### 6.3 Update-Prüfung und Installation
 

@@ -7,5 +7,9 @@
 mod event;
 pub mod ports;
 pub mod settings;
+pub mod usecases;
+
+#[cfg(test)]
+mod testing;
 
 pub use event::{AppEvent, Command};

@@ -865,9 +865,11 @@ dependencies = [
 name = "hud-application"
 version = "0.0.0"
 dependencies = [
+ "futures",
  "hud-domain",
  "jiff",
  "thiserror 2.0.21",
+ "tokio",
  "tracing",
 ]
 
