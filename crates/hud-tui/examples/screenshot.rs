@@ -50,6 +50,14 @@ fn colors(appearance: Appearance) -> (&'static str, &'static str) {
     }
 }
 
+/// Window outline, so the light variant stands out on a white page.
+fn border(appearance: Appearance) -> &'static str {
+    match appearance {
+        Appearance::Dark => "#2E3640",
+        Appearance::Light => "#C4C8C2",
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args().skip(1);
     let out = PathBuf::from(args.next().ok_or("missing <out-dir>")?);
@@ -729,10 +737,12 @@ fn to_svg(buffer: &Buffer, appearance: Appearance) -> String {
     let area = buffer.area;
     let width = PAD * 2.0 + f64::from(area.width) * CELL_W;
     let height = PAD * 2.0 + f64::from(area.height) * CELL_H;
+    let (inner_width, inner_height) = (width - 2.0, height - 2.0);
+    let outline = border(appearance);
     let mut svg = String::new();
     let _ = write!(
         svg,
-        r#"<svg xmlns="http://www.w3.org/2000/svg" width="{width:.0}" height="{height:.0}" viewBox="0 0 {width:.0} {height:.0}"><rect width="100%" height="100%" fill="{bg}"/><g font-family="Hack Nerd Font Mono, Hack, Menlo, monospace" font-size="{FONT_SIZE}">"#
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="{width:.0}" height="{height:.0}" viewBox="0 0 {width:.0} {height:.0}"><rect x="1" y="1" width="{inner_width:.0}" height="{inner_height:.0}" rx="14" fill="{bg}" stroke="{outline}" stroke-width="2"/><g font-family="Hack Nerd Font Mono, Hack, Menlo, monospace" font-size="{FONT_SIZE}">"#
     );
     for y in 0..area.height {
         let base = PAD + f64::from(y) * CELL_H + CELL_H * 0.72;

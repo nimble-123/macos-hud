@@ -271,8 +271,9 @@ Ausgabe-Ende    npm error code EACCES …
 
 - Wortmarke: `hud` in Kleinbuchstaben, Chakra Petch 600, mit einer magentafarbenen Kurslinie als Unterstrich. Datei: `docs/assets/wordmark.svg`.
 - Logo: Flight-Path-Vector-Symbol (Kreis mit Flügeln) in `focus` auf `panel` dunkel, mit Horizontlinie in `soft`. Datei: `docs/assets/logo.svg`.
-- README (Englisch): zentrierter Kopf mit Logo, Claim, Badges und Navigation → Showcase der Übersicht hell/dunkel (`docs/assets/showcase-{light,dark}.svg`) → Why hud → Features → Statussymbole → Safety → Install → First run → Keys → Configuration → Data and privacy → Architecture → Documentation.
-- Alle Grafiken für die README enthalten Text als Pfade (Chakra Petch, IBM Plex Mono), damit GitHub sie ohne Webfonts korrekt darstellt. Erzeugt werden sie mit `uv run scripts/gen-readme-assets.py`.
+- README (Englisch): zentrierter Kopf mit Logo, Wortmarke, Claim, Badges und Navigation → Showcase der Übersicht hell/dunkel (`docs/assets/showcase-{light,dark}.png`) → Why hud → Features → Statussymbole → Safety → Install → First run → Keys → Configuration → Data and privacy → Architecture → Documentation.
+- Logo und Wortmarke enthalten Text als Pfade (Chakra Petch), damit GitHub sie ohne Webfonts korrekt darstellt. Erzeugt werden sie mit `uv run scripts/gen-readme-assets.py`.
+- Der Showcase ist ein Rendering der echten `view` mit Beispieldaten (115 × 38 Zellen, Hack Nerd Font Mono, PNG). Erzeugt wird er mit `scripts/gen-showcase.sh`.
 
 ## 9. Diagramme
 

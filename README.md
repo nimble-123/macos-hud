@@ -2,7 +2,12 @@
 
 <img src="docs/assets/logo.svg" alt="" width="112" height="112">
 
-# hud
+<h1>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/wordmark-dark.svg">
+  <img alt="hud" src="docs/assets/wordmark.svg" height="64">
+</picture>
+</h1>
 
 **A heads-up display for your developer machine.**<br>
 One terminal view for system load, Git workspaces, package updates and AI usage, which keeps clean repositories fast-forwarded on its own.
@@ -19,17 +24,19 @@ One terminal view for system load, Git workspaces, package updates and AI usage,
 
 </div>
 
-> [!NOTE]
-> hud is in early development. Workspaces, the automatic fast-forward and the first-run setup work today; updates, the AI dashboard and the overview are next ([milestones](https://github.com/nimble-123/macos-hud/milestones)). The screenshot below is a design preview of the overview screen.
-
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/showcase-dark.svg">
-  <img alt="The hud overview in a terminal window: CPU, memory and process totals with sparklines; a list of only what needs attention (3 repos behind upstream, 2 skipped, 1 diverged, 11 updates available); today's AI tokens with an estimated API-equivalent cost; a completed fast-forward; a running npm install; key hints in the footer" src="docs/assets/showcase-light.svg" width="860">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/showcase-dark.png">
+  <img alt="The hud overview in a terminal window: CPU and memory with two-minute sparklines; only what needs attention (2 repos behind, 4 skipped, 1 diverged, 1 workspace unavailable, 5 updates); today's AI tokens with an API-equivalent cost; contribution graphs for AI answers and own Git commits over 53 weeks; a running npm install and key hints in the footer" src="docs/assets/showcase-light.png" width="860">
 </picture>
 
+<sub>Rendered from the real view with sample data.</sub>
+
 </div>
+
+> [!NOTE]
+> Codex as a second AI source is next ([milestones](https://github.com/nimble-123/macos-hud/milestones)). Everything else on this page works today.
 
 ## Why hud
 
@@ -45,12 +52,12 @@ A typical machine carries dozens of repositories, three package managers and a c
 
 | | |
 | --- | --- |
-| **Overview** | CPU, memory and process totals with two-minute sparklines, plus a single list of what needs attention across repos, updates and AI usage. |
+| **Overview** | CPU, memory and process totals with two-minute sparklines, a single list of what needs attention across repos and updates, and contribution graphs of your AI answers and own commits over the last 53 weeks. |
 | **Workspaces** | Point hud at your project folders. It finds every Git repository and shows branch, upstream, local changes and ahead/behind counts. |
 | **Auto fast-forward** | Every 15 minutes hud fetches quietly and fast-forwards repos that are clean and only behind. On by default, switchable off per workspace. |
 | **Updates** | Outdated Homebrew formulae and casks, global npm packages and installed skills, each with the state of its CLI. Update one, or all, after a confirmation. |
 | **Automatic installs** | Separate opt-ins for Homebrew formulae, casks and npm. Casks that ask for a password are flagged as manual and not retried. |
-| **AI dashboard** | Claude Code sessions, models and tokens (input, output, cache write, cache read) for today, 7 days, 30 days, this month and last month. Codex as an optional source, including its plan usage. |
+| **AI dashboard** | Claude Code tokens, cost, models, cache hit rate, subagents, thinking, activity by hour or day, current context use and top projects, for today, 7 days, 30 days, this month or last month. Optionally Claude Code's OpenTelemetry metrics (active time, lines of code, commits, PRs), received on localhost. |
 | **Log** | Every action, manual or automatic, with trigger, target, result and the tail of its output. |
 | **Your terminal** | Light and dark detected from the terminal background, `NO_COLOR` respected, English and German, keyboard first with full mouse support. |
 
@@ -128,14 +135,18 @@ hud --reset-config --reset-data --yes
 | `Tab` / `Shift-Tab` | next / previous tab |
 | `↑` `↓` | move selection (wraps around at both ends) |
 | `Enter` | run the selected action |
-| `f` | fast-forward the selected repo |
+| `f` | fast-forward the selected repo; in Log: cycle the filter |
 | `u` | update the selected package |
+| `←` `→` / `1`–`5` | switch the period for the whole AI tab |
+| `t` | switch on telemetry in Claude Code (AI, asks first) |
+| `/` / `Esc` | search the log / drop the search |
 | `a` / `d` | add / remove a workspace (Settings) |
 | `r` | refresh now; in Settings: reload the config file |
-| `?` | help |
+| `?` | help for the current tab |
 | `q` | quit; while an installation runs, choose to wait for it or cancel it |
+| `Ctrl-C` | quit, even from an input |
 
-Every action in the footer can also be clicked.
+With the mouse, click a tab, a period, a row or any action in the footer. A second click on the selected row acts like `Enter`, and the wheel moves the selection. Dialogs only answer to keys.
 
 ## Configuration
 
@@ -161,6 +172,10 @@ billing = "subscription"     # subscription | api
 
 [ai.codex]
 enabled = false
+
+[ai.telemetry]
+enabled = true               # OTLP receiver on 127.0.0.1
+port = 4318
 ```
 
 hud rereads the file before it writes changes from **Settings**, and keeps your comments. The full reference is in [the architecture document](docs/ARCHITECTURE.md#87-konfiguration).
@@ -173,7 +188,7 @@ hud rereads the file before it writes changes from **Settings**, and keeps your 
 | History and cache | `~/Library/Application Support/hud/hud.db` |
 | Logs | `~/Library/Logs/hud/` |
 
-hud reads usage fields from Claude Code and Codex session logs and nothing else: no prompts, no responses, no credentials. The only network traffic is what `git fetch`, `brew`, `npm` and `npx` do themselves.
+hud reads usage fields from Claude Code session logs and nothing else: no prompts, no responses, no credentials. While it runs, it listens on `127.0.0.1` for Claude Code's OpenTelemetry metrics and keeps only names, values, times, session and model; it changes `~/.claude/settings.json` only after you confirm with `t`. The only outgoing network traffic is what `git fetch`, `brew`, `npm` and `npx` do themselves.
 
 ## Architecture
 
