@@ -119,6 +119,8 @@ pub struct Model {
     pub(crate) actions: Vec<ActionRecord>,
     /// Cursor, search and filter of the Log tab.
     pub(crate) log_tab: LogTab,
+    /// AI usage per period, once the logs were read.
+    pub(crate) usage: Option<Box<hud_application::usecases::usage::UsageReport>>,
     /// Zone for showing times; UTC unless the binary sets the system zone.
     pub(crate) time_zone: jiff::tz::TimeZone,
 }
@@ -179,6 +181,7 @@ impl Model {
             settings_tab: SettingsTab::default(),
             actions: Vec::new(),
             log_tab: LogTab::default(),
+            usage: None,
             time_zone: jiff::tz::TimeZone::UTC,
         }
     }

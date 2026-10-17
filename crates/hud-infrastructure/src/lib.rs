@@ -7,3 +7,4 @@ pub mod git;
 pub mod process;
 pub mod sqlite;
 pub mod updates;
+pub mod usage;

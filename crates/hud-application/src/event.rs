@@ -8,6 +8,7 @@ use hud_domain::update::InstallTarget;
 
 use crate::settings::{Settings, SettingsChange};
 use crate::usecases::updates::{JobUpdate, SourceReport};
+use crate::usecases::usage::UsageReport;
 use crate::usecases::workspaces::{RepoReport, WorkspaceReport};
 
 /// Where a workspace report comes from.
@@ -63,6 +64,8 @@ pub enum AppEvent {
     Actions(Vec<ActionRecord>),
     /// After [`UpdateCommand::Drain`]: every running installation has ended.
     JobsFinished,
+    /// AI usage per period, after each read of the logs.
+    Usage(Box<UsageReport>),
 }
 
 /// Request from the presentation layer to run a use case, grouped by the
