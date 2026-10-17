@@ -88,7 +88,9 @@ impl<R: ProcessRunner> NpmGlobal<R> {
         let spec = format!("{}@{}", candidate.name, candidate.latest);
         let output = self.run(&["install", "--global", &spec], INSTALL).await?;
         if output.code == Some(0) {
-            Ok(InstallOutcome::Installed)
+            Ok(InstallOutcome::Installed {
+                output: super::success_output(&output),
+            })
         } else {
             Err(UpdateError::Failed {
                 tool: TOOL,
@@ -264,7 +266,9 @@ mod tests {
         let expected = format!("{}@{}", candidate.name, candidate.latest);
         assert_eq!(
             npm.install(permit(candidate)).await,
-            Ok(InstallOutcome::Installed)
+            Ok(InstallOutcome::Installed {
+                output: String::new()
+            })
         );
         assert_eq!(
             npm.runner.args_of_calls(),

@@ -83,7 +83,9 @@ impl<R: ProcessRunner> Skills<R> {
         }
         let output = self.run(&["update", "--global", "--yes"], UPDATE).await?;
         if output.code == Some(0) {
-            Ok(InstallOutcome::Installed)
+            Ok(InstallOutcome::Installed {
+                output: super::success_output(&output),
+            })
         } else {
             Err(UpdateError::Failed {
                 tool: TOOL,
@@ -216,7 +218,9 @@ mod tests {
         let skills = Skills::new(runner, "npx", None);
         assert_eq!(
             skills.install(all_skills_permit()).await,
-            Ok(InstallOutcome::Installed)
+            Ok(InstallOutcome::Installed {
+                output: String::new()
+            })
         );
         assert_eq!(
             skills.runner.args_of_calls()[0],

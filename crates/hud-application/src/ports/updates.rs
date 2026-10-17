@@ -29,8 +29,11 @@ pub struct SourceCheck {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
 pub enum InstallOutcome {
-    /// Installed.
-    Installed,
+    /// Installed; `output` is the end of what the tool printed, for the log.
+    Installed {
+        /// Last lines of the tool's output, credentials masked.
+        output: String,
+    },
     /// The tool asked for a password or other input; nothing was installed.
     NeedsInteraction,
 }
