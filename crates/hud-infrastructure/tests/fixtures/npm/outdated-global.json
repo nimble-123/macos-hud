@@ -1,0 +1,30 @@
+{
+  "@sap/cds-dk": {
+    "current": "9.7.2",
+    "wanted": "10.1.0",
+    "latest": "10.1.0",
+    "dependent": "global",
+    "location": "/Users/test/.nvm/versions/node/v24.12.0/lib/node_modules/@sap/cds-dk"
+  },
+  "@sap/ux-ui5-tooling": {
+    "current": "1.21.0",
+    "wanted": "1.33.0",
+    "latest": "1.33.0",
+    "dependent": "global",
+    "location": "/Users/test/.nvm/versions/node/v24.12.0/lib/node_modules/@sap/ux-ui5-tooling"
+  },
+  "@ui5/cli": {
+    "current": "4.0.49",
+    "wanted": "4.0.71",
+    "latest": "4.0.71",
+    "dependent": "global",
+    "location": "/Users/test/.nvm/versions/node/v24.12.0/lib/node_modules/@ui5/cli"
+  },
+  "codeburn": {
+    "current": "0.9.0",
+    "wanted": "0.9.27",
+    "latest": "0.9.27",
+    "dependent": "global",
+    "location": "/Users/test/.nvm/versions/node/v24.12.0/lib/node_modules/codeburn"
+  }
+}
