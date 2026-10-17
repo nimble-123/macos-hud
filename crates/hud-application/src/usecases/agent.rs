@@ -1,35 +1,31 @@
-//! Drives the workspace use cases: on start, on a timer and on command.
+//! Drives the workspace use cases: on start, on a timer, on command and
+//! whenever the settings change.
 
 use std::time::Duration;
 
-use tokio::sync::mpsc;
-use tokio::time::MissedTickBehavior;
+use tokio::sync::{mpsc, watch};
+use tokio::time::{Instant, Interval, MissedTickBehavior};
 use tokio_util::sync::CancellationToken;
 
 use crate::event::{AppEvent, ReportSource, WorkspaceCommand};
 use crate::ports::discovery::RepoDiscovery;
 use crate::ports::git::GitPort;
 use crate::ports::store::{ActionLog, Clock, ScanCache};
-use crate::settings::{ScanSettings, WorkspaceSettings};
+use crate::settings::Settings;
 use crate::usecases::workspaces::{FastForwardRepo, LoadCachedRepos, SyncRepositories};
-
-/// Everything the agent needs to know about the configuration.
-#[derive(Debug, Clone)]
-pub struct WorkspaceConfig {
-    /// Configured workspaces.
-    pub workspaces: Vec<WorkspaceSettings>,
-    /// Discovery settings.
-    pub scan: ScanSettings,
-    /// Pause between syncs with fetch.
-    pub fetch_interval: Duration,
-}
 
 /// Runs the workspace use cases until cancelled.
 pub struct WorkspaceAgent<G, D, L, S, C> {
     cached: LoadCachedRepos<S>,
     sync: SyncRepositories<G, D, L, S, C>,
     manual: FastForwardRepo<G, L, C>,
-    config: WorkspaceConfig,
+    settings: watch::Receiver<Settings>,
+}
+
+/// What woke the agent up.
+enum Step {
+    Command(WorkspaceCommand),
+    SettingsChanged,
 }
 
 impl<G, D, L, S, C> WorkspaceAgent<G, D, L, S, C>
@@ -40,26 +36,35 @@ where
     S: ScanCache + Clone,
     C: Clock + Clone,
 {
-    /// Agent over the given ports.
-    pub fn new(git: G, discovery: D, log: L, cache: S, clock: C, config: WorkspaceConfig) -> Self {
+    /// Agent over the given ports; workspaces, scan settings and the fetch
+    /// interval come from `settings` and follow its changes.
+    pub fn new(
+        git: G,
+        discovery: D,
+        log: L,
+        cache: S,
+        clock: C,
+        settings: watch::Receiver<Settings>,
+    ) -> Self {
         Self {
             cached: LoadCachedRepos::new(cache.clone()),
             manual: FastForwardRepo::new(git.clone(), log.clone(), clock.clone()),
             sync: SyncRepositories::new(git, discovery, log, cache, clock),
-            config,
+            settings,
         }
     }
 
     /// Cache first, then a quick local scan, then fetch-and-sync on every
-    /// interval tick or command. Stops between steps once `cancel` fires.
+    /// interval tick or command. A settings change triggers a local scan.
+    /// Stops between steps once `cancel` fires.
     pub async fn run(
-        self,
+        mut self,
         mut commands: mpsc::Receiver<WorkspaceCommand>,
         events: mpsc::Sender<AppEvent>,
         cancel: CancellationToken,
     ) {
-        let workspaces = &self.config.workspaces;
-        let reports = self.cached.execute(workspaces).await;
+        let current = self.settings.borrow_and_update().clone();
+        let reports = self.cached.execute(&current.workspaces).await;
         if send(
             &events,
             AppEvent::Workspaces {
@@ -72,44 +77,43 @@ where
         {
             return;
         }
-        let reports = self
-            .sync
-            .execute(workspaces, &self.config.scan, false, Some(&events))
-            .await;
-        if send(
-            &events,
-            AppEvent::Workspaces {
-                reports,
-                source: ReportSource::LocalScan,
-            },
-        )
-        .await
-        .is_err()
-        {
+        if self.local_scan(&current, &events).await.is_err() {
             return;
         }
 
         // The first tick fires immediately: fetch right after the local scan.
-        let mut timer = tokio::time::interval(self.config.fetch_interval);
-        timer.set_missed_tick_behavior(MissedTickBehavior::Delay);
+        let mut fetch_interval = current.fetch_interval;
+        let mut timer = fetch_timer(Instant::now(), fetch_interval);
         loop {
             let next = tokio::select! {
                 () = cancel.cancelled() => return,
-                _ = timer.tick() => Some(WorkspaceCommand::SyncNow),
-                command = commands.recv() => command,
+                _ = timer.tick() => Some(Step::Command(WorkspaceCommand::SyncNow)),
+                Ok(()) = self.settings.changed() => Some(Step::SettingsChanged),
+                command = commands.recv() => command.map(Step::Command),
             };
-            let Some(command) = next else { return };
+            let Some(step) = next else { return };
             if cancel.is_cancelled() {
                 return;
             }
-            let event = match command {
-                WorkspaceCommand::SyncNow => {
+            let current = self.settings.borrow_and_update().clone();
+            let event = match step {
+                Step::SettingsChanged => {
+                    if current.fetch_interval != fetch_interval {
+                        fetch_interval = current.fetch_interval;
+                        timer = fetch_timer(Instant::now() + fetch_interval, fetch_interval);
+                    }
+                    if self.local_scan(&current, &events).await.is_err() {
+                        return;
+                    }
+                    continue;
+                }
+                Step::Command(WorkspaceCommand::SyncNow) => {
                     if send(&events, AppEvent::SyncStarted).await.is_err() {
                         return;
                     }
                     let reports = self
                         .sync
-                        .execute(workspaces, &self.config.scan, true, Some(&events))
+                        .execute(&current.workspaces, &current.scan, true, Some(&events))
                         .await;
                     timer.reset();
                     AppEvent::Workspaces {
@@ -117,7 +121,7 @@ where
                         source: ReportSource::Sync,
                     }
                 }
-                WorkspaceCommand::FastForward(repo) => {
+                Step::Command(WorkspaceCommand::FastForward(repo)) => {
                     AppEvent::RepoUpdated(self.manual.execute(&repo).await)
                 }
             };
@@ -126,6 +130,32 @@ where
             }
         }
     }
+
+    /// Scans without contacting remotes and reports the result.
+    async fn local_scan(
+        &self,
+        current: &Settings,
+        events: &mpsc::Sender<AppEvent>,
+    ) -> Result<(), ()> {
+        let reports = self
+            .sync
+            .execute(&current.workspaces, &current.scan, false, Some(events))
+            .await;
+        send(
+            events,
+            AppEvent::Workspaces {
+                reports,
+                source: ReportSource::LocalScan,
+            },
+        )
+        .await
+    }
+}
+
+fn fetch_timer(start: Instant, period: Duration) -> Interval {
+    let mut timer = tokio::time::interval_at(start, period);
+    timer.set_missed_tick_behavior(MissedTickBehavior::Delay);
+    timer
 }
 
 /// A closed channel means the UI is gone; the agent then stops.
@@ -154,30 +184,33 @@ mod tests {
 
     type TestAgent = WorkspaceAgent<Arc<FakeGit>, FakeDiscovery, Arc<FakeLog>, Arc<FakeCache>, Clk>;
 
-    fn agent(git: FakeGit, auto: bool) -> (TestAgent, Arc<FakeGit>) {
+    fn agent(git: FakeGit, auto: bool) -> (TestAgent, Arc<FakeGit>, watch::Sender<Settings>) {
         let git = Arc::new(git);
         let discovery = FakeDiscovery {
-            repos: HashMap::from([("/ws".to_owned(), vec![repo("/ws/api")])]),
+            repos: HashMap::from([
+                ("/ws".to_owned(), vec![repo("/ws/api")]),
+                ("/other".to_owned(), Vec::new()),
+            ]),
         };
-        let config = WorkspaceConfig {
+        let (settings, watched) = watch::channel(Settings {
             workspaces: vec![workspace("/ws", auto)],
-            scan: ScanSettings::default(),
             fetch_interval: Duration::from_hours(1),
-        };
+            ..Settings::default()
+        });
         let agent = WorkspaceAgent::new(
             git.clone(),
             discovery,
             Arc::new(FakeLog::default()),
             Arc::new(FakeCache::default()),
             Clk,
-            config,
+            watched,
         );
-        (agent, git)
+        (agent, git, settings)
     }
 
     #[tokio::test]
     async fn start_sends_cache_then_local_scan_then_sync() {
-        let (agent, git) = agent(FakeGit::with(&[("/ws/api", behind(2))]), true);
+        let (agent, git, _settings) = agent(FakeGit::with(&[("/ws/api", behind(2))]), true);
         let (_commands_tx, commands) = mpsc::channel(4);
         let (events_tx, mut events) = mpsc::channel(16);
         let cancel = CancellationToken::new();
@@ -212,7 +245,7 @@ mod tests {
 
     #[tokio::test]
     async fn fast_forward_command_runs_the_manual_use_case() {
-        let (agent, _git) = agent(FakeGit::with(&[("/ws/api", behind(1))]), false);
+        let (agent, _git, _settings) = agent(FakeGit::with(&[("/ws/api", behind(1))]), false);
         let (commands_tx, commands) = mpsc::channel(4);
         let (events_tx, mut events) = mpsc::channel(16);
         let cancel = CancellationToken::new();
@@ -233,8 +266,37 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn changed_workspaces_are_scanned_locally_at_once() {
+        let (agent, git, settings) = agent(FakeGit::with(&[("/ws/api", behind(0))]), true);
+        let (_commands_tx, commands) = mpsc::channel(4);
+        let (events_tx, mut events) = mpsc::channel(16);
+        let cancel = CancellationToken::new();
+        let task = tokio::spawn(agent.run(commands, events_tx, cancel.clone()));
+        // Wait for the start sequence to end with the first sync.
+        while !matches!(
+            events.recv().await,
+            Some(AppEvent::Workspaces {
+                source: ReportSource::Sync,
+                ..
+            })
+        ) {}
+
+        settings.send_modify(|current| current.workspaces.push(workspace("/other", true)));
+        let reports = loop {
+            if let Some(AppEvent::Workspaces { reports, source }) = events.recv().await {
+                assert_eq!(source, ReportSource::LocalScan);
+                break reports;
+            }
+        };
+        assert_eq!(reports.len(), 2);
+        assert_eq!(git.fetched.lock().expect("BUG").len(), 1, "no extra fetch");
+        cancel.cancel();
+        task.await.expect("BUG: agent task");
+    }
+
+    #[tokio::test]
     async fn agent_stops_when_the_ui_is_gone() {
-        let (agent, _git) = agent(FakeGit::with(&[("/ws/api", behind(0))]), true);
+        let (agent, _git, _settings) = agent(FakeGit::with(&[("/ws/api", behind(0))]), true);
         let (_commands_tx, commands) = mpsc::channel(4);
         let (events_tx, events) = mpsc::channel(16);
         drop(events);

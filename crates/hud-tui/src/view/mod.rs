@@ -6,6 +6,7 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
 
+mod settings;
 mod updates;
 mod workspaces;
 
@@ -32,6 +33,7 @@ pub fn view(model: &Model, frame: &mut Frame) {
     match model.tab() {
         Tab::Workspaces => workspaces::render(model, frame, body),
         Tab::Updates => updates::render(model, frame, body),
+        Tab::Settings => settings::render(model, frame, body),
         tab => render_placeholder(tab, language, &model.theme, frame, body),
     }
     render_footer(model, frame, footer);
@@ -85,21 +87,7 @@ fn render_placeholder(
 fn render_footer(model: &Model, frame: &mut Frame, area: Rect) {
     let language = model.settings.language;
     let theme = &model.theme;
-    let mut hints = Vec::with_capacity(5);
-    if model.tab() == Tab::Updates {
-        hints.extend([("key-arrows", "hint-select"), ("key-u", "hint-install")]);
-    }
-    if model.tab() == Tab::Workspaces {
-        hints.extend([
-            ("key-arrows", "hint-select"),
-            ("key-f", "hint-fast-forward"),
-        ]);
-    }
-    hints.extend([
-        ("key-r", "hint-refresh"),
-        ("key-tab", "hint-switch"),
-        ("key-quit", "hint-quit"),
-    ]);
+    let hints = footer_hints(model);
     let mut spans = Vec::with_capacity(hints.len() * 2 + 1);
     for (key, label) in hints {
         spans.push(Span::styled(
@@ -132,6 +120,40 @@ fn render_footer(model: &Model, frame: &mut Frame, area: Rect) {
     }
     lines.push(Line::from(spans));
     frame.render_widget(Paragraph::new(lines), inner);
+}
+
+/// Key hints for the active tab; an open input or dialog has its own.
+fn footer_hints(model: &Model) -> Vec<(&'static str, &'static str)> {
+    let tab = &model.settings_tab;
+    if model.tab() == Tab::Settings && tab.input.is_some() {
+        return vec![("key-enter", "hint-add"), ("key-esc", "hint-cancel")];
+    }
+    let mut hints = Vec::with_capacity(7);
+    match model.tab() {
+        Tab::Updates => hints.extend([("key-arrows", "hint-select"), ("key-u", "hint-install")]),
+        Tab::Workspaces => hints.extend([
+            ("key-arrows", "hint-select"),
+            ("key-f", "hint-fast-forward"),
+        ]),
+        Tab::Settings => hints.extend([
+            ("key-arrows", "hint-select"),
+            ("key-enter", "hint-change"),
+            ("key-a", "hint-add"),
+            ("key-d", "hint-remove"),
+        ]),
+        Tab::Overview | Tab::Ai | Tab::Log => {}
+    }
+    let refresh = if model.tab() == Tab::Settings {
+        "hint-reload"
+    } else {
+        "hint-refresh"
+    };
+    hints.extend([
+        ("key-r", refresh),
+        ("key-tab", "hint-switch"),
+        ("key-quit", "hint-quit"),
+    ]);
+    hints
 }
 
 /// Spinner, number of running installations and the first one's command.
@@ -238,6 +260,61 @@ mod tests {
             }),
         );
         insta::assert_snapshot!(render(&model).backend());
+    }
+
+    fn settings_tab(language: Language) -> Model {
+        use hud_application::AppEvent;
+        use hud_application::settings::{Settings, WorkspaceSettings};
+        let mut model = Model::new(UiSettings {
+            language,
+            ..UiSettings::default()
+        });
+        model.tab = Tab::Settings;
+        let workspace = WorkspaceSettings {
+            path: hud_domain::WorkspacePath::try_from(std::path::PathBuf::from("/ws"))
+                .expect("BUG: absolute"),
+            auto_fast_forward: false,
+        };
+        let settings = Settings {
+            workspaces: vec![workspace],
+            ..Settings::default()
+        };
+        update(&mut model, Msg::App(AppEvent::Settings(Box::new(settings))));
+        model
+    }
+
+    fn render_tall(model: &Model) -> Terminal<TestBackend> {
+        let mut terminal = Terminal::new(TestBackend::new(80, 22)).expect("BUG: test backend");
+        terminal
+            .draw(|frame| view(model, frame))
+            .expect("BUG: test draw");
+        terminal
+    }
+
+    #[test]
+    fn settings_tab_in_german() {
+        insta::assert_snapshot!(render_tall(&settings_tab(Language::De)).backend());
+    }
+
+    #[test]
+    fn settings_tab_in_english() {
+        insta::assert_snapshot!(render_tall(&settings_tab(Language::En)).backend());
+    }
+
+    #[test]
+    fn settings_remove_dialog() {
+        let mut model = settings_tab(Language::De);
+        for _ in 0..3 {
+            update(
+                &mut model,
+                Msg::Key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)),
+            );
+        }
+        update(
+            &mut model,
+            Msg::Key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE)),
+        );
+        insta::assert_snapshot!(render_tall(&model).backend());
     }
 
     #[test]

@@ -1,7 +1,9 @@
-//! Presentation settings resolved once at start-up.
+//! Presentation settings.
 //!
-//! The binary reads the environment and the config; these types and their
-//! pure constructors decide what the values mean.
+//! The binary reads the environment once at start-up; these types and their
+//! pure constructors decide what the values mean, also after the settings change.
+
+use hud_application::settings::{IconPreference, LanguagePreference, Settings, ThemePreference};
 
 /// UI language.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -94,6 +96,41 @@ pub struct UiSettings {
     pub icons: IconSet,
 }
 
+/// What hud found out about the system at start-up; used wherever a
+/// preference is `auto`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct System {
+    /// System language.
+    pub language: Language,
+    /// Terminal background.
+    pub appearance: Appearance,
+}
+
+impl UiSettings {
+    /// Explicit preferences win; `auto` falls back to what the system reported.
+    #[must_use]
+    pub fn resolve(preferences: &Settings, system: System, color_depth: ColorDepth) -> Self {
+        Self {
+            language: match preferences.language {
+                LanguagePreference::Auto => system.language,
+                LanguagePreference::De => Language::De,
+                LanguagePreference::En => Language::En,
+            },
+            appearance: match preferences.theme {
+                ThemePreference::Auto => system.appearance,
+                ThemePreference::Dark => Appearance::Dark,
+                ThemePreference::Light => Appearance::Light,
+            },
+            color_depth,
+            icons: match preferences.icons {
+                IconPreference::Unicode => IconSet::Unicode,
+                IconPreference::Nerd => IconSet::Nerd,
+                IconPreference::Ascii => IconSet::Ascii,
+            },
+        }
+    }
+}
+
 impl Default for UiSettings {
     fn default() -> Self {
         Self {
@@ -108,6 +145,36 @@ impl Default for UiSettings {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn auto_preferences_follow_the_system() {
+        let system = System {
+            language: Language::De,
+            appearance: Appearance::Light,
+        };
+        let resolved = UiSettings::resolve(&Settings::default(), system, ColorDepth::Ansi16);
+        assert_eq!(resolved.language, Language::De);
+        assert_eq!(resolved.appearance, Appearance::Light);
+        assert_eq!(resolved.color_depth, ColorDepth::Ansi16);
+    }
+
+    #[test]
+    fn explicit_preferences_win_over_the_system() {
+        let preferences = Settings {
+            language: LanguagePreference::En,
+            theme: ThemePreference::Dark,
+            icons: IconPreference::Nerd,
+            ..Settings::default()
+        };
+        let system = System {
+            language: Language::De,
+            appearance: Appearance::Light,
+        };
+        let resolved = UiSettings::resolve(&preferences, system, ColorDepth::TrueColor);
+        assert_eq!(resolved.language, Language::En);
+        assert_eq!(resolved.appearance, Appearance::Dark);
+        assert_eq!(resolved.icons, IconSet::Nerd);
+    }
 
     #[test]
     fn german_locales_select_german() {

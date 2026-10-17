@@ -57,7 +57,10 @@ use hud_application::usecases::workspaces::{RepoReport, RepoState, WorkspaceRepo
 use hud_domain::git::RepoPath;
 use hud_domain::update::InstallTarget;
 
-use crate::settings::UiSettings;
+use hud_application::settings::Settings;
+
+use crate::settings::{System, UiSettings};
+use crate::settings_tab::SettingsTab;
 use crate::theme::Theme;
 
 /// How long a finished fast-forward stays highlighted before it returns to
@@ -93,6 +96,12 @@ pub struct Model {
     pub(crate) update_selected: usize,
     /// Installation waiting for confirmation in the dialog.
     pub(crate) confirm: Option<InstallTarget>,
+    /// What the system reported at start-up; used for `auto` preferences.
+    pub(crate) system: System,
+    /// Settings as last reported; `None` until the settings agent sent them.
+    pub(crate) preferences: Option<Settings>,
+    /// Cursor, input and dialog of the Settings tab.
+    pub(crate) settings_tab: SettingsTab,
 }
 
 /// Progress of a running scan.
@@ -130,7 +139,27 @@ impl Model {
             finished_jobs: BTreeMap::new(),
             update_selected: 0,
             confirm: None,
+            system: System {
+                language: settings.language,
+                appearance: settings.appearance,
+            },
+            preferences: None,
+            settings_tab: SettingsTab::default(),
         }
+    }
+
+    /// Sets what the system reported, for preferences that are `auto`.
+    #[must_use]
+    pub fn with_system(mut self, system: System) -> Self {
+        self.system = system;
+        self
+    }
+
+    /// Takes over new settings: presentation changes apply at once.
+    pub(crate) fn apply_preferences(&mut self, preferences: Settings) {
+        self.settings = UiSettings::resolve(&preferences, self.system, self.settings.color_depth);
+        self.theme = Theme::new(self.settings.appearance, self.settings.color_depth);
+        self.preferences = Some(preferences);
     }
 
     /// Actionable rows of the Updates tab in display order.

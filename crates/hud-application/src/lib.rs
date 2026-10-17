@@ -12,4 +12,6 @@ pub mod usecases;
 #[cfg(test)]
 mod testing;
 
-pub use event::{AppEvent, Command, ReportSource, UpdateCommand, WorkspaceCommand};
+pub use event::{
+    AppEvent, Command, ReportSource, SettingsCommand, UpdateCommand, WorkspaceCommand,
+};

@@ -10,7 +10,7 @@ use hud_domain::update::{
     AutoInstallPolicy, DenyReason, InstallDecision, InstallPermit, InstallRequest, InstallTarget,
     SourceId, UpdateCandidate, install_decision,
 };
-use tokio::sync::{Mutex, mpsc};
+use tokio::sync::{Mutex, mpsc, watch};
 use tokio::task::JoinSet;
 use tokio::time::{Instant, MissedTickBehavior};
 use tokio_util::sync::CancellationToken;
@@ -18,6 +18,7 @@ use tokio_util::sync::CancellationToken;
 use crate::event::{AppEvent, UpdateCommand};
 use crate::ports::store::{ActionLog, Clock, InstallHistory, InstallResult};
 use crate::ports::updates::{Availability, InstallOutcome, SourceCheck, UpdateError, UpdateSource};
+use crate::settings::Settings;
 
 /// State of one source after a check.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -81,21 +82,13 @@ pub fn target_source(target: &InstallTarget) -> SourceId {
     }
 }
 
-/// Everything the agent needs to know about the configuration.
-#[derive(Debug, Clone, Copy)]
-pub struct UpdatesConfig {
-    /// Pause between checks.
-    pub interval: Duration,
-    /// Opt-ins for automatic installation.
-    pub policy: AutoInstallPolicy,
-}
-
 struct Shared<L, H, C> {
     sources: Vec<Arc<dyn UpdateSource>>,
     log: L,
     history: H,
     clock: C,
-    policy: AutoInstallPolicy,
+    /// Opt-ins and the check interval; read on use, so changes apply at once.
+    settings: watch::Receiver<Settings>,
     /// One lock per source: never two brew or two npm processes at once.
     locks: HashMap<SourceId, Arc<Mutex<()>>>,
     events: mpsc::Sender<AppEvent>,
@@ -108,7 +101,6 @@ struct Shared<L, H, C> {
 /// Checks sources on start, on a timer and on request, and runs installations.
 pub struct UpdatesAgent<L, H, C> {
     shared: Arc<Shared<L, H, C>>,
-    interval: Duration,
 }
 
 impl<L, H, C> UpdatesAgent<L, H, C>
@@ -117,13 +109,14 @@ where
     H: InstallHistory + 'static,
     C: Clock + 'static,
 {
-    /// Agent over the given sources.
+    /// Agent over the given sources; opt-ins and the check interval come
+    /// from `settings` and follow its changes.
     pub fn new(
         sources: Vec<Arc<dyn UpdateSource>>,
         log: L,
         history: H,
         clock: C,
-        config: UpdatesConfig,
+        settings: watch::Receiver<Settings>,
         events: mpsc::Sender<AppEvent>,
     ) -> Self {
         let locks = sources
@@ -136,13 +129,12 @@ where
                 log,
                 history,
                 clock,
-                policy: config.policy,
+                settings,
                 locks,
                 events,
                 next_job: AtomicU64::new(1),
                 auto_running: AtomicBool::new(false),
             }),
-            interval: config.interval,
         }
     }
 
@@ -154,13 +146,22 @@ where
         // not delay commands or cancellation.
         let mut jobs = JoinSet::new();
         jobs.spawn(Arc::clone(shared).check_and_report());
-        let mut timer = tokio::time::interval_at(Instant::now() + self.interval, self.interval);
-        timer.set_missed_tick_behavior(MissedTickBehavior::Delay);
+        let mut changes = shared.settings.clone();
+        let mut interval = changes.borrow_and_update().update_check_interval;
+        let mut timer = check_timer(interval);
         loop {
             tokio::select! {
                 () = cancel.cancelled() => break,
                 _ = timer.tick() => {
                     jobs.spawn(Arc::clone(shared).check_and_report());
+                }
+                Ok(()) = changes.changed() => {
+                    // New opt-ins are read on the next check; only the timer needs work.
+                    let period = changes.borrow_and_update().update_check_interval;
+                    if period != interval {
+                        interval = period;
+                        timer = check_timer(interval);
+                    }
                 }
                 Some(_) = jobs.join_next(), if !jobs.is_empty() => {}
                 command = commands.recv() => match command {
@@ -183,7 +184,17 @@ where
     }
 }
 
+fn check_timer(period: Duration) -> tokio::time::Interval {
+    let mut timer = tokio::time::interval_at(Instant::now() + period, period);
+    timer.set_missed_tick_behavior(MissedTickBehavior::Delay);
+    timer
+}
+
 impl<L: ActionLog, H: InstallHistory, C: Clock> Shared<L, H, C> {
+    fn policy(&self) -> AutoInstallPolicy {
+        self.settings.borrow().auto_install.into()
+    }
+
     async fn send(&self, event: AppEvent) -> Result<(), ()> {
         self.events.send(event).await.map_err(|_| ())
     }
@@ -213,7 +224,7 @@ impl<L: ActionLog, H: InstallHistory, C: Clock> Shared<L, H, C> {
     /// Installs every candidate the rules allow, one after another. Denied
     /// candidates stay silent: not installing is the normal case.
     async fn auto_install(&self, candidates: Vec<UpdateCandidate>) {
-        if self.policy == AutoInstallPolicy::default()
+        if self.policy() == AutoInstallPolicy::default()
             || self.auto_running.swap(true, Ordering::AcqRel)
         {
             return;
@@ -250,7 +261,7 @@ impl<L: ActionLog, H: InstallHistory, C: Clock> Shared<L, H, C> {
                 }),
             _ => false,
         };
-        install_decision(target, request, self.policy, needed_before)
+        install_decision(target, request, self.policy(), needed_before)
     }
 
     async fn install(&self, target: InstallTarget, request: InstallRequest) {
@@ -476,6 +487,7 @@ mod tests {
         task: tokio::task::JoinHandle<()>,
         log: Arc<FakeLog>,
         history: Arc<FakeHistory>,
+        settings: watch::Sender<Settings>,
     }
 
     impl Running {
@@ -502,16 +514,20 @@ mod tests {
         let (commands, commands_rx) = mpsc::channel(8);
         let log = Arc::new(FakeLog::default());
         let history = Arc::new(history);
-        let config = UpdatesConfig {
-            interval: Duration::from_hours(6),
-            policy,
-        };
+        let (settings, watched) = watch::channel(Settings {
+            auto_install: crate::settings::AutoInstallSettings {
+                brew_formulae: policy.brew_formulae,
+                brew_casks: policy.brew_casks,
+                npm: policy.npm,
+            },
+            ..Settings::default()
+        });
         let agent = UpdatesAgent::new(
             sources,
             Arc::clone(&log),
             Arc::clone(&history),
             FakeClock,
-            config,
+            watched,
             events_tx,
         );
         let cancel = CancellationToken::new();
@@ -523,6 +539,7 @@ mod tests {
             task,
             log,
             history,
+            settings,
         }
     }
 
@@ -716,6 +733,25 @@ mod tests {
             Some(AppEvent::Updates(_))
         ));
         assert_eq!(brew.installs.load(Ordering::SeqCst), 0);
+        agent.stop().await;
+    }
+
+    #[tokio::test]
+    async fn an_opt_in_enabled_while_running_applies_to_the_next_check() {
+        let brew = Arc::new(FakeSource::new(SourceId::Homebrew));
+        let mut agent = start(vec![brew.clone() as Arc<dyn UpdateSource>]);
+        let _ = agent.events.recv().await;
+        agent
+            .settings
+            .send_modify(|settings| settings.auto_install.brew_formulae = true);
+        agent
+            .commands
+            .send(UpdateCommand::CheckNow)
+            .await
+            .expect("BUG");
+        let _ = agent.events.recv().await;
+        let states = job_states(&mut agent.events, 1).await;
+        assert_eq!(states.last(), Some(&JobState::Succeeded));
         agent.stop().await;
     }
 

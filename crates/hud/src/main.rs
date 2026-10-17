@@ -17,9 +17,10 @@ use hud_application::settings::{IconPreference, InitialSetup, Settings, Settings
 use std::sync::Arc;
 
 use hud_application::ports::updates::UpdateSource;
-use hud_application::usecases::agent::{WorkspaceAgent, WorkspaceConfig};
-use hud_application::usecases::updates::{UpdatesAgent, UpdatesConfig};
-use hud_application::{AppEvent, Command, UpdateCommand, WorkspaceCommand};
+use hud_application::usecases::agent::WorkspaceAgent;
+use hud_application::usecases::settings::SettingsAgent;
+use hud_application::usecases::updates::UpdatesAgent;
+use hud_application::{AppEvent, Command, SettingsCommand, UpdateCommand, WorkspaceCommand};
 use hud_infrastructure::clock::SystemClock;
 use hud_infrastructure::config::TomlSettings;
 use hud_infrastructure::discovery::FsDiscovery;
@@ -30,7 +31,7 @@ use hud_infrastructure::updates::{brew::Brew, npm::NpmGlobal, skills::Skills};
 use hud_tui::{
     IconSet, Model, Msg, SetupModel, SetupOutcome, update, update_setup, view, view_setup,
 };
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 use tokio::time::MissedTickBehavior;
 use tokio_util::sync::CancellationToken;
 
@@ -77,7 +78,8 @@ async fn main() -> anyhow::Result<std::process::ExitCode> {
         }
     });
 
-    let settings = environment::ui_settings(&preferences);
+    let system = environment::system();
+    let settings = hud_tui::UiSettings::resolve(&preferences, system, environment::color_depth());
     let mut session = terminal::Session::enter().context("failed to prepare the terminal")?;
     let (preferences, settings) = if preferences.needs_setup() {
         match ensure_setup(&mut session, &config, &home, settings).await {
@@ -97,10 +99,10 @@ async fn main() -> anyhow::Result<std::process::ExitCode> {
         (preferences, settings)
     };
 
-    let mut background = start_background(&preferences, runner)?;
+    let mut background = start_background(preferences, config, runner)?;
     let result = run(
         session.terminal(),
-        Model::new(settings),
+        Model::new(settings).with_system(system),
         &mut background.events,
         &background.commands,
     )
@@ -185,7 +187,8 @@ struct Background {
 
 /// Composition root: the only place where adapters meet use cases.
 fn start_background(
-    preferences: &Settings,
+    preferences: Settings,
+    config: TomlSettings,
     runner: TokioProcessRunner,
 ) -> anyhow::Result<Background> {
     let store = SqliteStore::open(&database_path()?, jiff::Timestamp::now())
@@ -195,35 +198,33 @@ fn start_background(
         .git
         .as_ref()
         .map_or_else(|| "git".to_owned(), |path| path.display().to_string());
-    let sources = update_sources(preferences, &runner);
+    // Tool paths and enabled sources are read once; changing them needs a restart.
+    let sources = update_sources(&preferences, &runner);
+    let (current, watched) = watch::channel(preferences);
     let workspaces = WorkspaceAgent::new(
         GitCli::new(runner, git_program),
         FsDiscovery,
         store.clone(),
         store.clone(),
         SystemClock,
-        WorkspaceConfig {
-            workspaces: preferences.workspaces.clone(),
-            scan: preferences.scan.clone(),
-            fetch_interval: preferences.fetch_interval,
-        },
+        watched.clone(),
     );
     let (events_tx, events) = mpsc::channel::<AppEvent>(APP_EVENT_CAPACITY);
     let (workspace_commands, workspace_rx) = mpsc::channel::<WorkspaceCommand>(COMMAND_CAPACITY);
     let (update_commands, update_rx) = mpsc::channel::<UpdateCommand>(COMMAND_CAPACITY);
+    let (settings_commands, settings_rx) = mpsc::channel::<SettingsCommand>(COMMAND_CAPACITY);
     let updates = UpdatesAgent::new(
         sources,
         store.clone(),
         store,
         SystemClock,
-        UpdatesConfig {
-            interval: preferences.update_check_interval,
-            policy: preferences.auto_install.into(),
-        },
+        watched,
         events_tx.clone(),
     );
+    let settings = SettingsAgent::new(config, current);
     let cancel = CancellationToken::new();
     let handles = vec![
+        tokio::spawn(settings.run(settings_rx, events_tx.clone(), cancel.clone())),
         tokio::spawn(workspaces.run(workspace_rx, events_tx, cancel.clone())),
         tokio::spawn(updates.run(update_rx, cancel.clone())),
     ];
@@ -231,6 +232,7 @@ fn start_background(
         commands: Router {
             workspaces: workspace_commands,
             updates: update_commands,
+            settings: settings_commands,
         },
         events,
         cancel,
@@ -242,6 +244,7 @@ fn start_background(
 struct Router {
     workspaces: mpsc::Sender<WorkspaceCommand>,
     updates: mpsc::Sender<UpdateCommand>,
+    settings: mpsc::Sender<SettingsCommand>,
 }
 
 impl Router {
@@ -249,6 +252,7 @@ impl Router {
         match command {
             Command::Workspaces(command) => self.workspaces.send(command).await?,
             Command::Updates(command) => self.updates.send(command).await?,
+            Command::Settings(command) => self.settings.send(command).await?,
         }
         Ok(())
     }
