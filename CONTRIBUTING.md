@@ -10,6 +10,7 @@ Die verbindlichen Regeln stehen in [AGENTS.md](AGENTS.md). Diese Datei beschreib
 
 ```sh
 cargo install --locked cargo-nextest cargo-deny cargo-insta
+brew install gitleaks
 ```
 
 ## Bauen und starten
@@ -40,6 +41,7 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo nextest run --workspace --locked
 cargo deny check
+gitleaks git --redact
 ```
 
 Snapshot-Tests prüfen und annehmen: `cargo insta review`.

@@ -56,10 +56,10 @@ Alle Diagramme liegen als Quelle in `docs/diagrams/*.html` und eingebettet als `
 
 | Randbedingung | Erläuterung |
 |---|---|
-| Repository | `nimble-123/macos-hud`, privat, proprietäre Lizenz, `publish = false` für alle Crates |
+| Repository | `nimble-123/macos-hud`, öffentlich, proprietäre Lizenz, `publish = false` für alle Crates |
 | Versionierung | Conventional Commits, release-please, SemVer, eine Produktversion für den ganzen Workspace |
 | Merges | Squash-Merge; PR-Titel muss Conventional-Commit-Format haben |
-| Qualitäts-Gates | `fmt`, `clippy -D warnings`, `nextest`, `deny`, lokal und in CI (GitHub Actions, macOS-Runner) |
+| Qualitäts-Gates | `fmt`, `clippy -D warnings`, `nextest`, `deny`, `gitleaks` (Secret-Scan der gesamten Historie), lokal und in CI (GitHub Actions; Gates auf macOS-, Secret-Scan auf Ubuntu-Runner) |
 
 ### 2.3 Konventionen
 

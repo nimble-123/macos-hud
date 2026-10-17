@@ -101,6 +101,7 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo nextest run --workspace --locked
 cargo deny check
+gitleaks git --redact
 ```
 
 ## Commits und PRs
