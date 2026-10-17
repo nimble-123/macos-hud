@@ -4,11 +4,23 @@
 //! defaults to 115 × 50 cells, roughly a 1800 × 1800 px Warp window on Retina.
 //!
 //! Usage: `cargo run -p hud-tui --example screenshot -- <out-dir> [cols] [rows]`
+#![expect(
+    clippy::expect_used,
+    reason = "hard-coded sample data must fail loudly when it becomes invalid"
+)]
 
 use std::fmt::Write as _;
-use std::path::PathBuf;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use std::path::PathBuf;
+use std::time::Instant;
+
+use hud_application::usecases::workspaces::{RepoReport, RepoState, WorkspaceReport};
+use hud_application::{AppEvent, ReportSource};
+use hud_domain::WorkspacePath;
+use hud_domain::git::{
+    BranchName, CommitId, GitOperation, Head, RepoPath, RepoStatus, SkipReason, Upstream,
+};
 use hud_tui::{Appearance, Language, Model, Msg, Tab, UiSettings, update, view};
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -38,8 +50,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Every tab in English on dark, plus the overview in the other variants.
     let variants = [
         ("en-dark", Language::En, Appearance::Dark, Tab::ALL.len()),
-        ("de-dark", Language::De, Appearance::Dark, 1),
-        ("en-light", Language::En, Appearance::Light, 1),
+        ("de-dark", Language::De, Appearance::Dark, 2),
+        ("en-light", Language::En, Appearance::Light, 2),
     ];
     for (suffix, language, appearance, tabs) in variants {
         let settings = UiSettings {
@@ -48,6 +60,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ..UiSettings::default()
         };
         let mut model = Model::new(settings);
+        update(&mut model, Msg::Tick(Instant::now()));
+        update(&mut model, Msg::App(sample_workspaces()));
         for tab in Tab::ALL.into_iter().take(tabs) {
             let mut terminal = Terminal::new(TestBackend::new(cols, rows))?;
             terminal.draw(|frame| view(&model, frame))?;
@@ -68,6 +82,135 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     Ok(())
+}
+
+/// Realistic sample data so reviews show every state at once.
+#[expect(
+    clippy::too_many_lines,
+    reason = "one literal list of sample repositories"
+)]
+fn sample_workspaces() -> AppEvent {
+    let ws = |path: &str| WorkspacePath::try_from(PathBuf::from(path)).expect("BUG: absolute");
+    let report = |path: &str, branch: &str, ahead: u32, behind: u32, state: RepoState| RepoReport {
+        repo: RepoPath::try_from(PathBuf::from(path)).expect("BUG: absolute"),
+        status: Some(RepoStatus {
+            head: if branch.is_empty() {
+                Head::Detached
+            } else {
+                Head::Branch(BranchName::try_from(branch.to_owned()).expect("BUG: name"))
+            },
+            head_oid: Some(CommitId::try_from("a".repeat(40).as_str()).expect("BUG: id")),
+            upstream: Some(Upstream {
+                name: format!("origin/{branch}"),
+                oid: CommitId::try_from("b".repeat(40).as_str()).expect("BUG: id"),
+            }),
+            ahead,
+            behind,
+            tracked_changes: 0,
+            untracked: 0,
+            operation: None,
+        }),
+        state,
+    };
+    AppEvent::Workspaces {
+        reports: vec![
+            WorkspaceReport {
+                workspace: ws("/Users/dev/workspace/projects"),
+                auto_fast_forward: true,
+                repos: Some(vec![
+                    report(
+                        "/Users/dev/workspace/projects/api",
+                        "main",
+                        0,
+                        0,
+                        RepoState::FastForwarded(3),
+                    ),
+                    report(
+                        "/Users/dev/workspace/projects/billing",
+                        "main",
+                        0,
+                        0,
+                        RepoState::UpToDate,
+                    ),
+                    report(
+                        "/Users/dev/workspace/projects/docs-site",
+                        "main",
+                        0,
+                        2,
+                        RepoState::Behind(2),
+                    ),
+                    report(
+                        "/Users/dev/workspace/projects/infra-modules",
+                        "main",
+                        0,
+                        0,
+                        RepoState::UpToDate,
+                    ),
+                    report(
+                        "/Users/dev/workspace/projects/legacy-portal",
+                        "main",
+                        2,
+                        5,
+                        RepoState::Skipped(SkipReason::Diverged {
+                            ahead: 2,
+                            behind: 5,
+                        }),
+                    ),
+                    report(
+                        "/Users/dev/workspace/projects/mobile-app",
+                        "feature/login",
+                        1,
+                        0,
+                        RepoState::Skipped(SkipReason::Ahead(1)),
+                    ),
+                    report(
+                        "/Users/dev/workspace/projects/notes",
+                        "",
+                        0,
+                        0,
+                        RepoState::Skipped(SkipReason::DetachedHead),
+                    ),
+                    report(
+                        "/Users/dev/workspace/projects/web-shop",
+                        "main",
+                        0,
+                        4,
+                        RepoState::Skipped(SkipReason::TrackedChanges),
+                    ),
+                    report(
+                        "/Users/dev/workspace/projects/website",
+                        "main",
+                        0,
+                        0,
+                        RepoState::Skipped(SkipReason::OperationInProgress(GitOperation::Rebase)),
+                    ),
+                ]),
+                unavailable: None,
+            },
+            WorkspaceReport {
+                workspace: ws("/Users/dev/oss"),
+                auto_fast_forward: false,
+                repos: Some(vec![
+                    report(
+                        "/Users/dev/oss/ratatui",
+                        "main",
+                        0,
+                        12,
+                        RepoState::Skipped(SkipReason::OptedOut),
+                    ),
+                    report("/Users/dev/oss/tokio", "master", 0, 0, RepoState::UpToDate),
+                ]),
+                unavailable: None,
+            },
+            WorkspaceReport {
+                workspace: ws("/Volumes/Archive/projects"),
+                auto_fast_forward: true,
+                repos: None,
+                unavailable: Some("unavailable".into()),
+            },
+        ],
+        source: ReportSource::Sync,
+    }
 }
 
 fn hex(color: Color, default: &str, fg: &str) -> String {

@@ -1,6 +1,7 @@
 //! Access to Git repositories.
 
 use std::future::Future;
+use std::sync::Arc;
 
 use hud_domain::git::{CommitId, FastForwardPermit, RepoPath, RepoStatus};
 
@@ -65,4 +66,21 @@ pub trait GitPort: Send + Sync {
         &self,
         permit: FastForwardPermit,
     ) -> impl Future<Output = Result<FfOutcome, GitError>> + Send;
+}
+
+impl<T: GitPort> GitPort for Arc<T> {
+    fn status(&self, repo: &RepoPath) -> impl Future<Output = Result<RepoStatus, GitError>> + Send {
+        (**self).status(repo)
+    }
+
+    fn fetch(&self, repo: &RepoPath) -> impl Future<Output = Result<(), GitError>> + Send {
+        (**self).fetch(repo)
+    }
+
+    fn fast_forward(
+        &self,
+        permit: FastForwardPermit,
+    ) -> impl Future<Output = Result<FfOutcome, GitError>> + Send {
+        (**self).fast_forward(permit)
+    }
 }

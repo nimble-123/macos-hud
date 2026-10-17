@@ -1,5 +1,7 @@
 //! Messages that drive [`crate::update`].
 
+use std::time::Instant;
+
 use crossterm::event::{Event, KeyEvent, KeyEventKind, MouseEvent};
 use hud_application::AppEvent;
 
@@ -12,8 +14,9 @@ pub enum Msg {
     Mouse(MouseEvent),
     /// The terminal was resized; the next frame adapts automatically.
     Resize,
-    /// Render tick for time-based UI such as spinners.
-    Tick,
+    /// Render tick for time-based UI such as spinners; carries the current
+    /// time so that `update` stays free of clock access.
+    Tick(Instant),
     /// Result of background work.
     App(AppEvent),
 }

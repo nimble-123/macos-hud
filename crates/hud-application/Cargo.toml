@@ -12,11 +12,11 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
+tokio = { workspace = true }
+tokio-util.workspace = true
 futures.workspace = true
 jiff.workspace = true
 hud-domain.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 
-[dev-dependencies]
-tokio = { workspace = true }

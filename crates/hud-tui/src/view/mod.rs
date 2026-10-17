@@ -6,6 +6,8 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
 
+mod workspaces;
+
 use crate::i18n::{t, t_args};
 use crate::settings::Language;
 use crate::theme::Theme;
@@ -23,8 +25,12 @@ pub fn view(model: &Model, frame: &mut Frame) {
 
     let language = model.settings.language;
     render_tabs(model.tab(), language, &model.theme, frame, tabs);
-    render_body(model.tab(), language, &model.theme, frame, body);
-    render_footer(language, &model.theme, frame, footer);
+    let body = body.inner(Margin::new(0, 1));
+    match model.tab() {
+        Tab::Workspaces => workspaces::render(model, frame, body),
+        tab => render_placeholder(tab, language, &model.theme, frame, body),
+    }
+    render_footer(model, frame, footer);
 }
 
 fn tab_message(tab: Tab) -> &'static str {
@@ -57,16 +63,37 @@ fn render_tabs(active: Tab, language: Language, theme: &Theme, frame: &mut Frame
     frame.render_widget(Paragraph::new(Line::from(spans)).block(block), area);
 }
 
-fn render_body(active: Tab, language: Language, theme: &Theme, frame: &mut Frame, area: Rect) {
+fn render_placeholder(
+    active: Tab,
+    language: Language,
+    theme: &Theme,
+    frame: &mut Frame,
+    area: Rect,
+) {
     let title = t(language, tab_message(active));
     let text = t_args(language, "tab-placeholder", &[("tab", &title)]);
-    let paragraph = Paragraph::new(Line::styled(text, Style::new().fg(theme.soft)));
-    frame.render_widget(paragraph, area.inner(Margin::new(0, 1)));
+    frame.render_widget(
+        Paragraph::new(Line::styled(text, Style::new().fg(theme.soft))),
+        area,
+    );
 }
 
-fn render_footer(language: Language, theme: &Theme, frame: &mut Frame, area: Rect) {
-    let hints = [("key-tab", "hint-switch"), ("key-quit", "hint-quit")];
-    let mut spans = Vec::with_capacity(hints.len() * 2);
+fn render_footer(model: &Model, frame: &mut Frame, area: Rect) {
+    let language = model.settings.language;
+    let theme = &model.theme;
+    let mut hints = Vec::with_capacity(5);
+    if model.tab() == Tab::Workspaces {
+        hints.extend([
+            ("key-arrows", "hint-select"),
+            ("key-f", "hint-fast-forward"),
+        ]);
+    }
+    hints.extend([
+        ("key-r", "hint-refresh"),
+        ("key-tab", "hint-switch"),
+        ("key-quit", "hint-quit"),
+    ]);
+    let mut spans = Vec::with_capacity(hints.len() * 2 + 1);
     for (key, label) in hints {
         spans.push(Span::styled(
             t(language, key),
@@ -75,6 +102,12 @@ fn render_footer(language: Language, theme: &Theme, frame: &mut Frame, area: Rec
         spans.push(Span::styled(
             format!(" {}   ", t(language, label)),
             Style::new().fg(theme.soft),
+        ));
+    }
+    if model.syncing {
+        spans.push(Span::styled(
+            format!("   {}", t(language, "syncing")),
+            Style::new().fg(theme.status(crate::icons::Status::Advisory)),
         ));
     }
     let block = Block::new()
