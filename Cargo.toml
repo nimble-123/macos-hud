@@ -1,0 +1,47 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.94"
+license = "LicenseRef-Proprietary"
+publish = false
+repository = "https://github.com/nimble-123/macos-hud"
+
+[workspace.dependencies]
+hud-domain = { path = "crates/hud-domain" }
+hud-application = { path = "crates/hud-application" }
+hud-infrastructure = { path = "crates/hud-infrastructure" }
+hud-tui = { path = "crates/hud-tui" }
+
+thiserror = "2.0.21"
+tracing = "0.1.44"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unused_qualifications = "warn"
+# missing_docs is not set here: `lints.workspace = true` allows no per-crate overrides.
+# hud-domain and hud-application set #![warn(missing_docs)] in lib.rs instead.
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+# Pedantic exceptions, each with a reason
+module_name_repetitions = "allow" # GitError inside mod git is intended
+missing_errors_doc = "allow"      # error cases are documented on the error enums
+# Bans
+unwrap_used = "deny"
+expect_used = "warn"              # allowed via #[expect(.., reason = "BUG: ..")] for invariants
+dbg_macro = "deny"
+todo = "warn"
+# Selected nursery lints
+significant_drop_tightening = "warn"
+redundant_clone = "warn"
+use_self = "warn"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = true
