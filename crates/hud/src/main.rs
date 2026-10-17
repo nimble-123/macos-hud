@@ -9,7 +9,12 @@ use std::time::Duration;
 use anyhow::Context;
 use crossterm::event::EventStream;
 use futures::StreamExt;
+use std::path::PathBuf;
+
 use hud_application::AppEvent;
+use hud_application::settings::{Settings, SettingsStore};
+use hud_infrastructure::config::TomlSettings;
+use hud_infrastructure::process::{TokioProcessRunner, login_path};
 use hud_tui::{Model, Msg, update, view};
 use tokio::sync::mpsc;
 use tokio::time::MissedTickBehavior;
@@ -27,13 +32,40 @@ async fn main() -> anyhow::Result<()> {
     // the receiving branch of the event loop active.
     let (_app_events_tx, mut app_events) = mpsc::channel::<AppEvent>(APP_EVENT_CAPACITY);
 
-    let settings = environment::ui_settings();
+    let preferences = load_settings().await?;
+    let path = login_path(
+        &TokioProcessRunner::new(std::env::var_os("PATH").unwrap_or_default()),
+        &std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_owned()),
+        std::env::var_os("PATH").unwrap_or_default(),
+    )
+    .await;
+    tracing::info!(
+        entries = std::env::split_paths(&path).count(),
+        "resolved login PATH"
+    );
+    let settings = environment::ui_settings(&preferences);
     let mut session = terminal::Session::enter().context("failed to prepare the terminal")?;
     let result = run(session.terminal(), Model::new(settings), &mut app_events).await;
     drop(session);
 
     tracing::info!("stopping hud");
     result
+}
+
+/// Invalid settings stop hud before the terminal is taken over, so the error
+/// stays readable in the shell.
+async fn load_settings() -> anyhow::Result<Settings> {
+    let home = PathBuf::from(std::env::var_os("HOME").context("HOME is not set")?);
+    let xdg = std::env::var_os("XDG_CONFIG_HOME").map(PathBuf::from);
+    let store = TomlSettings::new(TomlSettings::default_path(&home, xdg.as_deref()), home);
+    let settings = store.load().await?;
+    tracing::info!(
+        path = %store.path().display(),
+        workspaces = settings.workspaces.len(),
+        needs_setup = settings.needs_setup(),
+        "loaded settings"
+    );
+    Ok(settings)
 }
 
 async fn run(

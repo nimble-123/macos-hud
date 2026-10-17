@@ -413,7 +413,7 @@ Keine Sperre wird über ein `.await` gehalten, außer den Ressourcen-Sperren, de
 Alle Fremdwerkzeuge laufen über den internen `ProcessRunner`:
 
 - `tokio::process::Command`, stdin geschlossen (`Stdio::null()`), stdout/stderr erfasst, höchstens die letzten 64 KiB behalten.
-- `PATH` aus der Login-Shell (Abschnitt 6.1). Optional pro Werkzeug in der Config überschreibbar (`git_path`, `brew_path`, `npm_path`).
+- `PATH` aus der Login-Shell (Abschnitt 6.1); die Ausgabe ist mit Markern eingerahmt, weil interaktive Shells zusätzlichen Text ausgeben können. Optional pro Werkzeug in der Config überschreibbar (`[tools]` mit `git`, `brew`, `npm`).
 - Umgebung pro Werkzeug:
 
 | Werkzeug | Umgebungsvariablen |
@@ -445,7 +445,8 @@ Alle Fremdwerkzeuge laufen über den internen `ProcessRunner`:
 
 ### 8.7 Konfiguration
 
-- Lesen: `toml` + Serde in typisierte Structs mit `#[serde(default)]` und `#[serde(deny_unknown_fields)]`; Tippfehler führen zu einer klaren Fehlermeldung mit Zeilennummer.
+- Lesen: `toml` + Serde in typisierte Structs mit `#[serde(default)]` und `#[serde(deny_unknown_fields)]`; Tippfehler führen zu einer klaren Fehlermeldung mit Zeilennummer. Eine ungültige Config beendet hud vor der Übernahme des Terminals, damit die Meldung in der Shell lesbar bleibt; eine fehlende Config ergibt die Defaults.
+- Preis-Overrides werden beim Einlesen in ganzzahlige Mikro-USD umgerechnet (ADR 0009).
 - Validierung beim Laden in Domain-Typen (Parse-don't-validate), z. B. `WorkspacePath`.
 - Schreiben: `toml_edit`, Datei vorher neu einlesen, nur geänderte Schlüssel anfassen, atomar schreiben (temporäre Datei + `rename`).
 
@@ -486,6 +487,10 @@ billing = "subscription"     # subscription | api
 [ai.codex]
 enabled = false
 billing = "subscription"
+
+# Optional: feste Pfade statt Suche im Login-PATH
+# [tools]
+# npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
 
 # Optional: Preise überschreiben (USD pro Million Token)
 # [ai.prices."<model-id>"]

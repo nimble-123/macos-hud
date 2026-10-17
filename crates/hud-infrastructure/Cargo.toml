@@ -14,5 +14,11 @@ workspace = true
 [dependencies]
 hud-application.workspace = true
 hud-domain.workspace = true
+serde.workspace = true
 thiserror.workspace = true
+tokio = { workspace = true, features = ["process", "fs", "io-util"] }
+toml.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
