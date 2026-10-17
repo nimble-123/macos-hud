@@ -141,6 +141,8 @@ pub struct UsageRecord {
     pub subagent: bool,
     /// Part of the output spent on thinking.
     pub thinking: u64,
+    /// Context window the provider reported with the response, if any.
+    pub context_window: Option<u64>,
 }
 
 /// One tool call, counted once by its id however often a log repeats it.
@@ -166,8 +168,9 @@ impl TokenUsage {
     }
 }
 
-/// Context window of `model` in tokens: 1 M from Claude 4.6 on, 200 k
-/// before; unknown models are assumed to be current.
+/// Context window of a Claude `model` in tokens: 1 M from Claude 4.6 on,
+/// 200 k before; unknown models are assumed to be current. Codex reports the
+/// window with every response instead.
 #[must_use]
 pub fn context_window(model: &ModelId) -> u64 {
     const WINDOWS: [(&str, u64); 9] = [
@@ -204,6 +207,39 @@ pub struct Measured<T> {
     pub value: T,
     /// Its accuracy.
     pub accuracy: Accuracy,
+}
+
+/// One rate-limit window of a subscription, as the provider last reported it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PlanWindow {
+    /// Length of the window, e.g. 300 for five hours.
+    pub minutes: Option<u32>,
+    /// How much of the limit is used, in per mille.
+    pub used_permille: u16,
+    /// When the window starts over.
+    pub resets_at: Timestamp,
+}
+
+impl PlanWindow {
+    /// The value still describes the running window; after `resets_at` it is
+    /// only known that the limit started over.
+    #[must_use]
+    pub fn is_current(&self, now: Timestamp) -> bool {
+        self.resets_at > now
+    }
+}
+
+/// Subscription usage as the provider last reported it (Codex).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlanUsage {
+    /// When it was reported.
+    pub at: Timestamp,
+    /// Plan name, e.g. `plus`.
+    pub plan: Option<String>,
+    /// The main window.
+    pub primary: Option<PlanWindow>,
+    /// A second, usually longer window.
+    pub secondary: Option<PlanWindow>,
 }
 
 /// The periods the AI dashboard offers.
@@ -326,12 +362,50 @@ const fn with_fast(
     pricing
 }
 
-/// Date of the built-in prices: <https://platform.claude.com/docs/en/about-claude/pricing>.
+/// Date of the built-in prices: <https://platform.claude.com/docs/en/about-claude/pricing>
+/// and <https://developers.openai.com/api/docs/pricing>.
 pub const PRICES_AS_OF: Date = jiff::civil::date(2026, 10, 17);
+
+/// OpenAI pricing: a cache write costs `write`, or the input price when the
+/// model lists none. With `long_context`, prompts above 272 k tokens cost
+/// twice as much for input and cache, and 1.5× for output.
+const fn openai(
+    input: u64,
+    cached: u64,
+    write: u64,
+    output: u64,
+    long_context: bool,
+) -> ModelPricing {
+    let write = if write == 0 { input } else { write };
+    ModelPricing {
+        standard: Price {
+            input,
+            output,
+            cache_write_5m: write,
+            cache_write_1h: write,
+            cache_read: cached,
+        },
+        fast: None,
+        long_prompt: if long_context {
+            Some((
+                272_000,
+                Price {
+                    input: input * 2,
+                    output: output / 2 * 3,
+                    cache_write_5m: write * 2,
+                    cache_write_1h: write * 2,
+                    cache_read: cached * 2,
+                },
+            ))
+        } else {
+            None
+        },
+    }
+}
 
 /// Built-in prices by model id prefix. A model id matches an entry when it
 /// equals the key or continues with `-`, e.g. a date suffix; the longest key wins.
-const BUILT_IN: [(&str, ModelPricing); 19] = [
+const BUILT_IN: [(&str, ModelPricing); 38] = [
     (
         "claude-fable-5-1",
         standard(usd(10, 0), usd(50, 0), usd(0, 2500)),
@@ -434,6 +508,82 @@ const BUILT_IN: [(&str, ModelPricing); 19] = [
     (
         "claude-haiku-4-5",
         standard(usd(1, 0), usd(5, 0), usd(0, 1000)),
+    ),
+    (
+        "gpt-6-astra",
+        openai(usd(10, 0), usd(1, 0), usd(12, 5000), usd(50, 0), true),
+    ),
+    (
+        "gpt-6.1-sol",
+        openai(usd(2, 0), usd(0, 1000), usd(2, 5000), usd(10, 0), true),
+    ),
+    (
+        "gpt-6-sol",
+        openai(usd(2, 0), usd(0, 2000), usd(2, 5000), usd(10, 0), true),
+    ),
+    (
+        "gpt-6-luna",
+        openai(usd(0, 1000), usd(0, 100), usd(0, 1250), usd(0, 5000), true),
+    ),
+    (
+        "gpt-5.6-sol",
+        openai(usd(4, 0), usd(0, 4000), usd(5, 0), usd(20, 0), true),
+    ),
+    (
+        "gpt-5.6-terra",
+        openai(usd(2, 0), usd(0, 2000), usd(2, 5000), usd(12, 0), true),
+    ),
+    (
+        "gpt-5.6-luna",
+        openai(usd(0, 2000), usd(0, 200), usd(0, 2500), usd(1, 2000), true),
+    ),
+    (
+        "gpt-5.5",
+        openai(usd(5, 0), usd(0, 5000), 0, usd(30, 0), true),
+    ),
+    (
+        "gpt-5.4",
+        openai(usd(2, 5000), usd(0, 2500), 0, usd(15, 0), true),
+    ),
+    (
+        "gpt-5.4-mini",
+        openai(usd(0, 7500), usd(0, 750), 0, usd(4, 5000), false),
+    ),
+    (
+        "gpt-5.3-codex",
+        openai(usd(1, 7500), usd(0, 1750), 0, usd(14, 0), false),
+    ),
+    (
+        "gpt-5.2",
+        openai(usd(1, 7500), usd(0, 1750), 0, usd(14, 0), false),
+    ),
+    (
+        "gpt-5.2-codex",
+        openai(usd(1, 7500), usd(0, 1750), 0, usd(14, 0), false),
+    ),
+    (
+        "gpt-5.1",
+        openai(usd(1, 2500), usd(0, 1250), 0, usd(10, 0), false),
+    ),
+    (
+        "gpt-5.1-codex",
+        openai(usd(1, 2500), usd(0, 1250), 0, usd(10, 0), false),
+    ),
+    (
+        "gpt-5.1-codex-mini",
+        openai(usd(0, 2500), usd(0, 250), 0, usd(2, 0), false),
+    ),
+    (
+        "gpt-5",
+        openai(usd(1, 2500), usd(0, 1250), 0, usd(10, 0), false),
+    ),
+    (
+        "gpt-5-codex",
+        openai(usd(1, 2500), usd(0, 1250), 0, usd(10, 0), false),
+    ),
+    (
+        "gpt-5-mini",
+        openai(usd(0, 2500), usd(0, 250), 0, usd(2, 0), false),
     ),
 ];
 
@@ -610,6 +760,7 @@ mod tests {
             project: None,
             subagent: false,
             thinking: 0,
+            context_window: None,
         }
     }
 
@@ -664,9 +815,58 @@ mod tests {
     fn unknown_models_have_no_price() {
         let table = PriceTable::default();
         assert_eq!(
-            table.cost_scaled(&record("gpt-5-codex", TokenUsage::default())),
+            table.cost_scaled(&record("o9-preview", TokenUsage::default())),
             None
         );
+    }
+
+    #[test]
+    fn codex_models_match_by_version_and_not_a_shorter_neighbour() {
+        let table = PriceTable::default();
+        let input = |id: &str| {
+            table
+                .pricing(&ModelId::try_from(id.to_owned()).expect("BUG"))
+                .map(|pricing| pricing.standard.input)
+        };
+        assert_eq!(input("gpt-5-codex"), Some(usd(1, 2500)));
+        assert_eq!(input("gpt-5.6-luna"), Some(usd(0, 2000)));
+        assert_eq!(input("gpt-5.7-luna"), None, "never priced as gpt-5");
+    }
+
+    #[test]
+    fn openai_reasoning_is_priced_as_output_and_long_prompts_cost_more() {
+        let tokens = TokenUsage {
+            input: 100_000,
+            cache_read: 100_000,
+            output: 400_000,
+            reasoning: Some(600_000),
+            ..TokenUsage::default()
+        };
+        // 0.1M × $0.10 + 0.1M × $0.01 + 1M × $0.50
+        assert_eq!(
+            cost(&PriceTable::default(), &record("gpt-6-luna", tokens)),
+            511_000
+        );
+        let long = TokenUsage {
+            input: 300_000,
+            ..TokenUsage::default()
+        };
+        // 0.3M × $0.20 above 272 k prompt tokens
+        assert_eq!(
+            cost(&PriceTable::default(), &record("gpt-6-luna", long)),
+            60_000
+        );
+    }
+
+    #[test]
+    fn a_plan_window_is_current_until_it_resets() {
+        let window = PlanWindow {
+            minutes: Some(300),
+            used_permille: 120,
+            resets_at: Timestamp::from_second(100).expect("BUG"),
+        };
+        assert!(window.is_current(Timestamp::from_second(99).expect("BUG")));
+        assert!(!window.is_current(Timestamp::from_second(100).expect("BUG")));
     }
 
     #[test]

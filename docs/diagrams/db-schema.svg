@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg viewBox="0 0 960 664" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="db-schema-title db-schema-desc" id="db-schema-root">
+<svg viewBox="0 0 960 736" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="db-schema-title db-schema-desc" id="db-schema-root">
         <title id="db-schema-title">SQLite-Schema</title>
-        <desc id="db-schema-desc">Tabellen der lokalen hud-Datenbank: action_log, install_history, otel_metric, ingest_offset und ai_usage mit ihren Primärschlüsseln; repo_cache und ai_tool_call sind nicht dargestellt.</desc>
+        <desc id="db-schema-desc">Tabellen der lokalen hud-Datenbank: action_log, install_history, otel_metric, ingest_offset, ai_usage und ai_plan_usage mit ihren Primärschlüsseln; repo_cache und ai_tool_call sind nicht dargestellt.</desc>
   <defs>
       <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
       #db-schema-root { --color-paper:   #f2f3f1;
@@ -139,22 +139,45 @@
 <text x="588" y="480" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">integer</text>
 <text x="372" y="504" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">output</text>
 <text x="588" y="504" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">integer</text>
-<text x="372" y="528" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ 9 weitere Spalten</text>
+<text x="372" y="528" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ 10 weitere Spalten</text>
 <line x1="360" y1="536" x2="600" y2="536" stroke="rgba(28,33,40,0.25)" stroke-width="0.8"/>
 <text x="372" y="550" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">INDEXES</text>
 <text x="372" y="566" fill="#1c2128" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">ai_usage_at (at_ms)</text>
-        <text x="680" y="340" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">Nicht gezeigt: repo_cache, der</text>
-<text x="680" y="358" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">bei jedem Scan überschrieben wird,</text>
-<text x="680" y="376" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">und ai_tool_call, das Tool-Call-IDs</text>
-<text x="680" y="394" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">nur zum Zählen hält</text>
-        <text x="680" y="432" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">ai_usage, weitere Spalten:</text>
-<text x="680" y="446" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">cache_write_5m, cache_write_1h,</text>
-<text x="680" y="460" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">cache_read, reasoning (null),</text>
-<text x="680" y="474" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">speed, geo, project (null),</text>
-<text x="680" y="488" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">subagent, thinking</text>
-        <line x1="40" y1="608" x2="920" y2="608" stroke="rgba(28,33,40,0.1)" stroke-width="0.8"/><text x="40" y="624" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">LEGENDE</text>
-        <rect x="128" y="614" width="20" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/><text x="138.0" y="623" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PK</text>
-        <text x="156" y="624" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Primärschlüssel (mehrere = zusammengesetzt)</text>
-        <text x="460" y="624" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">null = Spalte darf leer sein</text>
-        <text x="680" y="624" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">keine Fremdschlüssel, nur logische Bezüge</text>
+        <rect x="680" y="312" width="240" height="200" rx="6" fill="#f2f3f1"/>
+<rect x="680" y="312" width="240" height="200" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>
+<rect x="688" y="322" width="36" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/>
+<text x="706" y="331" fill="#47505c" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">TABLE</text>
+<text x="732" y="333" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start" font-weight="600">main.ai_plan_usage</text>
+<line x1="680" y1="344" x2="920" y2="344" stroke="rgba(28,33,40,0.25)" stroke-width="0.8"/>
+<text x="692" y="360" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">provider</text>
+<rect x="820" y="350" width="20" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/><text x="830.0" y="359" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PK</text>
+<text x="908" y="360" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text</text>
+<rect x="681" y="368" width="238" height="24" fill="rgba(28,33,40,0.02)"/>
+<text x="692" y="384" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">at_ms</text>
+<text x="908" y="384" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">integer</text>
+<text x="692" y="408" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">plan</text>
+<text x="908" y="408" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">text null</text>
+<rect x="681" y="416" width="238" height="24" fill="rgba(28,33,40,0.02)"/>
+<text x="692" y="432" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">primary_permille</text>
+<text x="908" y="432" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">integer null</text>
+<text x="692" y="456" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">primary_minutes</text>
+<text x="908" y="456" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">integer null</text>
+<rect x="681" y="464" width="238" height="24" fill="rgba(28,33,40,0.02)"/>
+<text x="692" y="480" fill="#1c2128" font-size="12" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">primary_resets_ms</text>
+<text x="908" y="480" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="end">integer null</text>
+<text x="692" y="504" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">+ secondary_* wie primary_*</text>
+        <text x="40" y="488" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">Nicht gezeigt: repo_cache, der</text>
+<text x="40" y="506" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">bei jedem Scan überschrieben wird,</text>
+<text x="40" y="524" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">und ai_tool_call, das Tool-Call-IDs</text>
+<text x="40" y="542" fill="#1c2128" font-size="14" font-family="'IBM Plex Serif', serif" text-anchor="start" font-style="italic">nur zum Zählen hält</text>
+        <text x="40" y="584" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">ai_usage, weitere Spalten:</text>
+<text x="40" y="598" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">cache_write_5m, cache_write_1h,</text>
+<text x="40" y="612" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">cache_read, reasoning (null),</text>
+<text x="40" y="626" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">speed, geo, project (null),</text>
+<text x="40" y="640" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">subagent, thinking, context_window (null)</text>
+        <line x1="40" y1="680" x2="920" y2="680" stroke="rgba(28,33,40,0.1)" stroke-width="0.8"/><text x="40" y="696" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">LEGENDE</text>
+        <rect x="128" y="686" width="20" height="12" rx="2" fill="transparent" stroke="rgba(28,33,40,0.4)" stroke-width="0.8"/><text x="138.0" y="695" fill="#47505c" font-size="8" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PK</text>
+        <text x="156" y="696" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">Primärschlüssel (mehrere = zusammengesetzt)</text>
+        <text x="460" y="696" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="start">null = Spalte darf leer sein</text>
+        <text x="680" y="696" fill="#47505c" font-size="9" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="start">keine Fremdschlüssel, nur logische Bezüge</text>
       </svg>

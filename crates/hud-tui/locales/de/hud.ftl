@@ -342,3 +342,21 @@ help-help = diese Hilfe
 help-quit = beenden, fragt bei laufender Installation nach
 help-quit-now = beenden, auch aus Eingaben heraus
 hint-help = Hilfe
+ai-reasoning = Reasoning
+kpi-reasoning = Reasoning
+kpi-plan = Abo-Auslastung
+kpi-plan-note = Plan { $plan }, Stand { $ago }
+kpi-plan-as-of = Stand { $ago }
+plan-window-minutes = { $count } min
+plan-window-hours = { $count ->
+    [one] 1 Stunde
+   *[other] { $count } Stunden
+}
+plan-window-days = { $count ->
+    [one] 1 Tag
+   *[other] { $count } Tage
+}
+plan-window-primary = Hauptfenster
+plan-window-secondary = Zweites Fenster
+plan-resets = neu ab { $time }
+plan-reset-done = seit { $time } neu, Stand folgt mit der nächsten Nutzung

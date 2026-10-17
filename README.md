@@ -35,9 +35,6 @@ One terminal view for system load, Git workspaces, package updates and AI usage,
 
 </div>
 
-> [!NOTE]
-> Codex as a second AI source is next ([milestones](https://github.com/nimble-123/macos-hud/milestones)). Everything else on this page works today.
-
 ## Why hud
 
 A typical machine carries dozens of repositories, three package managers and a couple of AI tools. Keeping them current means running the same commands in the same folders, and still missing the one repo that drifted. hud watches all of it and borrows a rule from aircraft cockpits:
@@ -57,7 +54,7 @@ A typical machine carries dozens of repositories, three package managers and a c
 | **Auto fast-forward** | Every 15 minutes hud fetches quietly and fast-forwards repos that are clean and only behind. On by default, switchable off per workspace. |
 | **Updates** | Outdated Homebrew formulae and casks, global npm packages and installed skills, each with the state of its CLI. Update one, or all, after a confirmation. |
 | **Automatic installs** | Separate opt-ins for Homebrew formulae, casks and npm. Casks that ask for a password are flagged as manual and not retried. |
-| **AI dashboard** | Claude Code tokens, cost, models, cache hit rate, subagents, thinking, activity by hour or day, current context use and top projects, for today, 7 days, 30 days, this month or last month. Optionally Claude Code's OpenTelemetry metrics (active time, lines of code, commits, PRs), received on localhost. |
+| **AI dashboard** | Claude Code tokens, cost, models, cache hit rate, subagents, thinking, activity by hour or day, current context use and top projects, for today, 7 days, 30 days, this month or last month. Optionally Claude Code's OpenTelemetry metrics (active time, lines of code, commits, PRs), received on localhost. Codex as an optional second source, with reasoning tokens and its plan usage per limit window. |
 | **Log** | Every action, manual or automatic, with trigger, target, result and the tail of its output. |
 | **Your terminal** | Light and dark detected from the terminal background, `NO_COLOR` respected, English and German, keyboard first with full mouse support. |
 
@@ -171,7 +168,7 @@ enabled = true
 billing = "subscription"     # subscription | api
 
 [ai.codex]
-enabled = false
+enabled = false              # true reads ~/.codex/sessions
 
 [ai.telemetry]
 enabled = true               # OTLP receiver on 127.0.0.1
@@ -188,7 +185,7 @@ hud rereads the file before it writes changes from **Settings**, and keeps your 
 | History and cache | `~/Library/Application Support/hud/hud.db` |
 | Logs | `~/Library/Logs/hud/` |
 
-hud reads usage fields from Claude Code session logs and nothing else: no prompts, no responses, no credentials. While it runs, it listens on `127.0.0.1` for Claude Code's OpenTelemetry metrics and keeps only names, values, times, session and model; it changes `~/.claude/settings.json` only after you confirm with `t`. The only outgoing network traffic is what `git fetch`, `brew`, `npm` and `npx` do themselves.
+hud reads usage fields from Claude Code and Codex session logs and nothing else: no prompts, no responses, no credentials. In `~/.codex` it opens only `sessions` and `archived_sessions`. While it runs, it listens on `127.0.0.1` for Claude Code's OpenTelemetry metrics and keeps only names, values, times, session and model; it changes `~/.claude/settings.json` only after you confirm with `t`. The only outgoing network traffic is what `git fetch`, `brew`, `npm` and `npx` do themselves.
 
 ## Architecture
 

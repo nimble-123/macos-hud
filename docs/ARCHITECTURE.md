@@ -342,6 +342,15 @@ Alle drei `select!`-Zweige sind cancel-safe. Die Schleife macht kein I/O außer 
 8. Für die Übersicht zählt `calendar` die Antwortzeiten (`UsageStore::answer_times`) je lokalem Tag über bis zu 53 Wochen, beginnend an einem Montag.
 9. Zusätzlich liest `ClaudeLogs` je Zeile `cwd` (Projekt: der Vorfahr von `cwd`, aus dem Claude Code den Projektordner gebildet hat, sonst der Ordner von `cwd`), `isSidechain` bzw. den Ordner `subagents/`, `output_tokens_details.thinking_tokens` und die IDs der `tool_use`-Blöcke; von Inhaltsblöcken werden nur Typ und ID gelesen. Tool-Calls landen dedupliziert in `ai_tool_call`.
 
+**Codex.** Ist `[ai.codex]` aktiv, liest `CodexLogs` `sessions` und `archived_sessions` unter `$CODEX_HOME` bzw. `~/.codex`, sowohl `*.jsonl` als auch die zstd-Archive `*.jsonl.zst` (Rust-Decoder `ruzstd`), in `spawn_blocking`. Andere Dateien in `~/.codex` werden nicht geöffnet.
+
+1. Eine `*.jsonl`-Datei wird bei Wachstum ganz gelesen, weil Session und Modell nur einmal vor den Nutzungszeilen stehen (`session_meta`, `turn_context`); Nutzung liefern nur die Zeilen nach dem Offset. Ein Archiv wird einmal ganz gelesen und danach nur bei geänderter Größe wieder.
+2. Nutzung steht in `event_msg`/`token_count`: `last_token_usage` ist die Anfrage, `total_token_usage` die laufende Summe der Unterhaltung. Codex meldet dieselbe Anfrage oft mehrfach mit gleicher Summe; Schlüssel ist deshalb `Thread-ID:laufende Summe`, nicht die Zeilennummer (`ordinal`).
+3. Input enthält den gecachten Teil, Output das Reasoning. hud trennt beides: Input ohne Cache, Cache-Lesen, Output ohne Reasoning und `reasoning` separat (bepreist wie Output). Das Kontextfenster kommt aus `model_context_window` und landet in `ai_usage.context_window`.
+4. Tool-Calls sind `response_item`-Einträge, deren Typ auf `_call` endet, gezählt je `call_id`. Projekt ist der Ordnername von `cwd`; Subagenten kennt das Format nicht.
+5. `rate_limits` in `token_count` liefern die Abo-Auslastung: Plan, je Fenster Prozent, Länge und Rücksetzzeitpunkt. Die neueste Meldung landet in `ai_plan_usage`; eine ältere ersetzt sie nie.
+6. Der `UsageAgent` fasst jede Quelle getrennt zusammen (`SourceUsage`); nur der Kalender und „KI heute“ in der Übersicht zählen alle Quellen zusammen.
+
 **Telemetrie von Claude Code (ADR 0011).** Ist `[ai.telemetry]` aktiv (Standard), öffnet das Binary beim Start den `OtlpReceiver` auf `127.0.0.1:4318`. Ein belegter Port wird als `ReceiverState::Unavailable` geführt, hud startet trotzdem. Ausgewertet werden die Delta-Summen von `claude_code.cost.usage` (USD → Mikro-USD), `token.usage`, `active_time.total` (s → ms, `type` = `user`/`cli`), `lines_of_code.count` (`added`/`removed`), `commit.count`, `pull_request.count` und `session.count`; kumulative Reihen und andere Metriken werden übersprungen. Der `TelemetryAgent` speichert die Punkte in `otel_metric`.
 
 ### 6.6 Beenden während einer laufenden Aktion
@@ -468,6 +477,7 @@ Alle Fremdwerkzeuge laufen über den internen `ProcessRunner`:
 | `ingest_offset` | Lesefortschritt je JSONL-Datei | `provider`, `file` |
 | `ai_usage` | Nutzung je Antwort bzw. Token-Ereignis | `provider`, `message_key` |
 | `ai_tool_call` | Tool-Calls aus den Logs, einmal je ID | `provider`, `call_id` |
+| `ai_plan_usage` | neueste Abo-Auslastung je Anbieter (Codex): Plan, je Fenster Promille, Länge, Rücksetzzeitpunkt | `provider` |
 | `otel_metric` | Telemetrie-Datenpunkte von Claude Code (Delta je Exportintervall) | `id`, Index auf `at_ms` |
 
 - `rusqlite` (`bundled`), WAL-Modus, `foreign_keys=ON`.

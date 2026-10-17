@@ -35,22 +35,26 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         frame.render_widget(Paragraph::new(lines), area);
         return;
     };
-    // TODO(#31): sections cover all providers; split them once Codex is read too.
-    for source in &report.sources {
-        lines.push(source_heading(model, source));
-        if source.provider == Provider::Claude {
+    for (index, source) in report.sources.iter().enumerate() {
+        let state = &source.state;
+        if index > 0 {
+            lines.push(Line::raw(""));
+            lines.push(Line::raw(""));
+        }
+        lines.push(source_heading(model, state));
+        if state.provider == Provider::Claude {
             lines.extend(telemetry_lines(model));
         }
-        if let Some(error) = &source.error {
+        if let Some(error) = &state.error {
             lines.push(source_error(model, error));
             continue;
         }
-        if let Some(usage) = report.periods.iter().find(|p| p.period == model.ai_period) {
-            lines.extend(super::ai_kpis::lines(model, usage, report.context.as_ref()));
+        if let Some(usage) = source.period(model.ai_period) {
+            lines.extend(super::ai_kpis::lines(model, source, usage, report));
         }
-        if source.unreadable > 0 {
+        if state.unreadable > 0 {
             lines.push(Line::raw(""));
-            let count = u32::try_from(source.unreadable).unwrap_or(u32::MAX);
+            let count = u32::try_from(state.unreadable).unwrap_or(u32::MAX);
             lines.push(Line::styled(
                 format!("~ {}", t_count(language, "ai-unreadable", "count", count)),
                 Style::new().fg(theme.status(Status::Caution)),
@@ -253,13 +257,18 @@ pub(super) fn model_table<'a>(
             Style::new().fg(theme.muted),
         )];
     }
+    // Codex hardly writes to the cache but reports reasoning separately.
+    let (fourth, fourth_value): (&str, fn(&hud_domain::usage::TokenUsage) -> u64) = match provider {
+        Provider::Claude => ("ai-cache-write", |t| t.cache_write_5m + t.cache_write_1h),
+        Provider::Codex => ("ai-reasoning", |t| t.reasoning.unwrap_or(0)),
+    };
     let header = format!(
         "  {}{}{}{}{}{}{}",
         fit(&t(language, "ai-model"), MODEL_WIDTH),
         right(&t(language, "ai-responses"), NUMBER_WIDTH),
         right(&t(language, "ai-input"), NUMBER_WIDTH),
         right(&t(language, "ai-output"), NUMBER_WIDTH),
-        right(&t(language, "ai-cache-write"), NUMBER_WIDTH),
+        right(&t(language, fourth), NUMBER_WIDTH),
         right(&t(language, "ai-cache-read"), NUMBER_WIDTH),
         right(&t(language, "ai-cost"), NUMBER_WIDTH + 2),
     );
@@ -281,10 +290,7 @@ pub(super) fn model_table<'a>(
                     right(&count(row.responses, language), NUMBER_WIDTH),
                     right(&compact(tokens.input, language), NUMBER_WIDTH),
                     right(&compact(tokens.output, language), NUMBER_WIDTH),
-                    right(
-                        &compact(tokens.cache_write_5m + tokens.cache_write_1h, language),
-                        NUMBER_WIDTH
-                    ),
+                    right(&compact(fourth_value(&tokens), language), NUMBER_WIDTH),
                     right(&compact(tokens.cache_read, language), NUMBER_WIDTH),
                 ),
                 Style::new().fg(theme.muted),
@@ -296,11 +302,14 @@ pub(super) fn model_table<'a>(
 }
 
 /// Subscription costs are what the same usage would cost via the API.
-pub(super) fn billing_label(model: &Model) -> String {
+pub(super) fn billing_label(model: &Model, provider: Provider) -> String {
     let billing = model
         .preferences
         .as_ref()
-        .map_or(Billing::Subscription, |p| p.claude.billing);
+        .map_or(Billing::Subscription, |p| match provider {
+            Provider::Claude => p.claude.billing,
+            Provider::Codex => p.codex.billing,
+        });
     t(
         model.settings.language,
         match billing {

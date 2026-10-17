@@ -41,6 +41,7 @@ use hud_infrastructure::sqlite::SqliteStore;
 use hud_infrastructure::system::SysinfoProbe;
 use hud_infrastructure::updates::{brew::Brew, npm::NpmGlobal, skills::Skills};
 use hud_infrastructure::usage::claude::ClaudeLogs;
+use hud_infrastructure::usage::codex::CodexLogs;
 use hud_tui::{
     IconSet, Model, Msg, SetupModel, SetupOutcome, update, update_setup, view, view_setup,
 };
@@ -357,6 +358,15 @@ fn usage_sources(preferences: &Settings) -> Vec<Arc<dyn UsageSource>> {
         sources.push(Arc::new(ClaudeLogs::new(ClaudeLogs::default_root(
             std::path::Path::new(&home),
             config_dir.as_deref(),
+        ))));
+    }
+    if preferences.codex.enabled
+        && let Some(home) = std::env::var_os("HOME")
+    {
+        let codex_home = std::env::var_os("CODEX_HOME").map(PathBuf::from);
+        sources.push(Arc::new(CodexLogs::new(CodexLogs::default_roots(
+            std::path::Path::new(&home),
+            codex_home.as_deref(),
         ))));
     }
     sources
