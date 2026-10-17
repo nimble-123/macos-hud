@@ -855,6 +855,7 @@ dependencies = [
  "jiff",
  "ratatui",
  "sys-locale",
+ "tempfile",
  "terminal-colorsaurus",
  "tokio",
  "tokio-util",

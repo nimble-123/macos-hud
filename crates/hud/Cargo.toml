@@ -32,3 +32,6 @@ hud-tui.workspace = true
 [[bin]]
 name = "hud"
 path = "src/main.rs"
+
+[dev-dependencies]
+tempfile.workspace = true

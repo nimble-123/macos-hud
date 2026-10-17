@@ -3,6 +3,7 @@
 mod cli;
 mod environment;
 mod logging;
+mod reset;
 mod terminal;
 
 use std::time::Duration;
@@ -53,6 +54,7 @@ async fn main() -> anyhow::Result<std::process::ExitCode> {
             eprintln!("{text}");
             return Ok(std::process::ExitCode::from(2));
         }
+        cli::Action::Reset(choice) => return run_reset(choice),
     }
 
     let _log_guard = logging::init().context("failed to initialise logging")?;
@@ -118,6 +120,31 @@ async fn main() -> anyhow::Result<std::process::ExitCode> {
     }
     tracing::info!("stopping hud");
     result.map(|()| std::process::ExitCode::SUCCESS)
+}
+
+/// Deletes the chosen files after confirmation; never starts the UI.
+fn run_reset(choice: cli::Reset) -> anyhow::Result<std::process::ExitCode> {
+    use std::io::IsTerminal;
+    let home = PathBuf::from(std::env::var_os("HOME").context("HOME is not set")?);
+    let paths = reset::targets(choice, config_store(&home).path(), &database_path()?);
+    if !choice.yes {
+        // Without a terminal nobody can answer; deleting anyway would be a surprise.
+        if !std::io::stdin().is_terminal() {
+            eprintln!("refusing to delete without confirmation; pass --yes");
+            return Ok(std::process::ExitCode::from(2));
+        }
+        if !reset::confirm(&paths, std::io::stdin().lock(), std::io::stdout())? {
+            println!("Nothing deleted.");
+            return Ok(std::process::ExitCode::SUCCESS);
+        }
+    }
+    for (path, removal) in reset::remove(&paths)? {
+        match removal {
+            reset::Removal::Deleted => println!("deleted  {}", path.display()),
+            reset::Removal::Missing => println!("missing  {}", path.display()),
+        }
+    }
+    Ok(std::process::ExitCode::SUCCESS)
 }
 
 /// Runs the first-run setup; `None` when the user cancelled it.

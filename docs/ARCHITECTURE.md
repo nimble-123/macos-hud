@@ -267,6 +267,8 @@ Befehle der TUI sind nach Agent gruppiert: `Command::Workspaces(WorkspaceCommand
 
 ![Start und Erststart](diagrams/startup-flow.svg)
 
+Zuerst wertet hud die Kommandozeile aus. `--version` und `--help` geben Text aus und beenden hud. `--reset-config` und `--reset-data` (kombinierbar) löschen die Config bzw. die Datenbank samt `-wal`/`-shm`, nachdem hud die Pfade gezeigt und mit `[y/N]` nachgefragt hat; `--yes` überspringt die Frage. Ohne Terminal an stdin und ohne `--yes` bricht hud mit Exit-Code 2 ab. Fehlende Dateien sind kein Fehler, Logs bleiben erhalten, die TUI startet nicht. Ohne Argumente folgt der Start:
+
 1. Panic-Hook und Terminal-Guard installieren (stellen den Terminalzustand in jedem Fall wieder her).
 2. Logging initialisieren (`~/Library/Logs/hud/`).
 3. Config lesen. Fehlt sie oder enthält sie keinen Workspace, zeigt hud nach dem Terminal-Setup den Einrichtungsdialog: (1) Workspaces wählen (Vorschläge sind vorhandene typische Ordner unter Home wie `~/workspace`, `~/Developer`, `~/Projects`; eigene Pfade mit `/` oder `~/`), (2) Symbolsatz mit Vorschau wählen. `Esc` beendet hud ohne Schreiben. Sonst schreibt `SettingsStore::apply_setup` die Auswahl kommentarerhaltend und atomar in die Config und liefert die neuen Einstellungen; der Hauptbildschirm startet ohne Neustart.

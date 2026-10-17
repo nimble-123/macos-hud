@@ -113,6 +113,14 @@ hud
 
 On first start hud asks for your workspace folders and shows a preview of both symbol sets. It writes `~/.config/hud/config.toml`, then scans. Add or remove workspaces later in **Settings**.
 
+To start over, delete the configuration, the database, or both. hud lists the files and asks before deleting; `--yes` skips the question.
+
+```bash
+hud --reset-config          # next start runs the setup again
+hud --reset-data            # scan cache, action log, install history
+hud --reset-config --reset-data --yes
+```
+
 ## Keys
 
 | Key | Action |
