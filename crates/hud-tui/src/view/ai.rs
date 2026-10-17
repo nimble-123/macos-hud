@@ -82,7 +82,7 @@ fn period_key(period: Period) -> &'static str {
 }
 
 /// The five periods, the active one in focus.
-fn period_bar<'a>(model: &Model) -> Line<'a> {
+pub(super) fn period_bar<'a>(model: &Model) -> Line<'a> {
     let theme = &model.theme;
     let mut spans = Vec::with_capacity(Period::ALL.len() * 2);
     for period in Period::ALL {

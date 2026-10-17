@@ -12,8 +12,9 @@ pub enum Msg {
     Key(KeyEvent),
     /// A mouse button, wheel or movement event.
     Mouse(MouseEvent),
-    /// The terminal was resized; the next frame adapts automatically.
-    Resize,
+    /// The terminal has this many columns and rows; sent at start and on
+    /// every resize, so clicks resolve against the drawn layout.
+    Resize(u16, u16),
     /// Render tick for time-based UI such as spinners; carries the current
     /// time so that `update` stays free of clock access.
     Tick(Instant),
@@ -30,7 +31,7 @@ impl Msg {
         match event {
             Event::Key(key) if key.kind == KeyEventKind::Press => Some(Self::Key(*key)),
             Event::Mouse(mouse) => Some(Self::Mouse(*mouse)),
-            Event::Resize(..) => Some(Self::Resize),
+            Event::Resize(columns, rows) => Some(Self::Resize(*columns, *rows)),
             Event::Key(_) | Event::FocusGained | Event::FocusLost | Event::Paste(_) => None,
         }
     }

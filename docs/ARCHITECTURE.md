@@ -262,8 +262,8 @@ Befehle der TUI sind nach Agent gruppiert: `Command::Workspaces(WorkspaceCommand
 
 | Modul | Inhalt |
 |---|---|
-| `model` | `Model`: aktiver Tab, Auswahl, Scroll-Offsets, Dialoge, zuletzt empfangene Daten, Klickflächen |
-| `msg` | `Msg`: `Key`, `Mouse`, `Resize`, `Tick(Instant)`, `App(AppEvent)`; der Tick trägt die Zeit, damit `update` ohne Uhr auskommt |
+| `model` | `Model`: aktiver Tab, Auswahl, Scroll-Offsets, Dialoge, zuletzt empfangene Daten, Terminalgröße |
+| `msg` | `Msg`: `Key`, `Mouse`, `Resize(Spalten, Zeilen)`, `Tick(Instant)`, `App(AppEvent)`; der Tick trägt die Zeit, damit `update` ohne Uhr auskommt |
 | `update` | `fn update(model: &mut Model, msg: Msg) -> Vec<Command>`, rein, ohne I/O |
 | `view` | `fn view(model: &Model, frame: &mut Frame)`, rein; je Tab ein Untermodul |
 | `theme` | Palette aus [DESIGN.md](DESIGN.md), Farbtiefe, hell/dunkel |
@@ -563,7 +563,8 @@ Jeder angezeigte Wert ist ein `Measured<T>`:
 - Farbtiefe aus `COLORTERM`/`TERM`; `NO_COLOR` schaltet Farben ab.
 - Symbolsatz aus der Config (`unicode`, `nerd`, `ascii`); `hud-tui` bildet Statuswerte und Quellen über eine Tabelle pro Satz auf Glyphen ab ([DESIGN.md §3.4](DESIGN.md#34-symbolsätze)).
 - Terminal-Guard (RAII, `Drop`) plus Panic-Hook stellen Raw Mode, Alternate Screen und Mouse Capture wieder her.
-- Maus: Crossterm Mouse Capture; `view` legt die `Rect`s klickbarer Elemente im Model ab, `update` löst Klicks dagegen auf.
+- Maus: Crossterm Mouse Capture. Das Binary meldet die Terminalgröße beim Start und bei jeder Größenänderung als `Msg::Resize`. `view` stellt mit `areas` und `hit` dieselbe Layout-Berechnung bereit, mit der es zeichnet; das Modul `mouse` löst Klicks darüber auf und übersetzt sie in die gleichen Aktionen wie die Tasten. Das Model speichert keine Klickflächen, deshalb können Darstellung und Klickziel nicht auseinanderlaufen.
+- Klicks: Tab-Beschriftung wechselt den Tab, Fußzeilen-Hinweis wirkt wie seine Taste, Zeitraum im KI-Tab wählt den Zeitraum, Zeile wählt aus, zweiter Klick auf die gewählte Zeile wirkt wie Enter. Mausrad wirkt wie ↑/↓. Offene Dialoge reagieren nur auf Tasten; ein Klick schließt nur die Hilfe.
 
 ### 8.11 Logging und Beobachtbarkeit
 

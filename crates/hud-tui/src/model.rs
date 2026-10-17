@@ -123,6 +123,8 @@ pub struct Model {
     pub(crate) telemetry: Option<Box<hud_application::usecases::telemetry::TelemetryStatus>>,
     /// Where switching telemetry on stands.
     pub(crate) telemetry_flow: TelemetryFlow,
+    /// Terminal size, for resolving mouse clicks.
+    pub(crate) area: ratatui::layout::Rect,
     /// The help overlay is open.
     pub(crate) help: bool,
     /// Own commits per day across all repositories.
@@ -212,6 +214,7 @@ impl Model {
             load: std::collections::VecDeque::new(),
             git_activity: None,
             help: false,
+            area: ratatui::layout::Rect::default(),
             last_sync: None,
             telemetry_flow: TelemetryFlow::Idle,
             time_zone: jiff::tz::TimeZone::UTC,
