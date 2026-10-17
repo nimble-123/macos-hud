@@ -228,10 +228,26 @@ pub enum SettingsError {
     },
 }
 
-/// Loads user settings.
+/// Choices made in the first-run setup.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InitialSetup {
+    /// Workspace folders as entered; `~/` is allowed.
+    pub workspaces: Vec<String>,
+    /// Chosen glyph set.
+    pub icons: IconPreference,
+}
+
+/// Loads and updates user settings.
 pub trait SettingsStore: Send + Sync {
     /// Loads the settings. A missing file yields [`Settings::default`].
     fn load(&self) -> impl Future<Output = Result<Settings, SettingsError>> + Send;
+
+    /// Adds the setup choices to the file, keeping everything already in it,
+    /// and returns the settings as they are afterwards.
+    fn apply_setup(
+        &self,
+        setup: &InitialSetup,
+    ) -> impl Future<Output = Result<Settings, SettingsError>> + Send;
 }
 
 #[cfg(test)]

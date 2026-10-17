@@ -264,7 +264,7 @@ Jeder Use Case ist eine Struct mit Abhängigkeiten im Konstruktor und einer Meth
 
 1. Panic-Hook und Terminal-Guard installieren (stellen den Terminalzustand in jedem Fall wieder her).
 2. Logging initialisieren (`~/Library/Logs/hud/`).
-3. Config lesen. Fehlt sie oder enthält sie keinen Workspace: Einrichtungsdialog, danach Config schreiben.
+3. Config lesen. Fehlt sie oder enthält sie keinen Workspace, zeigt hud nach dem Terminal-Setup den Einrichtungsdialog: (1) Workspaces wählen (Vorschläge sind vorhandene typische Ordner unter Home wie `~/workspace`, `~/Developer`, `~/Projects`; eigene Pfade mit `/` oder `~/`), (2) Symbolsatz mit Vorschau wählen. `Esc` beendet hud ohne Schreiben. Sonst schreibt `SettingsStore::apply_setup` die Auswahl kommentarerhaltend und atomar in die Config und liefert die neuen Einstellungen; der Hauptbildschirm startet ohne Neustart.
 4. SQLite öffnen, Migrationen ausführen.
 5. Ermittlung des Login-PATH im Hintergrund anstoßen (`$SHELL -l -i -c …`, Timeout 3 s, Fallback: aktueller PATH). Die TUI wartet nicht darauf; erst der erste Fremdprozess wartet bei Bedarf. Der Wert wird einmal ermittelt und von allen Prozessaufrufen geteilt.
 6. Theme (OSC 11, 100 ms) und Sprache (Systemsprache von macOS über `sys-locale`) bestimmen, sofern nicht in der Config festgelegt.

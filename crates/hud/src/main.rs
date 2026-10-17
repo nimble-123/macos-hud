@@ -11,7 +11,7 @@ use crossterm::event::EventStream;
 use futures::StreamExt;
 use std::path::PathBuf;
 
-use hud_application::settings::{Settings, SettingsStore};
+use hud_application::settings::{IconPreference, InitialSetup, Settings, SettingsStore};
 use hud_application::usecases::agent::{WorkspaceAgent, WorkspaceConfig};
 use hud_application::{AppEvent, Command};
 use hud_infrastructure::clock::SystemClock;
@@ -20,7 +20,9 @@ use hud_infrastructure::discovery::FsDiscovery;
 use hud_infrastructure::git::GitCli;
 use hud_infrastructure::process::TokioProcessRunner;
 use hud_infrastructure::sqlite::SqliteStore;
-use hud_tui::{Model, Msg, update, view};
+use hud_tui::{
+    IconSet, Model, Msg, SetupModel, SetupOutcome, update, update_setup, view, view_setup,
+};
 use tokio::sync::mpsc;
 use tokio::time::MissedTickBehavior;
 use tokio_util::sync::CancellationToken;
@@ -38,7 +40,9 @@ async fn main() -> anyhow::Result<()> {
     let _log_guard = logging::init().context("failed to initialise logging")?;
     tracing::info!(version = env!("CARGO_PKG_VERSION"), "starting hud");
 
-    let preferences = load_settings().await?;
+    let home = PathBuf::from(std::env::var_os("HOME").context("HOME is not set")?);
+    let config = config_store(&home);
+    let mut preferences = load_settings(&config).await?;
 
     // Resolving the login shell PATH can take seconds; start it now and let
     // the first external process wait for it instead of the UI.
@@ -52,6 +56,42 @@ async fn main() -> anyhow::Result<()> {
             let _ = runner.path().await;
         }
     });
+
+    let mut settings = environment::ui_settings(&preferences);
+    let mut session = terminal::Session::enter().context("failed to prepare the terminal")?;
+
+    if preferences.needs_setup() {
+        let mut setup = SetupModel::new(settings, workspace_suggestions(&home));
+        match run_setup(session.terminal(), &mut setup).await? {
+            SetupOutcome::Cancelled => {
+                drop(session);
+                tracing::info!("setup cancelled, nothing written");
+                return Ok(());
+            }
+            SetupOutcome::Done(choice) => {
+                let initial = InitialSetup {
+                    workspaces: choice.workspaces,
+                    icons: match choice.icons {
+                        IconSet::Unicode => IconPreference::Unicode,
+                        IconSet::Nerd => IconPreference::Nerd,
+                        IconSet::Ascii => IconPreference::Ascii,
+                    },
+                };
+                match config.apply_setup(&initial).await {
+                    Ok(saved) => {
+                        tracing::info!(workspaces = saved.workspaces.len(), "setup saved");
+                        preferences = saved;
+                        settings.icons = choice.icons;
+                    }
+                    Err(error) => {
+                        // Leave the alternate screen first so the message stays readable.
+                        drop(session);
+                        return Err(error).context("failed to save the setup");
+                    }
+                }
+            }
+        }
+    }
 
     // Composition root: the only place where adapters meet use cases.
     let store = SqliteStore::open(&database_path()?, jiff::Timestamp::now())
@@ -78,8 +118,6 @@ async fn main() -> anyhow::Result<()> {
     let cancel = CancellationToken::new();
     let background = tokio::spawn(agent.run(commands_rx, app_events_tx, cancel.clone()));
 
-    let settings = environment::ui_settings(&preferences);
-    let mut session = terminal::Session::enter().context("failed to prepare the terminal")?;
     let result = run(
         session.terminal(),
         Model::new(settings),
@@ -101,12 +139,38 @@ async fn main() -> anyhow::Result<()> {
     result
 }
 
+fn config_store(home: &std::path::Path) -> TomlSettings {
+    let xdg = std::env::var_os("XDG_CONFIG_HOME").map(PathBuf::from);
+    TomlSettings::new(
+        TomlSettings::default_path(home, xdg.as_deref()),
+        home.to_path_buf(),
+    )
+}
+
+/// Folders below the home directory that commonly hold projects and exist.
+fn workspace_suggestions(home: &std::path::Path) -> Vec<String> {
+    const CANDIDATES: [&str; 10] = [
+        "workspace",
+        "workspace/projects",
+        "Projects",
+        "projects",
+        "Developer",
+        "dev",
+        "code",
+        "src",
+        "git",
+        "repos",
+    ];
+    CANDIDATES
+        .iter()
+        .filter(|name| home.join(name).is_dir())
+        .map(|name| format!("~/{name}"))
+        .collect()
+}
+
 /// Invalid settings stop hud before the terminal is taken over, so the error
 /// stays readable in the shell.
-async fn load_settings() -> anyhow::Result<Settings> {
-    let home = PathBuf::from(std::env::var_os("HOME").context("HOME is not set")?);
-    let xdg = std::env::var_os("XDG_CONFIG_HOME").map(PathBuf::from);
-    let store = TomlSettings::new(TomlSettings::default_path(&home, xdg.as_deref()), home);
+async fn load_settings(store: &TomlSettings) -> anyhow::Result<Settings> {
     let settings = store.load().await?;
     tracing::info!(
         path = %store.path().display(),
@@ -115,6 +179,25 @@ async fn load_settings() -> anyhow::Result<Settings> {
         "loaded settings"
     );
     Ok(settings)
+}
+
+/// Runs the first-run setup until it is finished or cancelled.
+async fn run_setup(
+    terminal: &mut terminal::Tui,
+    model: &mut SetupModel,
+) -> anyhow::Result<SetupOutcome> {
+    let mut input = EventStream::new();
+    loop {
+        terminal.draw(|frame| view_setup(model, frame))?;
+        let Some(event) = input.next().await else {
+            return Ok(SetupOutcome::Cancelled);
+        };
+        if let Some(msg) = Msg::from_terminal(&event?)
+            && let Some(outcome) = update_setup(model, &msg)
+        {
+            return Ok(outcome);
+        }
+    }
 }
 
 /// `~/Library/Application Support/hud/hud.db`.
