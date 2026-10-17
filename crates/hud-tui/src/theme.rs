@@ -17,6 +17,8 @@ pub struct Theme {
     advisory: Color,
     caution: Color,
     warning: Color,
+    /// Five steps from `rule` to `advisory` for the activity calendar.
+    heat: [Color; 5],
 }
 
 /// Hex values per role: (dark, light).
@@ -30,6 +32,8 @@ const OK: (Rgb, Rgb) = (Rgb(0x5C, 0xC9, 0x8A), Rgb(0x24, 0x77, 0x4A));
 const ADVISORY: (Rgb, Rgb) = (Rgb(0x4C, 0xC0, 0xD6), Rgb(0x13, 0x73, 0x8A));
 const CAUTION: (Rgb, Rgb) = (Rgb(0xE8, 0xB2, 0x3A), Rgb(0x8F, 0x62, 0x00));
 const WARNING: (Rgb, Rgb) = (Rgb(0xF0, 0x67, 0x5B), Rgb(0xB4, 0x2F, 0x25));
+/// Percent of the way from `rule` to `advisory` per activity level.
+const HEAT_STEPS: [u16; 5] = [0, 35, 60, 80, 100];
 
 impl Theme {
     /// Resolves every role for the given background and colour depth.
@@ -47,7 +51,34 @@ impl Theme {
                 ColorDepth::None => Color::Reset,
             }
         };
+        let (rule, advisory) = match appearance {
+            Appearance::Dark => (&RULE.0, &ADVISORY.0),
+            Appearance::Light => (&RULE.1, &ADVISORY.1),
+        };
+        let heat = HEAT_STEPS.map(|step| {
+            let mix = |from: u8, to: u8| {
+                let value = (u16::from(from) * (100 - step) + u16::from(to) * step) / 100;
+                u8::try_from(value).unwrap_or(u8::MAX)
+            };
+            let (r, g, b) = (
+                mix(rule.0, advisory.0),
+                mix(rule.1, advisory.1),
+                mix(rule.2, advisory.2),
+            );
+            match depth {
+                ColorDepth::TrueColor => Color::Rgb(r, g, b),
+                ColorDepth::Ansi256 => Color::Indexed(nearest_xterm(r, g, b)),
+                ColorDepth::Ansi16 => match step {
+                    0 => Color::DarkGray,
+                    1..=60 => Color::Blue,
+                    61..=80 => Color::Cyan,
+                    _ => Color::LightCyan,
+                },
+                ColorDepth::None => Color::Reset,
+            }
+        });
         Self {
+            heat,
             ink: pick(&INK, Color::Reset),
             muted: pick(&MUTED, Color::DarkGray),
             soft: pick(&SOFT, Color::DarkGray),
@@ -58,6 +89,18 @@ impl Theme {
             caution: pick(&CAUTION, Color::Yellow),
             warning: pick(&WARNING, Color::Red),
         }
+    }
+
+    /// Colour of an activity level from 0 (none) to 4 (most).
+    #[must_use]
+    pub fn heat(&self, level: u8) -> Color {
+        self.heat[usize::from(level.min(4))]
+    }
+
+    /// Whether colours are shown at all; without them levels need glyphs.
+    #[must_use]
+    pub fn colorful(&self) -> bool {
+        self.ink != Color::Reset || self.advisory != Color::Reset
     }
 
     /// Colour of a status level; `neutral` uses the muted role.

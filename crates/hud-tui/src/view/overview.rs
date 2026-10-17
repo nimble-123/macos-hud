@@ -37,6 +37,13 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         lines.push(Line::raw(""));
         lines.push(line);
     }
+    if let Some(report) = &model.usage {
+        let calendar = super::calendar::lines(model, &report.calendar, usize::from(area.width));
+        if !calendar.is_empty() {
+            lines.push(Line::raw(""));
+            lines.extend(calendar);
+        }
+    }
     frame.render_widget(Paragraph::new(lines), area);
 }
 

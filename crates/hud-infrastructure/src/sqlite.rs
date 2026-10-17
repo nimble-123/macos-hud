@@ -534,6 +534,23 @@ impl UsageStore for SqliteStore {
         .await
     }
 
+    async fn answer_times(
+        &self,
+        from: Timestamp,
+        to: Timestamp,
+    ) -> Result<Vec<Timestamp>, StoreError> {
+        self.call(move |db| {
+            let mut query =
+                db.prepare("SELECT at_ms FROM ai_usage WHERE at_ms >= ?1 AND at_ms < ?2")?;
+            let rows = query
+                .query_map(params![from.as_millisecond(), to.as_millisecond()], |row| {
+                    Timestamp::from_millisecond(row.get(0)?).map_err(|e| conversion(0, e))
+                })?;
+            rows.collect()
+        })
+        .await
+    }
+
     async fn tool_calls(&self, from: Timestamp, to: Timestamp) -> Result<u64, StoreError> {
         self.call(move |db| {
             db.query_row(
@@ -1031,6 +1048,11 @@ mod tests {
             .await
             .expect("BUG");
         assert_eq!(calls, 2, "repeated ids count once");
+        let times = store
+            .answer_times(ts("2026-10-17T00:00:00Z"), ts("2026-10-18T00:00:00Z"))
+            .await
+            .expect("BUG");
+        assert_eq!(times, vec![ts("2026-10-17T08:00:00Z")]);
         let cursors = store.cursors(Provider::Claude).await.expect("BUG");
         assert_eq!(cursors["a.jsonl"].offset, 20);
         assert!(

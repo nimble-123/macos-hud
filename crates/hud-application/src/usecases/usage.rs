@@ -199,6 +199,51 @@ fn ranked<K>(amounts: BTreeMap<K, u64>, total: u64) -> Vec<(K, u16)> {
         .collect()
 }
 
+/// Answers per day over many weeks, for a contribution-style calendar.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActivityCalendar {
+    /// First day shown; always a Monday, so columns are whole weeks.
+    pub first_day: jiff::civil::Date,
+    /// Answers per day from `first_day` to today.
+    pub days: Vec<u64>,
+}
+
+/// Weeks the calendar covers at most.
+pub const CALENDAR_WEEKS: i32 = 53;
+
+/// Monday of the week `CALENDAR_WEEKS - 1` weeks before the week of `today`.
+#[must_use]
+pub fn calendar_start(today: jiff::civil::Date) -> jiff::civil::Date {
+    use jiff::ToSpan;
+    let back_to_monday = i32::from(today.weekday().to_monday_zero_offset());
+    today
+        .checked_sub((back_to_monday + (CALENDAR_WEEKS - 1) * 7).days())
+        .unwrap_or(today)
+}
+
+/// Counts `times` per local day from `calendar_start` to `today`.
+#[must_use]
+pub fn calendar(
+    times: &[Timestamp],
+    today: jiff::civil::Date,
+    zone: &TimeZone,
+) -> ActivityCalendar {
+    let first_day = calendar_start(today);
+    let length =
+        usize::try_from(first_day.until(today).map_or(0, |span| span.get_days()) + 1).unwrap_or(0);
+    let mut days = vec![0u64; length];
+    for time in times {
+        let date = time.to_zoned(zone.clone()).date();
+        if let Ok(span) = first_day.until(date)
+            && let Ok(index) = usize::try_from(span.get_days())
+            && let Some(day) = days.get_mut(index)
+        {
+            *day += 1;
+        }
+    }
+    ActivityCalendar { first_day, days }
+}
+
 /// Everything the AI tab shows.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UsageReport {
@@ -208,6 +253,8 @@ pub struct UsageReport {
     pub sources: Vec<SourceState>,
     /// Context of the latest main answer; independent of the period.
     pub context: Option<ContextUse>,
+    /// Answers per day over the last weeks.
+    pub calendar: ActivityCalendar,
 }
 
 /// Summarises `records` for every period. `unreadable` lines make token and
@@ -431,8 +478,21 @@ impl<S: UsageStore + TelemetryStore, C: Clock> UsageAgent<S, C> {
             let buckets = buckets(period, from, to, &self.time_zone);
             usage.kpis = period_kpis(&records, (from, to), &buckets, tool_calls);
         }
+        let today = now.date();
+        let first = calendar_start(today)
+            .to_zoned(self.time_zone.clone())
+            .map_or(now.timestamp(), |start| start.timestamp());
+        let times = self
+            .store
+            .answer_times(first, now.timestamp())
+            .await
+            .unwrap_or_else(|error| {
+                tracing::warn!(%error, "could not read answer times");
+                Vec::new()
+            });
         UsageReport {
             context: latest_context(&records, now.timestamp()),
+            calendar: calendar(&times, today, &self.time_zone),
             periods,
             sources,
         }
@@ -631,6 +691,34 @@ mod tests {
     }
 
     #[test]
+    fn the_calendar_starts_on_a_monday_and_ends_today() {
+        let today = jiff::civil::date(2026, 10, 17); // a Saturday
+        let times = [
+            at("2026-10-17T08:00:00Z"),
+            at("2026-10-12T08:00:00Z"),
+            at("2025-01-01T00:00:00Z"),
+        ];
+        let calendar = calendar(&times, today, &TimeZone::UTC);
+        assert_eq!(calendar.first_day.weekday(), jiff::civil::Weekday::Monday);
+        assert_eq!(
+            calendar.days.len(),
+            52 * 7 + 6,
+            "52 full weeks plus Monday to Saturday"
+        );
+        assert_eq!(calendar.days.last(), Some(&1));
+        assert_eq!(
+            calendar.days[calendar.days.len() - 6],
+            1,
+            "Monday of this week"
+        );
+        assert_eq!(
+            calendar.days.iter().sum::<u64>(),
+            2,
+            "the old answer is outside"
+        );
+    }
+
+    #[test]
     fn today_has_24_hourly_buckets_and_other_periods_daily_ones() {
         let today = buckets(
             Period::Today,
@@ -723,6 +811,19 @@ mod tests {
             Ok(())
         }
 
+        async fn answer_times(
+            &self,
+            from: Timestamp,
+            to: Timestamp,
+        ) -> Result<Vec<Timestamp>, StoreError> {
+            let records = self.records.lock().expect("BUG");
+            Ok(records
+                .iter()
+                .filter(|r| r.at >= from && r.at < to)
+                .map(|r| r.at)
+                .collect())
+        }
+
         async fn tool_calls(&self, _from: Timestamp, _to: Timestamp) -> Result<u64, StoreError> {
             Ok(7)
         }
@@ -791,6 +892,7 @@ mod tests {
         assert_eq!(store.cursors.lock().expect("BUG")["log.jsonl"].offset, 10);
         assert_eq!(report.periods[0].telemetry.value.commits, 2);
         assert_eq!(report.periods[0].kpis.tool_calls, 7);
+        assert_eq!(report.calendar.days.last(), Some(&1), "today's answer");
         assert_eq!(report.periods[0].kpis.activity.len(), 24);
         assert_eq!(report.sources[0].files, 1);
         assert_eq!(report.periods[0].telemetry.accuracy, Accuracy::Partial);

@@ -81,6 +81,13 @@ pub trait UsageStore: Send + Sync {
         to: Timestamp,
     ) -> impl Future<Output = Result<Vec<UsageRecord>, StoreError>> + Send;
 
+    /// Answer times in `[from, to)`, for the activity calendar.
+    fn answer_times(
+        &self,
+        from: Timestamp,
+        to: Timestamp,
+    ) -> impl Future<Output = Result<Vec<Timestamp>, StoreError>> + Send;
+
     /// Distinct tool calls in `[from, to)`.
     fn tool_calls(
         &self,
@@ -119,5 +126,13 @@ impl<T: UsageStore> UsageStore for Arc<T> {
         to: Timestamp,
     ) -> impl Future<Output = Result<u64, StoreError>> + Send {
         (**self).tool_calls(from, to)
+    }
+
+    fn answer_times(
+        &self,
+        from: Timestamp,
+        to: Timestamp,
+    ) -> impl Future<Output = Result<Vec<Timestamp>, StoreError>> + Send {
+        (**self).answer_times(from, to)
     }
 }
