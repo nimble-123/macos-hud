@@ -249,7 +249,7 @@ pub enum Outcome { Succeeded, Failed(String), Skipped(String), Cancelled, TimedO
 | `UsageAgent` | liest beim Start, alle 60 s und nach jeder Änderung der Einstellungen alle `UsageSource`s inkrementell in den `UsageStore`, fasst die Nutzung mit `summarize` je `Period`, Provider und Modell zusammen (Sessions, Antworten, Token, `CostEstimate`, jeweils mit `Accuracy`), ergänzt je Zeitraum die Summen aus dem `TelemetryStore` (immer `Accuracy::Partial`, ADR 0011) und sendet `AppEvent::Usage(UsageReport)` |
 | `SettingsAgent` | wendet `SettingsCommand::Change(SettingsChange)` über `SettingsStore::update` an (Sprache, Theme, Symbolsatz, Workspace hinzufügen/entfernen, Fast-Forward-Opt-out, Installations-Opt-ins) und liest auf `SettingsCommand::Reload` die Datei neu; veröffentlicht das Ergebnis über einen `watch`-Kanal und sendet `AppEvent::Settings` bzw. bei Fehlern `SettingsRejected` (die bisherigen Einstellungen bleiben dann gültig); sendet beim Start die aktuellen Einstellungen |
 | `LogAgent` | liest auf `LogCommand::Load` die letzten 500 Einträge aus dem `ActionLog` und sendet `AppEvent::Actions`; die TUI fordert sie beim Öffnen des Protokoll-Tabs an und, solange er offen ist, nach jedem beendeten Job, manuellen Fast-Forward und Sync |
-| `WorkspaceAgent` | führt die Workspace-Use-Cases aus: beim Start Cache, dann lokaler Scan, danach `SyncRepositories` mit Fetch im Fetch-Intervall und auf `Command::SyncNow`; beobachtet die Einstellungen und scannt nach jeder Änderung sofort lokal (neues Fetch-Intervall gilt ab dann); `Command::FastForward` startet `FastForwardRepo`; sendet `AppEvent::Workspaces`, `SyncStarted`, `RepoUpdated`; stoppt über `CancellationToken` |
+| `WorkspaceAgent` | berechnet nach dem lokalen Scan, jedem Sync und jeder Änderung der Workspaces den Git-Kalender (`AppEvent::GitActivity`): `GitPort::own_commits` je Repo (höchstens 8 gleichzeitig), Commits über ihre ID dedupliziert, gezählt je lokalem Tag; außerdem führt er die Workspace-Use-Cases aus: beim Start Cache, dann lokaler Scan, danach `SyncRepositories` mit Fetch im Fetch-Intervall und auf `Command::SyncNow`; beobachtet die Einstellungen und scannt nach jeder Änderung sofort lokal (neues Fetch-Intervall gilt ab dann); `Command::FastForward` startet `FastForwardRepo`; sendet `AppEvent::Workspaces`, `SyncStarted`, `RepoUpdated`; stoppt über `CancellationToken` |
 | `UpdatesAgent` | prüft alle Update-Quellen beim Start, im Prüf-Intervall (6 h) und auf `UpdateCommand::CheckNow`; führt `UpdateCommand::Install` als Job aus (`JobState`: Queued, Running, Succeeded, NeedsInteraction, Denied, Failed, TimedOut) mit `install_decision` und `ActionLog`; installiert nach jeder Prüfung die Kandidaten, die `install_decision(…, InstallRequest::Auto, …)` mit den Opt-ins erlaubt, nacheinander und ohne zweiten Lauf parallel; schreibt jedes Paketergebnis in die `InstallHistory`; liest Opt-ins und Prüf-Intervall aus den beobachteten Einstellungen, Änderungen gelten ab der nächsten Prüfung; Prüfungen und Jobs laufen als eigene Tasks unter der Sperre ihrer Quelle; sendet `AppEvent::Updates`, `SourceUpdated`, `Job` |
 | `Scheduler` | treibt periodische Use Cases (Fetch 15 min, Updates 6 h, Ingest 60 s, System 2 s) |
 | `JobRunner` | führt verändernde Use Cases als Jobs aus, verwaltet Status, Sperren und Abbruch |
@@ -400,6 +400,8 @@ pub trait GitPort: Send + Sync {
 
 Der Permit ist nicht `Clone` und wird bei Benutzung verbraucht (Move). `InstallPermit` folgt demselben Muster.
 
+`GitPort::own_commits(repo, since)` liest `git config user.email` und danach `git log --all --author=<Adresse> --since=… --format="%H %at"`; die Adresse wird für den regulären Ausdruck maskiert. Ohne konfigurierte Adresse gibt es keine eigenen Commits.
+
 ### 8.2 Async-Ports und Dispatch
 
 - **Statisch:** Ports mit genau einer Produktiv-Implementierung (`GitPort`, `UsageStore`, …) deklarieren ihre Methoden als `fn … -> impl Future<Output = …> + Send`. Implementierungen dürfen `async fn` schreiben. Use Cases sind generisch über den Port. Grund: Native `async fn` in Traits garantiert kein `Send`; die Multi-Thread-Runtime braucht `Send`-Futures für `tokio::spawn`.
@@ -446,7 +448,7 @@ Alle Fremdwerkzeuge laufen über den internen `ProcessRunner`:
 
 | Werkzeug | Umgebungsvariablen |
 |---|---|
-| git | `GIT_TERMINAL_PROMPT=0`, `GIT_SSH_COMMAND="ssh -o BatchMode=yes"`, `GIT_OPTIONAL_LOCKS=0` (nur für `status`) |
+| git | `GIT_TERMINAL_PROMPT=0`, `GIT_SSH_COMMAND="ssh -o BatchMode=yes"`, `GIT_OPTIONAL_LOCKS=0` (für `status`, `config` und `log`) |
 | brew | `HOMEBREW_NO_AUTO_UPDATE=1`, `HOMEBREW_NO_ENV_HINTS=1`, `NONINTERACTIVE=1`, `HOMEBREW_NO_COLOR=1` |
 | npm/npx | `NO_COLOR=1`, `npm_config_fund=false`, `npm_config_update_notifier=false` |
 | skills (über npx) | zusätzlich `DISABLE_TELEMETRY=1`, `DO_NOT_TRACK=1`: die Skills-CLI sendet sonst Telemetrie |

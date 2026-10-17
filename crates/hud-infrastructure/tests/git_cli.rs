@@ -240,3 +240,37 @@ async fn moved_head_returns_state_changed_and_changes_nothing() {
     assert_eq!(outcome, FfOutcome::StateChanged);
     assert_eq!(git(&fixture.work, &["rev-parse", "HEAD"]), head_before);
 }
+
+#[tokio::test]
+async fn own_commits_are_those_of_the_configured_address_on_any_branch() {
+    let fixture = Fixture::new();
+    git(&fixture.work, &["config", "user.email", "test@example.com"]);
+    git(&fixture.work, &["checkout", "-q", "-b", "feature"]);
+    commit(&fixture.work, "feature.txt", "mine\n");
+    // A commit by someone else does not count.
+    std::fs::write(fixture.work.join("theirs.txt"), "theirs\n").expect("BUG");
+    git(&fixture.work, &["add", "theirs.txt"]);
+    let status = Command::new("git")
+        .current_dir(&fixture.work)
+        .args(["commit", "-q", "-m", "theirs"])
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_AUTHOR_NAME", "Other")
+        .env("GIT_AUTHOR_EMAIL", "other@example.com")
+        .env("GIT_COMMITTER_NAME", "Other")
+        .env("GIT_COMMITTER_EMAIL", "other@example.com")
+        .status()
+        .expect("BUG");
+    assert!(status.success());
+    git(&fixture.work, &["checkout", "-q", "main"]);
+
+    let since = jiff::Timestamp::now() - jiff::SignedDuration::from_hours(1);
+    let commits = Fixture::cli()
+        .own_commits(&fixture.repo(), since)
+        .await
+        .expect("BUG: log works");
+    assert_eq!(
+        commits.len(),
+        2,
+        "README on main and the feature commit: {commits:?}"
+    );
+}

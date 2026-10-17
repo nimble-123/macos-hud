@@ -1,8 +1,13 @@
 //! Drives the workspace use cases: on start, on a timer, on command and
 //! whenever the settings change.
 
+use std::collections::HashSet;
 use std::time::Duration;
 
+use futures::StreamExt;
+use hud_domain::activity::{ActivityCalendar, calendar, calendar_start};
+use hud_domain::git::RepoPath;
+use jiff::tz::TimeZone;
 use tokio::sync::{mpsc, watch};
 use tokio::time::{Instant, Interval, MissedTickBehavior};
 use tokio_util::sync::CancellationToken;
@@ -12,7 +17,12 @@ use crate::ports::discovery::RepoDiscovery;
 use crate::ports::git::GitPort;
 use crate::ports::store::{ActionLog, Clock, ScanCache};
 use crate::settings::Settings;
-use crate::usecases::workspaces::{FastForwardRepo, LoadCachedRepos, SyncRepositories};
+use crate::usecases::workspaces::{
+    FastForwardRepo, LoadCachedRepos, SyncRepositories, WorkspaceReport,
+};
+
+/// Repositories read at once for the activity calendar.
+const LOG_CONCURRENCY: usize = 8;
 
 /// Runs the workspace use cases until cancelled.
 pub struct WorkspaceAgent<G, D, L, S, C> {
@@ -20,6 +30,9 @@ pub struct WorkspaceAgent<G, D, L, S, C> {
     sync: SyncRepositories<G, D, L, S, C>,
     manual: FastForwardRepo<G, L, C>,
     settings: watch::Receiver<Settings>,
+    git: G,
+    clock: C,
+    time_zone: TimeZone,
 }
 
 /// What woke the agent up.
@@ -37,7 +50,8 @@ where
     C: Clock + Clone,
 {
     /// Agent over the given ports; workspaces, scan settings and the fetch
-    /// interval come from `settings` and follow its changes.
+    /// interval come from `settings` and follow its changes. Days of the
+    /// activity calendar follow `time_zone`.
     pub fn new(
         git: G,
         discovery: D,
@@ -45,12 +59,16 @@ where
         cache: S,
         clock: C,
         settings: watch::Receiver<Settings>,
+        time_zone: TimeZone,
     ) -> Self {
         Self {
             cached: LoadCachedRepos::new(cache.clone()),
             manual: FastForwardRepo::new(git.clone(), log.clone(), clock.clone()),
-            sync: SyncRepositories::new(git, discovery, log, cache, clock),
+            sync: SyncRepositories::new(git.clone(), discovery, log, cache, clock.clone()),
             settings,
+            git,
+            clock,
+            time_zone,
         }
     }
 
@@ -77,7 +95,10 @@ where
         {
             return;
         }
-        if self.local_scan(&current, &events).await.is_err() {
+        let Ok(reports) = self.local_scan(&current, &events).await else {
+            return;
+        };
+        if self.report_activity(&reports, &events).await.is_err() {
             return;
         }
 
@@ -102,7 +123,10 @@ where
                         fetch_interval = current.fetch_interval;
                         timer = fetch_timer(Instant::now() + fetch_interval, fetch_interval);
                     }
-                    if self.local_scan(&current, &events).await.is_err() {
+                    let Ok(reports) = self.local_scan(&current, &events).await else {
+                        return;
+                    };
+                    if self.report_activity(&reports, &events).await.is_err() {
                         return;
                     }
                     continue;
@@ -116,10 +140,21 @@ where
                         .execute(&current.workspaces, &current.scan, true, Some(&events))
                         .await;
                     timer.reset();
-                    AppEvent::Workspaces {
-                        reports,
-                        source: ReportSource::Sync,
+                    // New commits arrive with the fetch; the calendar follows each sync.
+                    if send(
+                        &events,
+                        AppEvent::Workspaces {
+                            reports: reports.clone(),
+                            source: ReportSource::Sync,
+                        },
+                    )
+                    .await
+                    .is_err()
+                        || self.report_activity(&reports, &events).await.is_err()
+                    {
+                        return;
                     }
+                    continue;
                 }
                 Step::Command(WorkspaceCommand::FastForward(repo)) => {
                     AppEvent::RepoUpdated(self.manual.execute(&repo).await)
@@ -136,7 +171,7 @@ where
         &self,
         current: &Settings,
         events: &mpsc::Sender<AppEvent>,
-    ) -> Result<(), ()> {
+    ) -> Result<Vec<WorkspaceReport>, ()> {
         let reports = self
             .sync
             .execute(&current.workspaces, &current.scan, false, Some(events))
@@ -144,11 +179,55 @@ where
         send(
             events,
             AppEvent::Workspaces {
-                reports,
+                reports: reports.clone(),
                 source: ReportSource::LocalScan,
             },
         )
-        .await
+        .await?;
+        Ok(reports)
+    }
+
+    /// Own commits per day across all repositories of the reports; the same
+    /// commit in several clones counts once.
+    async fn report_activity(
+        &self,
+        reports: &[WorkspaceReport],
+        events: &mpsc::Sender<AppEvent>,
+    ) -> Result<(), ()> {
+        let now = self.clock.now().to_zoned(self.time_zone.clone());
+        let today = now.date();
+        let since = calendar_start(today)
+            .to_zoned(self.time_zone.clone())
+            .map_or(now.timestamp(), |start| start.timestamp());
+        let repos: Vec<RepoPath> = reports
+            .iter()
+            .filter_map(|workspace| workspace.repos.as_ref())
+            .flatten()
+            .map(|report| report.repo.clone())
+            .collect();
+        let commits: Vec<_> = futures::stream::iter(repos)
+            .map(|repo| async move {
+                self.git
+                    .own_commits(&repo, since)
+                    .await
+                    .unwrap_or_else(|error| {
+                        tracing::debug!(%error, repo = %repo, "no commit history");
+                        Vec::new()
+                    })
+            })
+            .buffer_unordered(LOG_CONCURRENCY)
+            .collect()
+            .await;
+        let mut seen = HashSet::new();
+        let times: Vec<_> = commits
+            .into_iter()
+            .flatten()
+            .filter(|(id, _)| seen.insert(id.clone()))
+            .map(|(_, at)| at)
+            .collect();
+        tracing::debug!(commits = times.len(), "own commits counted");
+        let calendar: ActivityCalendar = calendar(&times, today, &self.time_zone);
+        send(events, AppEvent::GitActivity(calendar)).await
     }
 }
 
@@ -167,6 +246,8 @@ async fn send(events: &mpsc::Sender<AppEvent>, event: AppEvent) -> Result<(), ()
 mod tests {
     use std::collections::HashMap;
     use std::sync::Arc;
+
+    use jiff::tz::TimeZone;
 
     use super::*;
     use crate::testing::{
@@ -204,6 +285,7 @@ mod tests {
             Arc::new(FakeCache::default()),
             Clk,
             watched,
+            TimeZone::UTC,
         );
         (agent, git, settings)
     }
@@ -290,6 +372,68 @@ mod tests {
         };
         assert_eq!(reports.len(), 2);
         assert_eq!(git.fetched.lock().expect("BUG").len(), 1, "no extra fetch");
+        cancel.cancel();
+        task.await.expect("BUG: agent task");
+    }
+
+    #[tokio::test]
+    async fn the_activity_counts_a_commit_in_two_clones_once() {
+        use hud_domain::git::CommitId;
+        let commit = |id: char, at: &str| {
+            (
+                CommitId::try_from(id.to_string().repeat(40).as_str()).expect("BUG"),
+                at.parse::<jiff::Timestamp>().expect("BUG"),
+            )
+        };
+        let mut git = FakeGit::with(&[("/ws/api", behind(0)), ("/ws/api-copy", behind(0))]);
+        git.commits = HashMap::from([
+            (
+                repo("/ws/api"),
+                vec![
+                    commit('a', "2026-10-17T08:00:00Z"),
+                    commit('b', "2026-10-16T08:00:00Z"),
+                ],
+            ),
+            (
+                repo("/ws/api-copy"),
+                vec![commit('a', "2026-10-17T08:00:00Z")],
+            ),
+        ]);
+        let discovery = FakeDiscovery {
+            repos: HashMap::from([(
+                "/ws".to_owned(),
+                vec![repo("/ws/api"), repo("/ws/api-copy")],
+            )]),
+        };
+        let (_settings, watched) = watch::channel(Settings {
+            workspaces: vec![workspace("/ws", true)],
+            fetch_interval: Duration::from_hours(1),
+            ..Settings::default()
+        });
+        let agent = WorkspaceAgent::new(
+            Arc::new(git),
+            discovery,
+            Arc::new(FakeLog::default()),
+            Arc::new(FakeCache::default()),
+            Clk,
+            watched,
+            TimeZone::UTC,
+        );
+        let (_commands_tx, commands) = mpsc::channel(4);
+        let (events_tx, mut events) = mpsc::channel(32);
+        let cancel = CancellationToken::new();
+        let task = tokio::spawn(agent.run(commands, events_tx, cancel.clone()));
+        let calendar = loop {
+            if let Some(AppEvent::GitActivity(calendar)) = events.recv().await {
+                break calendar;
+            }
+        };
+        assert_eq!(
+            calendar.days.iter().sum::<u64>(),
+            2,
+            "a counts once, b once"
+        );
+        assert_eq!(calendar.days.last(), Some(&1));
         cancel.cancel();
         task.await.expect("BUG: agent task");
     }

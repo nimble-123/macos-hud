@@ -1,6 +1,6 @@
 //! AI activity as a contribution-style calendar: one column per week.
 
-use hud_application::usecases::usage::ActivityCalendar;
+use hud_domain::activity::ActivityCalendar;
 use jiff::ToSpan;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -8,6 +8,7 @@ use ratatui::text::{Line, Span};
 use crate::Model;
 use crate::i18n::{t, t_args};
 use crate::settings::Language;
+use crate::theme::Activity;
 
 /// Weekday labels take this many columns.
 const LABEL_WIDTH: usize = 5;
@@ -15,7 +16,12 @@ const LABEL_WIDTH: usize = 5;
 const CELL_WIDTH: usize = 2;
 
 /// The calendar for `width` columns, or nothing when there was no activity.
-pub(super) fn lines<'a>(model: &Model, calendar: &ActivityCalendar, width: usize) -> Vec<Line<'a>> {
+pub(super) fn lines<'a>(
+    model: &Model,
+    activity: Activity,
+    calendar: &ActivityCalendar,
+    width: usize,
+) -> Vec<Line<'a>> {
     let weeks_total = calendar.days.len().div_ceil(7);
     let weeks = weeks_total.min(width.saturating_sub(LABEL_WIDTH) / CELL_WIDTH);
     let skip = weeks_total - weeks;
@@ -33,7 +39,7 @@ pub(super) fn lines<'a>(model: &Model, calendar: &ActivityCalendar, width: usize
 
     let mut lines = vec![Line::from(vec![
         Span::styled(
-            t(language, "calendar-title"),
+            t(language, title_key(activity)),
             Style::new().fg(theme.ink).add_modifier(Modifier::BOLD),
         ),
         Span::styled(
@@ -70,7 +76,7 @@ pub(super) fn lines<'a>(model: &Model, calendar: &ActivityCalendar, width: usize
                     let level = levels.of(count);
                     Span::styled(
                         format!("{} ", glyph(model, level)),
-                        Style::new().fg(theme.heat(level)),
+                        Style::new().fg(theme.heat(activity, level)),
                     )
                 }
                 None => Span::raw("  "),
@@ -79,7 +85,7 @@ pub(super) fn lines<'a>(model: &Model, calendar: &ActivityCalendar, width: usize
         }
         lines.push(Line::from(spans));
     }
-    lines.push(summary(model, shown));
+    lines.push(summary(model, activity, shown));
     lines
 }
 
@@ -171,7 +177,7 @@ impl Levels {
 }
 
 /// Totals, active days, longest streak and the legend.
-fn summary<'a>(model: &Model, days: &[u64]) -> Line<'a> {
+fn summary<'a>(model: &Model, activity: Activity, days: &[u64]) -> Line<'a> {
     let language = model.settings.language;
     let theme = &model.theme;
     let total: u64 = days.iter().sum();
@@ -188,7 +194,7 @@ fn summary<'a>(model: &Model, days: &[u64]) -> Line<'a> {
         Span::styled(
             t_args(
                 language,
-                "calendar-summary",
+                summary_key(activity),
                 &[
                     ("answers", &super::ai::count(total, language)),
                     ("days", &active.to_string()),
@@ -205,7 +211,7 @@ fn summary<'a>(model: &Model, days: &[u64]) -> Line<'a> {
     for level in 0..=4 {
         spans.push(Span::styled(
             format!("{} ", glyph(model, level)),
-            Style::new().fg(theme.heat(level)),
+            Style::new().fg(theme.heat(activity, level)),
         ));
     }
     spans.push(Span::styled(
@@ -217,6 +223,20 @@ fn summary<'a>(model: &Model, days: &[u64]) -> Line<'a> {
 
 fn fit(text: &str, width: usize) -> String {
     format!("{text:<width$}")
+}
+
+fn title_key(activity: Activity) -> &'static str {
+    match activity {
+        Activity::Ai => "calendar-title",
+        Activity::Git => "calendar-git-title",
+    }
+}
+
+fn summary_key(activity: Activity) -> &'static str {
+    match activity {
+        Activity::Ai => "calendar-summary",
+        Activity::Git => "calendar-git-summary",
+    }
 }
 
 #[cfg(test)]

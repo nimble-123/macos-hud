@@ -729,6 +729,26 @@ mod tests {
     }
 
     #[test]
+    fn overview_shows_ai_and_git_activity_calendars() {
+        use hud_application::AppEvent;
+        use hud_application::usecases::workspaces::RepoState;
+        let mut model = loaded_overview(vec![repo("/ws/a", RepoState::UpToDate)]);
+        let mut report = sample_usage();
+        report.calendar = sample_calendar();
+        update(&mut model, Msg::App(AppEvent::Usage(Box::new(report))));
+        let git = hud_domain::activity::ActivityCalendar {
+            first_day: hud_domain::activity::calendar_start(jiff::civil::date(2026, 10, 17)),
+            days: (0..(52 * 7 + 6)).map(|day: u64| day % 3).collect(),
+        };
+        update(&mut model, Msg::App(AppEvent::GitActivity(git)));
+        let mut terminal = Terminal::new(TestBackend::new(115, 40)).expect("BUG: test backend");
+        terminal
+            .draw(|frame| view(&model, frame))
+            .expect("BUG: test draw");
+        insta::assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
     fn overview_is_calm_when_nothing_deviates() {
         use hud_application::usecases::workspaces::RepoState;
         let model = loaded_overview(vec![repo("/ws/a", RepoState::UpToDate)]);

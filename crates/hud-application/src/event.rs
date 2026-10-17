@@ -69,6 +69,8 @@ pub enum AppEvent {
     Usage(Box<UsageReport>),
     /// Telemetry receiver and Claude Code setup.
     Telemetry(Box<TelemetryStatus>),
+    /// Own commits per day across all tracked repositories.
+    GitActivity(hud_domain::activity::ActivityCalendar),
     /// A fresh reading of CPU, memory and processes.
     System(crate::ports::system::SystemSample),
 }

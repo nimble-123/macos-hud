@@ -111,6 +111,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Msg::App(AppEvent::Settings(Box::new(sample_settings()))),
         );
         update(&mut model, Msg::App(AppEvent::Actions(sample_actions())));
+        update(
+            &mut model,
+            Msg::App(AppEvent::GitActivity(sample_git_calendar())),
+        );
         for sample in sample_load() {
             update(&mut model, Msg::App(AppEvent::System(sample)));
         }
@@ -185,6 +189,19 @@ fn sample_kpis() -> hud_application::usecases::usage::PeriodKpis {
             ("skills-hub".into(), 71),
         ],
     }
+}
+
+/// Commits: fewer than AI answers, busy weeks and quiet ones.
+fn sample_git_calendar() -> hud_domain::activity::ActivityCalendar {
+    let first_day =
+        hud_application::usecases::usage::calendar_start(jiff::civil::date(2026, 10, 17));
+    let days = (0..(52 * 7 + 6))
+        .map(|day: u64| match (day % 7, day / 7) {
+            (5 | 6, _) | (_, 11..=12 | 30..=31) => 0,
+            _ => (day * 13 + day / 7 * 7) % 17,
+        })
+        .collect();
+    hud_domain::activity::ActivityCalendar { first_day, days }
 }
 
 /// A year of work: weekdays busy, weekends quiet, a holiday gap.

@@ -63,6 +63,7 @@ pub(crate) struct FakeGit {
     pub state_changed: bool,
     pub fetched: Mutex<Vec<RepoPath>>,
     pub fast_forwarded: Mutex<Vec<RepoPath>>,
+    pub commits: HashMap<RepoPath, Vec<(CommitId, Timestamp)>>,
 }
 
 impl FakeGit {
@@ -95,6 +96,24 @@ impl GitPort for FakeGit {
                 action: "status",
                 message: "unknown repo".into(),
             })
+    }
+
+    async fn own_commits(
+        &self,
+        repo: &RepoPath,
+        since: Timestamp,
+    ) -> Result<Vec<(CommitId, Timestamp)>, GitError> {
+        Ok(self
+            .commits
+            .get(repo)
+            .map(|commits| {
+                commits
+                    .iter()
+                    .filter(|(_, at)| *at >= since)
+                    .cloned()
+                    .collect()
+            })
+            .unwrap_or_default())
     }
 
     async fn fetch(&self, repo: &RepoPath) -> Result<(), GitError> {

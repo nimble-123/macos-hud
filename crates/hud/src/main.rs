@@ -236,6 +236,7 @@ fn start_background(
         store.clone(),
         SystemClock,
         watched.clone(),
+        jiff::tz::TimeZone::system(),
     );
     let (events_tx, events) = mpsc::channel::<AppEvent>(APP_EVENT_CAPACITY);
     let (workspace_commands, workspace_rx) = mpsc::channel::<WorkspaceCommand>(COMMAND_CAPACITY);
