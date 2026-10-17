@@ -1,0 +1,26 @@
+---
+source: crates/hud-tui/src/view/mod.rs
+expression: render_tall(&model).backend()
+---
+"  Übersicht    Workspaces    Updates    KI    Protokoll    Einstellungen        "
+"  ────────────────────────────────────────────────────────────────────────────  "
+"                                                                                "
+"  Übersicht ist noch nicht gebaut.                                              "
+"                                                                                "
+"                                                                                "
+"    ┌ hud beenden? ────────────────────────────────────────────────────────┐    "
+"    │                                                                      │    "
+"    │  1 Installation läuft noch.                                          │    "
+"    │                                                                      │    "
+"    │  ▲ Abbrechen kann ein Paket halb installiert zurücklassen.           │    "
+"    │                                                                      │    "
+"    │  Enter warten, dann beenden   a abbrechen und beenden   Esc zurück   │    "
+"    │                                                                      │    "
+"    └──────────────────────────────────────────────────────────────────────┘    "
+"                                                                                "
+"                                                                                "
+"                                                                                "
+"                                                                                "
+"  ────────────────────────────────────────────────────────────────────────────  "
+"  ⠋ 1 Installation läuft   npx skills update --global --yes                     "
+"  r aktualisieren   tab wechseln   q beenden                                    "

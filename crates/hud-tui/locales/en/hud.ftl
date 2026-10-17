@@ -160,3 +160,18 @@ key-slash = /
 hint-search = search
 hint-filter = filter
 log-detail-summary = Summary
+job-cancelled = cancelled
+quit-title = Quit hud?
+quit-running = { $count ->
+    [one] 1 installation is still running.
+   *[other] { $count } installations are still running.
+}
+quit-cancel-warning = Cancelling can leave a package half installed.
+quit-wait = wait, then quit
+quit-cancel = cancel and quit
+quit-back = back
+quit-waiting = { $count ->
+    [one] Waiting for 1 installation, then hud quits
+   *[other] Waiting for { $count } installations, then hud quits
+}
+hint-quit-now = quit now

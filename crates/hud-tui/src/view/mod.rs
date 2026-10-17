@@ -1,10 +1,10 @@
 //! Rendering.
 
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Layout, Margin, Rect};
+use ratatui::layout::{Constraint, Flex, Layout, Margin, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 
 mod log;
 mod settings;
@@ -39,6 +39,62 @@ pub fn view(model: &Model, frame: &mut Frame) {
         tab => render_placeholder(tab, language, &model.theme, frame, body),
     }
     render_footer(model, frame, footer);
+    if model.quit == crate::model::Quit::Asking {
+        render_quit(model, frame, body);
+    }
+}
+
+/// Asks whether to wait for running installations or to cancel them.
+fn render_quit(model: &Model, frame: &mut Frame, area: Rect) {
+    let language = model.settings.language;
+    let theme = &model.theme;
+    let [dialog] = Layout::horizontal([Constraint::Length(72)])
+        .flex(Flex::Center)
+        .areas(area);
+    let [dialog] = Layout::vertical([Constraint::Length(9)])
+        .flex(Flex::Center)
+        .areas(dialog);
+    let key = Style::new().fg(theme.focus).add_modifier(Modifier::BOLD);
+    let label = Style::new().fg(theme.soft);
+    let count = u32::try_from(model.jobs.len()).unwrap_or(u32::MAX);
+    let caution = crate::icons::Status::Caution;
+    let lines = vec![
+        Line::raw(""),
+        Line::styled(
+            format!(
+                "  {}",
+                crate::i18n::t_count(language, "quit-running", "count", count)
+            ),
+            Style::new().fg(theme.ink).add_modifier(Modifier::BOLD),
+        ),
+        Line::raw(""),
+        Line::styled(
+            format!(
+                "  {} {}",
+                crate::icons::status_glyph(model.settings.icons, caution),
+                t(language, "quit-cancel-warning")
+            ),
+            Style::new().fg(theme.status(caution)),
+        ),
+        Line::raw(""),
+        Line::from(vec![
+            Span::styled(format!("  {} ", t(language, "key-enter")), key),
+            Span::styled(format!("{}   ", t(language, "quit-wait")), label),
+            Span::styled(format!("{} ", t(language, "key-a")), key),
+            Span::styled(format!("{}   ", t(language, "quit-cancel")), label),
+            Span::styled(format!("{} ", t(language, "key-esc")), key),
+            Span::styled(t(language, "quit-back"), label),
+        ]),
+    ];
+    let block = Block::new()
+        .borders(Borders::ALL)
+        .border_style(Style::new().fg(theme.focus))
+        .title(Span::styled(
+            format!(" {} ", t(language, "quit-title")),
+            key,
+        ));
+    frame.render_widget(Clear, dialog);
+    frame.render_widget(Paragraph::new(lines).block(block), dialog);
 }
 
 fn tab_message(tab: Tab) -> &'static str {
@@ -126,6 +182,9 @@ fn render_footer(model: &Model, frame: &mut Frame, area: Rect) {
 
 /// Key hints for the active tab; an open input or dialog has its own.
 fn footer_hints(model: &Model) -> Vec<(&'static str, &'static str)> {
+    if model.quit == crate::model::Quit::Waiting {
+        return vec![("key-quit", "hint-quit-now")];
+    }
     let tab = &model.settings_tab;
     if model.tab() == Tab::Settings && tab.input.is_some() {
         return vec![("key-enter", "hint-add"), ("key-esc", "hint-cancel")];
@@ -171,11 +230,16 @@ fn jobs_progress(model: &Model) -> Vec<Span<'static>> {
     let theme = &model.theme;
     let accent = theme.status(crate::icons::Status::Advisory);
     let count = u32::try_from(model.jobs.len()).unwrap_or(u32::MAX);
+    let message = if model.quit == crate::model::Quit::Waiting {
+        "quit-waiting"
+    } else {
+        "jobs-running"
+    };
     let mut spans = vec![Span::styled(
         format!(
             "{} {}",
             updates::spinner(model),
-            crate::i18n::t_count(model.settings.language, "jobs-running", "count", count)
+            crate::i18n::t_count(model.settings.language, message, "count", count)
         ),
         Style::new().fg(accent),
     )];
@@ -351,6 +415,24 @@ mod tests {
         ];
         update(&mut model, Msg::App(AppEvent::Actions(actions)));
         model
+    }
+
+    #[test]
+    fn quit_dialog_in_german() {
+        use hud_application::AppEvent;
+        use hud_application::usecases::updates::{JobId, JobState, JobUpdate};
+        let mut model = german();
+        let job = JobUpdate {
+            id: JobId(1),
+            target: hud_domain::update::InstallTarget::AllSkills,
+            state: JobState::Running,
+        };
+        update(&mut model, Msg::App(AppEvent::Job(job)));
+        update(
+            &mut model,
+            Msg::Key(KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE)),
+        );
+        insta::assert_snapshot!(render_tall(&model).backend());
     }
 
     #[test]

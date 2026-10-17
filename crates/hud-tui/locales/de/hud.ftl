@@ -160,3 +160,18 @@ key-slash = /
 hint-search = suchen
 hint-filter = filtern
 log-detail-summary = Zusammenfassung
+job-cancelled = abgebrochen
+quit-title = hud beenden?
+quit-running = { $count ->
+    [one] 1 Installation läuft noch.
+   *[other] { $count } Installationen laufen noch.
+}
+quit-cancel-warning = Abbrechen kann ein Paket halb installiert zurücklassen.
+quit-wait = warten, dann beenden
+quit-cancel = abbrechen und beenden
+quit-back = zurück
+quit-waiting = { $count ->
+    [one] Warte auf 1 Installation, danach beendet sich hud
+   *[other] Warte auf { $count } Installationen, danach beendet sich hud
+}
+hint-quit-now = sofort beenden

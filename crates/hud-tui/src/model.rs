@@ -86,7 +86,7 @@ pub struct Model {
     pub(crate) settings: UiSettings,
     pub(crate) theme: Theme,
     pub(crate) tab: Tab,
-    pub(crate) quit: bool,
+    pub(crate) quit: Quit,
     /// Time of the last tick; the only clock `update` knows.
     pub(crate) now: Option<Instant>,
     pub(crate) workspaces: Vec<WorkspaceReport>,
@@ -123,6 +123,19 @@ pub struct Model {
     pub(crate) time_zone: jiff::tz::TimeZone,
 }
 
+/// Where quitting stands.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Quit {
+    /// hud keeps running.
+    No,
+    /// The dialog asks: installations are running.
+    Asking,
+    /// The user chose to wait; hud quits once the installations ended.
+    Waiting,
+    /// The event loop stops.
+    Now,
+}
+
 /// Progress of a running scan.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct ScanProgress {
@@ -145,7 +158,7 @@ impl Model {
             theme: Theme::new(settings.appearance, settings.color_depth),
             settings,
             tab: Tab::default(),
-            quit: false,
+            quit: Quit::No,
             now: None,
             workspaces: Vec::new(),
             syncing: false,
@@ -265,7 +278,7 @@ impl Model {
     /// Whether the event loop should stop.
     #[must_use]
     pub fn should_quit(&self) -> bool {
-        self.quit
+        self.quit == Quit::Now
     }
 }
 

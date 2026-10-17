@@ -333,11 +333,11 @@ Alle drei `select!`-Zweige sind cancel-safe. Die Schleife macht kein I/O außer 
 
 ![Lebenszyklus eines Jobs und Beenden](diagrams/job-lifecycle.svg)
 
-1. `q` ohne laufende Jobs: sofort beenden.
-2. `q` mit laufenden Jobs: Dialog „Aktion läuft: warten oder abbrechen?“, Default **Warten**.
-3. Warten: Der Scheduler stoppt (keine neuen Jobs), laufende Jobs laufen zu Ende, die Fußzeile zeigt den Fortschritt, danach Beenden.
-4. Abbrechen: `CancellationToken` wird ausgelöst, Kindprozesse erhalten SIGTERM, nach 5 s SIGKILL; Jobs enden als `Cancelled` im Protokoll.
-5. In jedem Fall stellt der Terminal-Guard Raw Mode, Alternate Screen und Mouse Capture zurück.
+1. `q` oder `Ctrl-C` ohne laufende Installation: sofort beenden. Laufende Prüfungen, Fetches und Scans werden dabei abgebrochen; sie ändern nichts am System.
+2. Mit laufender Installation öffnet sich der Dialog „hud beenden?“, Default **Warten** (`Enter`), `a` bricht ab, `Esc` kehrt zurück. Ein zweites `q` oder `Ctrl-C` im Dialog oder während des Wartens beendet sofort wie „Abbrechen“.
+3. Warten: Die TUI sendet `UpdateCommand::Drain`. Der `UpdatesAgent` startet nichts Neues mehr, bricht laufende Prüfungen ab, meldet wartende Jobs als `Cancelled` (sie hatten noch nicht begonnen und erscheinen nicht im Protokoll) und lässt laufende Installationen zu Ende laufen. Danach sendet er `AppEvent::JobsFinished`, und hud beendet sich. Die Fußzeile zeigt bis dahin „Warte auf … Installationen“.
+4. Abbrechen: Ein gemeinsamer `CancellationToken` stoppt alle Agents und den `ProcessRunner`. Laufende Werkzeuge erhalten SIGTERM an ihre Prozessgruppe und nach 5 s SIGKILL. Die Agents warten auf ihre Tasks, sodass abgebrochene Installationen als `Cancelled` im Protokoll stehen. Das Binary wartet höchstens 8 s.
+5. In jedem Fall stellt der Terminal-Guard Raw Mode, Alternate Screen und Mouse Capture wieder her, bevor auf die Hintergrundarbeit gewartet wird.
 
 ---
 
@@ -436,7 +436,7 @@ Alle Fremdwerkzeuge laufen über den internen `ProcessRunner`:
 | skills (über npx) | zusätzlich `DISABLE_TELEMETRY=1`, `DO_NOT_TRACK=1`: die Skills-CLI sendet sonst Telemetrie |
 
 - Timeouts: Status 10 s, Fetch 60 s, Outdated 120 s, Upgrade/Install 15 min.
-- Bei Abbruch: SIGTERM, nach 5 s SIGKILL.
+- Bei Abbruch (`CancellationToken` des Runners): SIGTERM an die Prozessgruppe, nach 5 s SIGKILL; das Ergebnis ist `ProcessError::Cancelled`, das die Adapter auf `GitError::Cancelled` bzw. `UpdateError::Cancelled` abbilden. Bei Zeitüberschreitung erhält die Gruppe sofort SIGKILL.
 
 ### 8.6 Persistenz
 

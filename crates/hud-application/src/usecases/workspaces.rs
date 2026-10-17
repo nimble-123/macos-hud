@@ -384,6 +384,7 @@ async fn fast_forward(
             Ok(FfOutcome::StateChanged) => {
                 (Outcome::Skipped("HEAD moved since the check".into()), None)
             }
+            Err(GitError::Cancelled { .. }) => (Outcome::Cancelled, None),
             Err(error) => (Outcome::Failed(error.to_string()), None),
         };
         if let Err(error) = log.finish(id, clock.now(), outcome, summary).await {

@@ -48,6 +48,7 @@ impl<R: ProcessRunner> NpmGlobal<R> {
         self.runner.run(spec).await.map_err(|error| match error {
             ProcessError::NotFound { .. } => UpdateError::Missing(TOOL),
             ProcessError::TimedOut { .. } => UpdateError::TimedOut(TOOL),
+            ProcessError::Cancelled { .. } => UpdateError::Cancelled(TOOL),
             ProcessError::Io { source, .. } => UpdateError::Failed {
                 tool: TOOL,
                 message: source.to_string(),

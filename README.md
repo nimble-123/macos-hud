@@ -133,7 +133,7 @@ hud --reset-config --reset-data --yes
 | `a` / `d` | add / remove a workspace (Settings) |
 | `r` | refresh now; in Settings: reload the config file |
 | `?` | help |
-| `q` | quit (asks first if something is still running) |
+| `q` | quit; while an installation runs, choose to wait for it or cancel it |
 
 Every action in the footer can also be clicked.
 

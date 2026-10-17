@@ -34,6 +34,12 @@ pub enum GitError {
         /// Sub-command, e.g. `fetch`.
         action: &'static str,
     },
+    /// hud is quitting and stopped git.
+    #[error("git {action} was cancelled")]
+    Cancelled {
+        /// Sub-command.
+        action: &'static str,
+    },
     /// Git exited with an error; `message` is the end of its stderr.
     #[error("git {action} failed: {message}")]
     Failed {
