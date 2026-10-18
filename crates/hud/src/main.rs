@@ -160,7 +160,8 @@ fn run_reset(choice: cli::Reset) -> anyhow::Result<std::process::ExitCode> {
             eprintln!("refusing to delete without confirmation; pass --yes");
             return Ok(std::process::ExitCode::from(2));
         }
-        if !reset::confirm(&paths, std::io::stdin().lock(), std::io::stdout())? {
+        let warning = choice.data.then_some(reset::DATA_WARNING);
+        if !reset::confirm(&paths, warning, std::io::stdin().lock(), std::io::stdout())? {
             println!("Nothing deleted.");
             return Ok(std::process::ExitCode::SUCCESS);
         }

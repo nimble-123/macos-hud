@@ -24,19 +24,28 @@ pub fn targets(reset: Reset, config: &Path, database: &Path) -> Vec<PathBuf> {
     paths
 }
 
-/// Lists `paths` and asks; only `y` or `yes` counts as consent.
+/// Said before deleting the database: telemetry only arrives while hud runs.
+pub const DATA_WARNING: &str =
+    "Received telemetry cannot be restored; AI usage is read again from the logs.";
+
+/// Lists `paths`, adds `warning` if given, and asks; only `y` or `yes`
+/// counts as consent.
 ///
 /// # Errors
 ///
 /// Fails when the terminal cannot be written or read.
 pub fn confirm(
     paths: &[PathBuf],
+    warning: Option<&str>,
     mut input: impl BufRead,
     mut output: impl Write,
 ) -> io::Result<bool> {
     writeln!(output, "hud will delete:")?;
     for path in paths {
         writeln!(output, "  {}", path.display())?;
+    }
+    if let Some(warning) = warning {
+        writeln!(output, "{warning}")?;
     }
     write!(output, "Continue? [y/N] ")?;
     output.flush()?;
@@ -119,6 +128,19 @@ mod tests {
     }
 
     #[test]
+    fn deleting_the_database_warns_about_telemetry() {
+        let mut shown = Vec::new();
+        confirm(
+            &[PathBuf::from("/d/hud.db")],
+            Some(DATA_WARNING),
+            "n\n".as_bytes(),
+            &mut shown,
+        )
+        .expect("BUG: in memory");
+        assert!(String::from_utf8_lossy(&shown).contains("telemetry cannot be restored"));
+    }
+
+    #[test]
     fn only_yes_confirms() {
         let paths = [PathBuf::from("/c/config.toml")];
         for (answer, expected) in [
@@ -129,7 +151,8 @@ mod tests {
             ("", false),
         ] {
             let mut shown = Vec::new();
-            let confirmed = confirm(&paths, answer.as_bytes(), &mut shown).expect("BUG: in memory");
+            let confirmed =
+                confirm(&paths, None, answer.as_bytes(), &mut shown).expect("BUG: in memory");
             assert_eq!(confirmed, expected, "answer {answer:?}");
             assert!(String::from_utf8_lossy(&shown).contains("/c/config.toml"));
         }
