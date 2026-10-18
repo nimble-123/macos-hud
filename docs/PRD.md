@@ -75,6 +75,7 @@ Entwickler:innen, die mehrere lokale Repositories und CLI-Werkzeuge nutzen und d
 - Gepinnte Pakete werden angezeigt, aber nie installiert
 - Ein Cask, dessen Update eine Passwortabfrage braucht, wird als „manuell nötig“ markiert und nicht erneut automatisch versucht
 - Automatische Aktionen laufen nur, solange hud läuft
+- Aktualisiert hud sich selbst (Homebrew-Formel `hud`), läuft die laufende Instanz mit der alten Version weiter; die Tab-Leiste und der Updates-Tab fordern zum Neustart auf
 - Jeder Fast-Forward, jede Installation und jeder fehlgeschlagene Fetch wird mit Ergebnis protokolliert; erfolgreiche Fetches und von den Regeln abgelehnte automatische Installationen nicht
 
 ![Regeln für die automatische Installation](diagrams/auto-install-decision.svg)
