@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/nimble-123/macos-hud/compare/v0.12.0...v0.13.0) (2026-10-18)
+
+
+### Neue Funktionen
+
+* **tui:** ask for a restart after hud updated itself ([#178](https://github.com/nimble-123/macos-hud/issues/178)) ([f660c06](https://github.com/nimble-123/macos-hud/commit/f660c065e65537e190aa60697fc1a12aa47df6fd))
+
 ## [0.12.0](https://github.com/nimble-123/macos-hud/compare/v0.11.0...v0.12.0) (2026-10-18)
 
 
