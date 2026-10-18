@@ -124,7 +124,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 - **Linksbündig**, eine Spalte für Text, Zahlen rechtsbündig in eigenen Spalten.
 - **Rahmen** nur für Dialoge und die Hilfe, in `focus`; Bereiche haben keine Rahmen.
 - **Fußzeile** zeigt kontextabhängige Aktionen; jede Aktion hat ein Tastenkürzel und ist per Maus klickbar. Hinweise, die nur Tasten erklären (z. B. ↑↓), reagieren nicht auf Klicks.
-- **Maus**: Tab-Beschriftungen, Zeitraumauswahl und Listenzeilen sind klickbar; ein zweiter Klick auf die gewählte Zeile wirkt wie Enter (Updates: Bestätigungsdialog, Einstellungen: Wert ändern; in Workspaces und Protokoll ohne Wirkung). Das Mausrad bewegt die Auswahl. Solange ein Dialog offen ist, werden Klicks ignoriert; ein Klick schließt die Hilfe.
+- **Maus**: Tab-Beschriftungen, Zeitraumauswahl und Listenzeilen sind klickbar; ein zweiter Klick auf die gewählte Zeile wirkt wie Enter (Workspaces: Fast-Forward, Updates: Bestätigungsdialog, Protokoll: Details vergrößern, Einstellungen: Wert ändern). Das Mausrad bewegt die Auswahl. Solange ein Dialog offen ist, werden Klicks ignoriert; ein Klick schließt die Hilfe.
 - **Scrollen**: Workspaces und Protokoll halten die Auswahl im sichtbaren Bereich. Übersicht, Updates, KI und Einstellungen scrollen nicht; was nicht ins Fenster passt, wird abgeschnitten.
 - **Übersicht zeigt nur Abweichungen** (Dark Cockpit). Ist alles normal, steht dort ein einziger neutraler Satz, z. B. „Alles aktuell. Letzte Prüfung vor 4 min.“ Repos zählen als „zurück“ (auch bei Opt-out), „übersprungen“ (Regel blockiert), „divergiert“ oder „Fehler“; nicht verfügbare Workspaces erscheinen eigens. Updates zählen ohne gepinnte Pakete.
 - Die Sparklines sind rechtsbündig: der neueste Wert steht immer an derselben Stelle. CPU oder Speicher ab 90 % erscheinen in `caution`.
@@ -137,7 +137,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 |---|---|
 | `Tab` / `Shift-Tab` | nächster / vorheriger Tab |
 | `↑` `↓`, `k` `j` | Auswahl bewegen; am Listenende geht es oben weiter und umgekehrt |
-| `Enter` | Updates: Bestätigungsdialog öffnen; Einstellungen: Wert ändern; in Dialogen: bestätigen |
+| `Enter` | Workspaces: Fast-Forward wie `f`; Updates: Bestätigungsdialog öffnen; Protokoll: Details vergrößern oder verkleinern; Einstellungen: Wert ändern; in Dialogen: bestätigen |
 | `f` | Workspaces: Fast-Forward für das ausgewählte Repo; Protokoll: Filter wechseln |
 | `u` | Updates: ausgewähltes Paket aktualisieren |
 | `←` `→`, `h` `l`, `1`–`5` | KI: Zeitraum wechseln (läuft am Ende um) |
@@ -269,7 +269,7 @@ Ausgabe-Ende    npm error code EACCES …
 ```
 
 - Neueste Aktion oben, Zeiten in der lokalen Zeitzone. Die Ergebnisspalte zeigt Statussymbol und Ergebnis in der UI-Sprache.
-- Der Detailbereich unten (Trennlinie in `rule`) zeigt die ausgewählte Aktion: vollständiges Ziel, Ergebnis mit Dauer, die technische Zusammenfassung und das Ende der Ausgabe (so viele letzte Zeilen, wie Platz haben).
+- Der Detailbereich unten (Trennlinie in `rule`) zeigt die ausgewählte Aktion: vollständiges Ziel, Ergebnis mit Dauer, die technische Zusammenfassung und das Ende der Ausgabe (so viele letzte Zeilen, wie Platz haben). `Enter` vergrößert ihn bis auf fünf Listenzeilen und verkleinert ihn wieder; die Größe bleibt beim Wechsel der Auswahl.
 - `f` wechselt den Filter: alle, automatisch, manuell, Probleme (alles außer „erledigt“). `/` öffnet die Suche, die beim Tippen filtert und Ziel, Zusammenfassung und Ausgabe durchsucht; `Enter` behält den Suchtext, `Esc` verwirft ihn.
 
 ### 5.6 Einstellungen-Tab

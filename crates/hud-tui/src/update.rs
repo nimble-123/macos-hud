@@ -118,7 +118,9 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
             let index = usize::from(u8::try_from(c).unwrap_or(b'1') - b'1');
             model.ai_period = Period::ALL[index];
         }
-        KeyCode::Char('f') if model.tab == Tab::Workspaces => {
+        // Enter does what the row offers: on a repo that is the fast-forward,
+        // still guarded by the permit rules.
+        KeyCode::Char('f') | KeyCode::Enter if model.tab == Tab::Workspaces => {
             if let Some(report) = model.selected_repo() {
                 return vec![Command::Workspaces(WorkspaceCommand::FastForward(
                     report.repo.clone(),
@@ -576,6 +578,21 @@ mod tests {
             commands,
             vec![Command::Workspaces(WorkspaceCommand::FastForward(
                 RepoPath::try_from(PathBuf::from("/ws/b")).expect("BUG")
+            ))]
+        );
+    }
+
+    #[test]
+    fn enter_on_a_repository_fast_forwards_like_f() {
+        let mut model = on_workspaces_tab();
+        update(
+            &mut model,
+            Msg::App(workspaces(vec![report("/ws/a", RepoState::Behind(1))])),
+        );
+        assert_eq!(
+            update(&mut model, key(KeyCode::Enter)),
+            vec![Command::Workspaces(WorkspaceCommand::FastForward(
+                RepoPath::try_from(PathBuf::from("/ws/a")).expect("BUG")
             ))]
         );
     }

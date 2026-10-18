@@ -18,12 +18,25 @@ const TRIGGER_WIDTH: usize = 10;
 const RESULT_WIDTH: usize = 26;
 /// Lines of the detail pane, including its top rule.
 const DETAIL_HEIGHT: u16 = 7;
+/// Lines the list keeps when the details are expanded: header and five rows.
+const EXPANDED_LIST: u16 = 6;
+
+/// Height of the detail pane; expanded it leaves the list a few rows.
+fn detail_height(model: &Model, area: Rect) -> u16 {
+    if model.log_tab.expanded {
+        area.height
+            .saturating_sub(2 + EXPANDED_LIST)
+            .max(DETAIL_HEIGHT)
+    } else {
+        DETAIL_HEIGHT
+    }
+}
 
 pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
     let [bar, list, detail] = Layout::vertical([
         Constraint::Length(2),
         Constraint::Fill(1),
-        Constraint::Length(DETAIL_HEIGHT),
+        Constraint::Length(detail_height(model, area)),
     ])
     .areas(area);
     render_bar(model, frame, bar);
@@ -77,7 +90,7 @@ fn render_bar(model: &Model, frame: &mut Frame, area: Rect) {
 /// lines) and the column header, with the same window as the list.
 pub(super) fn row_at(model: &Model, area: Rect, y: u16) -> Option<usize> {
     let list_y = y.checked_sub(3)?;
-    let list_height = area.height.saturating_sub(2 + DETAIL_HEIGHT);
+    let list_height = area.height.saturating_sub(2 + detail_height(model, area));
     let rows = usize::from(list_height.saturating_sub(1));
     let start = model
         .log_tab

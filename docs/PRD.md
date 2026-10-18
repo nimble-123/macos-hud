@@ -52,7 +52,7 @@ Entwickler:innen, die mehrere lokale Repositories und CLI-Werkzeuge nutzen und d
 - **Automatischer Fast-Forward ist standardmäßig aktiv** und pro Workspace per Opt-out abschaltbar
 - Fast-Forward nur, wenn alle Regeln in Abbildung 2 erfüllt sind; sonst wird das Repo übersprungen und der Grund angezeigt
 - Untracked Dateien blockieren den Fast-Forward nicht; Git bricht ab, falls der Upstream eine gleichnamige Datei bringt
-- Manueller Fast-Forward per Taste `f` (oder Klick auf den Fußzeilen-Hinweis), auch bei Workspaces mit Opt-out
+- Manueller Fast-Forward per Taste `f` oder `Enter` (oder zweiter Klick auf die gewählte Zeile bzw. Klick auf den Fußzeilen-Hinweis), auch bei Workspaces mit Opt-out; es gelten dieselben Regeln wie beim automatischen
 
 ![Regeln für den automatischen Fast-Forward](diagrams/sync-decision.svg)
 
@@ -94,7 +94,7 @@ Entwickler:innen, die mehrere lokale Repositories und CLI-Werkzeuge nutzen und d
 ### 4.5 Protokoll
 
 - Chronologische Liste (neueste oben) aller Fast-Forwards, Installationen und fehlgeschlagenen Fetches, manuell und automatisch, mit Auslöser, Ziel, Ergebnis und Ausgabe-Ende
-- Filter alle/automatisch/manuell/Probleme; Suche über Ziel, Zusammenfassung und Ausgabe; Detailbereich mit Dauer
+- Filter alle/automatisch/manuell/Probleme; Suche über Ziel, Zusammenfassung und Ausgabe; Detailbereich mit Dauer, per `Enter` vergrößerbar für mehr Ausgabe
 - Persistiert in SQLite
 
 ## 5. Bedienung
