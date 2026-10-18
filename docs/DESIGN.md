@@ -80,7 +80,7 @@ hud kennt die Terminal-Schrift nicht und kann sie nicht zuverlässig erkennen. D
 | npm | — | `nf-dev-npm` | — |
 | Skills | — | `nf-fa-puzzle_piece` | — |
 | KI-Anbieter | — | `nf-md-robot` | — |
-| CPU / Speicher | — | `nf-oct-cpu` / `nf-md-memory` (definiert, derzeit nicht angezeigt) | — |
+| CPU / Speicher / Prozesse | — | `nf-oct-cpu` / `nf-md-memory` / `nf-fa-tasks` vor der Beschriftung in der Übersicht | — |
 
 - Quell-Icons (Git, Homebrew, npm, Skills, KI) erscheinen nur im Satz `nerd`; in `unicode` und `ascii` steht dort der Name der Quelle.
 - Der Einrichtungsdialog (Schritt 2) zeigt alle drei Sätze untereinander und fragt, in welcher Zeile alle Symbole korrekt erscheinen; die gewählte Zeile setzt `icons`.

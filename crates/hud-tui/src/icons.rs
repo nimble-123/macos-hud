@@ -34,6 +34,8 @@ pub enum Source {
     Cpu,
     /// Memory.
     Memory,
+    /// Running processes.
+    Processes,
 }
 
 /// Glyph for a status level.
@@ -63,13 +65,14 @@ pub fn status_glyph(icons: IconSet, status: Status) -> &'static str {
 pub fn source_glyph(icons: IconSet, source: Source) -> Option<&'static str> {
     match icons {
         IconSet::Nerd => Some(match source {
-            Source::Git => "\u{e725}",      // nf-dev-git_branch
-            Source::Homebrew => "\u{f0fc}", // nf-fa-beer
-            Source::Npm => "\u{e71e}",      // nf-dev-npm
-            Source::Skills => "\u{f12e}",   // nf-fa-puzzle_piece
-            Source::Ai => "\u{f06a9}",      // nf-md-robot
-            Source::Cpu => "\u{f4bc}",      // nf-oct-cpu
-            Source::Memory => "\u{f035b}",  // nf-md-memory
+            Source::Git => "\u{e725}",       // nf-dev-git_branch
+            Source::Homebrew => "\u{f0fc}",  // nf-fa-beer
+            Source::Npm => "\u{e71e}",       // nf-dev-npm
+            Source::Skills => "\u{f12e}",    // nf-fa-puzzle_piece
+            Source::Ai => "\u{f06a9}",       // nf-md-robot
+            Source::Cpu => "\u{f4bc}",       // nf-oct-cpu
+            Source::Memory => "\u{f035b}",   // nf-md-memory
+            Source::Processes => "\u{f0ae}", // nf-fa-tasks
         }),
         IconSet::Unicode | IconSet::Ascii => None,
     }
