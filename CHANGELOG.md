@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.11.0](https://github.com/nimble-123/macos-hud/compare/v0.10.0...v0.11.0) (2026-10-18)
+
+
+### Neue Funktionen
+
+* **overview:** name updates that need attention ([#159](https://github.com/nimble-123/macos-hud/issues/159)) ([cbf9958](https://github.com/nimble-123/macos-hud/commit/cbf9958dc67eb0ee6361a84edd2462b66a0d9ba9))
+* **overview:** show problems of the last 24 hours ([#161](https://github.com/nimble-123/macos-hud/issues/161)) ([b5da680](https://github.com/nimble-123/macos-hud/commit/b5da680f295cfc126845fcf572d167831741a97f))
+* **overview:** show repositories with unpushed commits ([#158](https://github.com/nimble-123/macos-hud/issues/158)) ([ea2978a](https://github.com/nimble-123/macos-hud/commit/ea2978a1677c79ca90959711cdc9aa58f3a33537))
+* **overview:** show the Codex plan limit when it runs high ([#162](https://github.com/nimble-123/macos-hud/issues/162)) ([c1036f4](https://github.com/nimble-123/macos-hud/commit/c1036f4e70cb0b1ea2151c51b55f98c8ac812939))
+* **overview:** warn when disk space runs low ([#163](https://github.com/nimble-123/macos-hud/issues/163)) ([11d1401](https://github.com/nimble-123/macos-hud/commit/11d140142c5fc05c8a6cbb032e958359ec1ea432))
+* **workspaces:** collapse workspaces and repositories with nested repositories ([#171](https://github.com/nimble-123/macos-hud/issues/171)) ([2db0a91](https://github.com/nimble-123/macos-hud/commit/2db0a916483083a355c982fd493a1c0c88c3c140))
+* **workspaces:** search repositories by name or branch ([#173](https://github.com/nimble-123/macos-hud/issues/173)) ([2d9f479](https://github.com/nimble-123/macos-hud/commit/2d9f47946fb4ea28094d198603c08a5f7cb475af))
+* **workspaces:** show only repositories that need attention ([#170](https://github.com/nimble-123/macos-hud/issues/170)) ([6b51a56](https://github.com/nimble-123/macos-hud/commit/6b51a56c594de1e38908ffabef909fd5e1d79576))
+* **workspaces:** show repository counts in each workspace header ([#169](https://github.com/nimble-123/macos-hud/issues/169)) ([a91821d](https://github.com/nimble-123/macos-hud/commit/a91821daa2a2995a50242cb81db950776c8613b2))
+* **workspaces:** sort repositories by status ([#172](https://github.com/nimble-123/macos-hud/issues/172)) ([5cc802e](https://github.com/nimble-123/macos-hud/commit/5cc802e87062c0765bb9bf7cf1d09ac0a773f3df))
+
 ## [0.10.0](https://github.com/nimble-123/macos-hud/compare/v0.9.0...v0.10.0) (2026-10-18)
 
 
