@@ -155,7 +155,7 @@ Entwickler:innen, die mehrere lokale Repositories und CLI-Werkzeuge nutzen und d
 2. Alle zentralen Funktionen sind per Tastatur bedienbar; Tab-Wechsel, Zeilenauswahl, Scrollen und Fußzeilen-Aktionen funktionieren auch per Maus.
 3. Git-Status und Update-Kandidaten werden pro Quelle mit Statussymbol und Text dargestellt.
 4. Ein sauberer, ausschließlich hinter seinem Upstream liegender Branch wird automatisch per Fast-Forward aktualisiert, sofern sein Workspace kein Opt-out gesetzt hat.
-5. Repositories mit getrackten Änderungen, divergierter Historie, Ahead-Commits, detached HEAD, Branch ohne Commits, fehlendem Upstream oder laufender Git-Operation werden übersprungen und mit Grund markiert.
+5. Repositories mit getrackten Änderungen, divergierter Historie, Ahead-Commits, detached HEAD, Branch ohne Commits, fehlendem Upstream (auch wenn der Upstream-Branch auf dem Remote gelöscht ist) oder laufender Git-Operation werden übersprungen und mit Grund markiert.
 6. Homebrew- und npm-Updates werden standardmäßig nur angezeigt; nach separatem Opt-in werden sie automatisch installiert, npm ohne Major- oder unbestimmbare Sprünge.
 7. Claude-Code-Daten werden standardmäßig angezeigt; Codex lässt sich in der Config aktivieren und zeigt zusätzlich die Abo-Auslastung.
 8. KI-Sessions, Token und Kosten erscheinen mit Kennzeichnung von Quelle und Genauigkeit für alle fünf Zeiträume.
