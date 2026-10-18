@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.14.0](https://github.com/nimble-123/macos-hud/compare/v0.13.0...v0.14.0) (2026-10-18)
+
+
+### Neue Funktionen
+
+* **overview:** update everything from the overview ([#183](https://github.com/nimble-123/macos-hud/issues/183)) ([3cc9707](https://github.com/nimble-123/macos-hud/commit/3cc9707329951fd626d1b7076d209a6b5e9aade8))
+* **settings:** set the scan depth in the settings tab ([#182](https://github.com/nimble-123/macos-hud/issues/182)) ([8328b0c](https://github.com/nimble-123/macos-hud/commit/8328b0c1d73166fe38a47ba854bc753e36299a0f))
+
 ## [0.13.0](https://github.com/nimble-123/macos-hud/compare/v0.12.0...v0.13.0) (2026-10-18)
 
 
