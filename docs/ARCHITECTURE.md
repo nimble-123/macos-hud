@@ -616,6 +616,7 @@ port = 4318
 unpushed = true              # false: Repos mit ungepushten Commits zählen als übersprungen
 update_attention = true      # Major-Updates und Passwort-Bedarf neben der Zahl der Updates
 problems = true              # Probleme der letzten 24 h aus dem Protokoll
+plan_limits = true           # Abo-Limit-Fenster (Codex) ab 80 %
 
 # Optional: feste Pfade statt Suche im Login-PATH
 # [tools]
