@@ -284,6 +284,21 @@ fn on_workspaces(
     model.mark_fast_forwards(&finished);
 }
 
+/// Keeps running and finished jobs apart and notes when hud updated itself.
+fn on_job(model: &mut Model, job: hud_application::usecases::updates::JobUpdate) {
+    if job.state == hud_application::usecases::updates::JobState::Succeeded
+        && let Some(version) = crate::model::hud_update(&job.target)
+    {
+        model.installed = Some(version.clone());
+    }
+    if job.state.is_finished() {
+        model.jobs.remove(&job.id);
+        model.finished_jobs.insert(job.id, job);
+    } else {
+        model.jobs.insert(job.id, job);
+    }
+}
+
 fn on_app_event(model: &mut Model, event: AppEvent) {
     match event {
         AppEvent::Workspaces { reports, source } => on_workspaces(model, reports, source),
@@ -328,14 +343,7 @@ fn on_app_event(model: &mut Model, event: AppEvent) {
                 None => model.updates.push(report),
             }
         }
-        AppEvent::Job(job) => {
-            if job.state.is_finished() {
-                model.jobs.remove(&job.id);
-                model.finished_jobs.insert(job.id, job);
-            } else {
-                model.jobs.insert(job.id, job);
-            }
-        }
+        AppEvent::Job(job) => on_job(model, job),
         AppEvent::Settings(preferences) => {
             model.apply_preferences(*preferences);
             model.settings_tab.notice = None;
@@ -1007,5 +1015,20 @@ mod tests {
             states,
             vec![RepoState::FastForwarded(1), RepoState::Behind(2)]
         );
+    }
+
+    #[test]
+    fn only_a_successful_upgrade_of_hud_itself_needs_a_restart() {
+        let mut model = on_updates_tab(vec![npm_candidate("hud", false)]);
+        let npm_hud = model.update_rows()[0].clone();
+        update(
+            &mut model,
+            Msg::App(AppEvent::Job(JobUpdate {
+                id: JobId(1),
+                target: npm_hud,
+                state: JobState::Succeeded,
+            })),
+        );
+        assert_eq!(model.installed, None, "an npm package named hud is not hud");
     }
 }

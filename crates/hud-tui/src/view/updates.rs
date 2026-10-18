@@ -302,6 +302,9 @@ fn job_status(model: &Model, target: &InstallTarget) -> Option<(Status, String)>
     Some(match &job.state {
         JobState::Queued => (Status::Advisory, t(language, "job-queued")),
         JobState::Running => (Status::Advisory, t(language, "job-running")),
+        JobState::Succeeded if crate::model::hud_update(target).is_some() => {
+            (Status::Ok, t(language, "job-succeeded-restart"))
+        }
         JobState::Succeeded => (Status::Ok, t(language, "job-succeeded")),
         JobState::NeedsInteraction => (Status::Caution, t(language, "job-needs-interaction")),
         JobState::Denied(_) => (Status::Warning, t(language, "job-denied")),

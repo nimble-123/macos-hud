@@ -18,7 +18,7 @@ mod settings;
 mod updates;
 mod workspaces;
 
-use crate::i18n::t;
+use crate::i18n::{t, t_args};
 use crate::settings::Language;
 use crate::theme::Theme;
 use crate::{Model, Tab};
@@ -288,13 +288,24 @@ fn render_tabs(model: &Model, frame: &mut Frame, area: Rect) {
     let Some(version) = model.version else {
         return;
     };
-    let text = format!("hud {version}");
+    // After hud updated itself, the running version is the old one.
+    let (text, color) = match &model.installed {
+        Some(installed) => (
+            t_args(
+                model.settings.language,
+                "version-restart",
+                &[("running", version), ("installed", installed.as_str())],
+            ),
+            theme.status(crate::icons::Status::Advisory),
+        ),
+        None => (format!("hud {version}"), theme.soft),
+    };
     let width = text.chars().count();
     if tabs_width + width > usize::from(area.width) {
         return;
     }
     frame.render_widget(
-        Paragraph::new(Line::styled(text, Style::new().fg(theme.soft)))
+        Paragraph::new(Line::styled(text, Style::new().fg(color)))
             .alignment(ratatui::layout::Alignment::Right),
         Rect::new(area.x, area.y, area.width, 1),
     );
@@ -1769,6 +1780,44 @@ mod tests {
         };
         assert!(top(115).trim_end().ends_with("hud 1.2.3"), "{}", top(115));
         assert!(!top(70).contains("hud 1.2.3"), "{}", top(70));
+    }
+
+    #[test]
+    fn the_tab_bar_asks_for_a_restart_after_hud_updated_itself() {
+        use hud_application::AppEvent;
+        use hud_application::usecases::updates::{JobId, JobState, JobUpdate};
+        use hud_domain::update::{
+            InstallTarget, PackageKind, PackageName, SourceId, UpdateCandidate, Version,
+        };
+        let mut model = Model::new(UiSettings::default()).with_version("0.11.0");
+        let hud = UpdateCandidate {
+            source: SourceId::Homebrew,
+            kind: PackageKind::Formula,
+            name: PackageName::try_from("hud".to_owned()).expect("BUG: name"),
+            current: Version::new("0.11.0"),
+            latest: Version::new("0.12.0"),
+            pinned: false,
+        };
+        update(
+            &mut model,
+            Msg::App(AppEvent::Job(JobUpdate {
+                id: JobId(1),
+                target: InstallTarget::Package(hud),
+                state: JobState::Succeeded,
+            })),
+        );
+        let mut terminal = Terminal::new(TestBackend::new(115, 10)).expect("BUG: test backend");
+        terminal
+            .draw(|frame| view(&model, frame))
+            .expect("BUG: test draw");
+        let buffer = terminal.backend().buffer().clone();
+        let top: String = (0..115)
+            .map(|x| buffer[(x, 0)].symbol().to_owned())
+            .collect();
+        assert!(
+            top.trim_end().ends_with("hud 0.11.0 → 0.12.0, restart"),
+            "{top}"
+        );
     }
 
     #[test]

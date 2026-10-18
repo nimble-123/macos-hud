@@ -123,7 +123,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
   r aktualisieren   tab wechseln   ? Hilfe   q beenden                             klickbare Fußzeile
 ```
 
-- Rechts in der Tab-Leiste steht die laufende Version („hud 0.11.0“) in `soft`; reicht die Breite nicht für Tabs und Version, entfällt die Version.
+- Rechts in der Tab-Leiste steht die laufende Version („hud 0.11.0“) in `soft`. Hat hud sich während des Laufs selbst aktualisiert, steht dort „hud 0.11.0 → 0.12.0, neu starten“ in `advisory`, denn die neue Version startet erst mit dem Neustart. Reicht die Breite nicht für Tabs und Text, entfällt der Text.
 - Kein äußerer Rahmen, links und rechts zwei Spalten Rand. Trennlinien in `rule` unter den Tabs und über der Fußzeile.
 - **Linksbündig**, eine Spalte für Text, Zahlen rechtsbündig in eigenen Spalten.
 - **Rahmen** nur für Dialoge und die Hilfe, in `focus`; Bereiche haben keine Rahmen.
@@ -198,7 +198,7 @@ Skills   1.7.2
 
 - Je Quelle ein Kopf mit Werkzeugversion; fehlt das Werkzeug, steht dort „✖ nicht gefunden“ und darunter in `muted`, wo hud gesucht hat und welcher Schlüssel unter `[tools]` hilft (Skills: `npx`, gesucht neben `npm`); ist es defekt, „✖ Fehler: …“. Scheitert die Prüfung, steht darunter eine Zeile „✖ Fehler: …“. Ohne Updates zeigt die Quelle „○ alles aktuell“. Zwischen den Quellen steht eine Leerzeile.
 - Je Paket Statussymbol, Name, `aktuell → neu` und eine Notiz: Zustand der Installation, „Major-Update“ oder „gepinnt“. Gepinnte Pakete sind nicht installierbar.
-- Installationszustände: „wartet“, „läuft“, „installiert“ (●), „braucht ein Passwort, im Terminal ausführen“ (▲), „abgebrochen“ (▲), „nicht erlaubt“, „fehlgeschlagen: …“, „Zeitüberschreitung“ (✖). „installiert“ bleibt bis zur nächsten Prüfung stehen.
+- Installationszustände: „wartet“, „läuft“, „installiert“ (●), „braucht ein Passwort, im Terminal ausführen“ (▲), „abgebrochen“ (▲), „nicht erlaubt“, „fehlgeschlagen: …“, „Zeitüberschreitung“ (✖). „installiert“ bleibt bis zur nächsten Prüfung stehen; bei der Homebrew-Formel `hud` selbst heißt es „installiert, hud neu starten“.
 - Skills meldet keine einzelnen Updates; der Tab zeigt die Zahl installierter Skills und eine Zeile „Alle Skills aktualisieren“.
 - `u` oder `Enter` öffnet einen zentrierten Bestätigungsdialog in `focus` mit dem genauen Befehl. Bei einem Major-Update warnt eine Zeile in `caution` (▲ Major-Update: kann inkompatible Änderungen enthalten.). `Enter` installiert, `Esc` oder `n` bricht ab; solange der Dialog offen ist, gehen alle Tasten an ihn.
 - `a` öffnet denselben Dialog für alle Zeilen, die sich jetzt installieren lassen (ohne gepinnte und bereits laufende): Titel „Alle Updates installieren?“, je Quelle Name und Anzahl („Homebrew 3 Pakete“, bei Skills „alle Skills“), darunter bei Major-Updates „▲ Major-Updates: <Namen>“ in `caution`. `Enter` startet für jedes Paket einen eigenen Job mit eigener Permit-Prüfung; gibt es nichts zu installieren, öffnet sich kein Dialog.

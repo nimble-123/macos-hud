@@ -55,7 +55,7 @@ use std::time::{Duration, Instant};
 use hud_application::usecases::updates::{JobId, JobUpdate, SourceReport};
 use hud_application::usecases::workspaces::{RepoReport, RepoState, WorkspaceReport};
 use hud_domain::git::RepoPath;
-use hud_domain::update::InstallTarget;
+use hud_domain::update::{InstallTarget, PackageKind, SourceId, Version};
 
 use hud_application::settings::Settings;
 use hud_domain::action::ActionRecord;
@@ -102,6 +102,18 @@ pub(crate) fn wrap_step(index: usize, delta: isize, count: usize) -> usize {
     (index.cast_signed() + delta)
         .rem_euclid(count.cast_signed())
         .cast_unsigned()
+}
+
+/// The version `target` installs when it is hud's own Homebrew formula.
+pub(crate) fn hud_update(target: &InstallTarget) -> Option<&Version> {
+    let InstallTarget::Package(candidate) = target else {
+        return None;
+    };
+    let name = candidate.name.as_str();
+    let is_hud = candidate.source == SourceId::Homebrew
+        && candidate.kind == PackageKind::Formula
+        && (name == "hud" || name.ends_with("/hud"));
+    is_hud.then_some(&candidate.latest)
 }
 
 /// Complete UI state. Changed only by [`crate::update`].
@@ -175,6 +187,8 @@ pub struct Model {
     pub(crate) time_zone: jiff::tz::TimeZone,
     /// hud's version for the tab bar; set by the binary, so tests stay independent of releases.
     pub(crate) version: Option<&'static str>,
+    /// Version of hud installed while this instance runs; it starts with a restart.
+    pub(crate) installed: Option<Version>,
 }
 
 /// Switching Claude Code telemetry on from the AI tab.
@@ -261,6 +275,7 @@ impl Model {
             telemetry_flow: TelemetryFlow::Idle,
             time_zone: jiff::tz::TimeZone::UTC,
             version: None,
+            installed: None,
         }
     }
 
@@ -301,7 +316,7 @@ impl Model {
             };
             if check.updates_known {
                 rows.extend(check.candidates.iter().cloned().map(InstallTarget::Package));
-            } else if report.source == hud_domain::update::SourceId::Skills {
+            } else if report.source == SourceId::Skills {
                 rows.push(InstallTarget::AllSkills);
             }
         }
