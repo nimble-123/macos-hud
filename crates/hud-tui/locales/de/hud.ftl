@@ -151,6 +151,11 @@ settings-icons = Symbole
 settings-workspaces = Workspaces
 settings-auto-ff = Automatischer Fast-Forward
 settings-add-workspace = Workspace hinzufügen
+settings-scan-depth = Suchtiefe
+settings-levels = { $count ->
+    [one] 1 Ebene
+   *[other] { $count } Ebenen
+}
 settings-ai-sources = KI-Quellen
 settings-auto-install = Automatische Installation
 settings-overview = Übersicht
