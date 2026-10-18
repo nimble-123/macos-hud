@@ -17,6 +17,7 @@ hint-refresh = refresh
 hint-check = check
 hint-reload-log = reload
 syncing = Fetching and syncing…
+checking-updates = Checking for updates…
 ws-none = No workspaces configured yet.
 ws-unavailable = not available
 ws-auto-off = automatic fast-forward off

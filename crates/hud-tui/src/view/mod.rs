@@ -27,7 +27,7 @@ pub(crate) use overview::SPARK_SAMPLES;
 
 /// While work runs in the background the footer gets an extra progress line.
 fn busy(model: &Model) -> bool {
-    model.scan.is_some() || model.syncing || !model.jobs.is_empty()
+    model.scan.is_some() || model.syncing || model.checking_updates || !model.jobs.is_empty()
 }
 
 /// Tab bar, body and footer of a frame; shared with mouse hit-testing so a
@@ -318,6 +318,10 @@ fn render_footer(model: &Model, frame: &mut Frame, area: Rect) {
             t(language, "syncing"),
             Style::new().fg(theme.status(crate::icons::Status::Advisory)),
         )],
+        None if model.checking_updates => vec![Span::styled(
+            t(language, "checking-updates"),
+            Style::new().fg(theme.status(crate::icons::Status::Advisory)),
+        )],
         None => Vec::new(),
     };
     let mut lines = Vec::with_capacity(2);
@@ -518,6 +522,23 @@ mod tests {
             );
             insta::assert_snapshot!(
                 format!("footer_shows_scan_progress_{suffix}"),
+                render(&model).backend()
+            );
+        }
+    }
+
+    #[test]
+    fn footer_shows_a_manual_update_check() {
+        for (language, suffix) in LANGUAGES {
+            let mut model = updates_tab(language);
+            // A running installation would take the progress line.
+            model.jobs.clear();
+            update(
+                &mut model,
+                Msg::Key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE)),
+            );
+            insta::assert_snapshot!(
+                format!("footer_shows_a_manual_update_check_{suffix}"),
                 render(&model).backend()
             );
         }
