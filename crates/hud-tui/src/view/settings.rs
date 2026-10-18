@@ -1,7 +1,7 @@
 //! Settings tab: presentation, workspaces and opt-ins, plus the remove dialog.
 
 use hud_application::settings::{
-    AutoInstallKind, IconPreference, LanguagePreference, Settings, ThemePreference,
+    AutoInstallKind, IconPreference, LanguagePreference, OverviewInsight, Settings, ThemePreference,
 };
 use hud_domain::WorkspacePath;
 use hud_domain::usage::Provider;
@@ -82,6 +82,7 @@ fn build<'a>(
             Row::Workspace { .. } | Row::AddWorkspace => "settings-workspaces",
             Row::AutoInstall { .. } => "settings-auto-install",
             Row::AiSource { .. } => "settings-ai-sources",
+            Row::OverviewInsight { .. } => "settings-overview",
         };
         if section != Some(current) {
             if section.is_some() {
@@ -171,6 +172,15 @@ fn row_line<'a>(model: &Model, row: &Row, selected: bool, labels: usize) -> Line
                 match provider {
                     Provider::Claude => "ai-claude",
                     Provider::Codex => "ai-codex",
+                },
+            ),
+            switch(model, *enabled),
+        ),
+        Row::OverviewInsight { insight, enabled } => (
+            t(
+                language,
+                match insight {
+                    OverviewInsight::Unpushed => "insight-unpushed",
                 },
             ),
             switch(model, *enabled),

@@ -6,9 +6,9 @@ use std::time::Duration;
 
 use hud_application::settings::{
     AutoInstallKind, AutoInstallSettings, Billing, IconPreference, InitialSetup,
-    LanguagePreference, ProviderSettings, ScanSettings, Settings, SettingsChange, SettingsError,
-    SettingsStore, SkillsSettings, TelemetrySettings, ThemePreference, ToolPaths,
-    WorkspaceSettings,
+    LanguagePreference, OverviewInsight, OverviewSettings, ProviderSettings, ScanSettings,
+    Settings, SettingsChange, SettingsError, SettingsStore, SkillsSettings, TelemetrySettings,
+    ThemePreference, ToolPaths, WorkspaceSettings,
 };
 use hud_domain::WorkspacePath;
 use hud_domain::usage::Provider as AiProvider;
@@ -206,8 +206,21 @@ fn with_change(
                 *enabled,
             );
         }
+        SettingsChange::OverviewInsight { insight, enabled } => {
+            let key = match insight {
+                OverviewInsight::Unpushed => "unpushed",
+            };
+            set(&mut table(&mut document, "overview")[key], *enabled);
+        }
     }
     Ok(render(existing, &document))
+}
+
+/// `[<name>]`, created as a section of its own like [`section`].
+fn table<'a>(document: &'a mut toml_edit::DocumentMut, name: &str) -> &'a mut toml_edit::Item {
+    document
+        .entry(name)
+        .or_insert_with(|| toml_edit::Item::Table(toml_edit::Table::new()))
 }
 
 /// `[<parent>.<name>]`, created as a section of its own: indexing would
@@ -324,6 +337,7 @@ struct File {
     git: Git,
     updates: Updates,
     ai: Ai,
+    overview: Overview,
     tools: Tools,
 }
 
@@ -515,6 +529,21 @@ struct Price {
     cache_read: f64,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+struct Overview {
+    unpushed: bool,
+}
+
+impl Default for Overview {
+    fn default() -> Self {
+        let defaults = OverviewSettings::default();
+        Self {
+            unpushed: defaults.unpushed,
+        }
+    }
+}
+
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 struct Tools {
@@ -583,6 +612,9 @@ impl File {
             telemetry: TelemetrySettings {
                 enabled: self.ai.telemetry.enabled,
                 port: self.ai.telemetry.port,
+            },
+            overview: OverviewSettings {
+                unpushed: self.overview.unpushed,
             },
             prices,
             tools: ToolPaths {
@@ -708,6 +740,9 @@ cache_write_5m = 3.75
 cache_write_1h = 6.0
 cache_read = 0.3
 
+[overview]
+unpushed = false
+
 [tools]
 npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
 "#,
@@ -726,6 +761,7 @@ npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
         assert!(!settings.auto_install.brew_casks);
         assert_eq!(settings.claude.billing, Billing::Api);
         assert!(settings.codex.enabled);
+        assert!(!settings.overview.unpushed);
         assert_eq!(settings.prices["claude-opus-5-5"].cache_write_5m, 3_750_000);
         assert_eq!(settings.prices["claude-opus-5-5"].cache_write_1h, 6_000_000);
         assert_eq!(
@@ -815,6 +851,16 @@ npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
         assert!(settings.codex.enabled);
         assert!(settings.claude.enabled, "Claude Code keeps its default");
         assert!(text.contains("[ai.codex]\nenabled = true"), "{text}");
+    }
+
+    #[test]
+    fn an_overview_insight_is_switched_in_its_own_section() {
+        let (text, settings) = change(&SettingsChange::OverviewInsight {
+            insight: OverviewInsight::Unpushed,
+            enabled: false,
+        });
+        assert!(!settings.overview.unpushed);
+        assert!(text.contains("[overview]\nunpushed = false"), "{text}");
     }
 
     #[tokio::test]

@@ -5,7 +5,8 @@
 
 use crossterm::event::{KeyCode, KeyEvent};
 use hud_application::settings::{
-    AutoInstallKind, IconPreference, LanguagePreference, Settings, SettingsChange, ThemePreference,
+    AutoInstallKind, IconPreference, LanguagePreference, OverviewInsight, Settings, SettingsChange,
+    ThemePreference,
 };
 use hud_application::{Command, SettingsCommand};
 use hud_domain::WorkspacePath;
@@ -55,6 +56,10 @@ pub(crate) enum Row {
         provider: Provider,
         enabled: bool,
     },
+    OverviewInsight {
+        insight: OverviewInsight,
+        enabled: bool,
+    },
 }
 
 /// Rows in display order.
@@ -82,6 +87,12 @@ pub(crate) fn rows(settings: &Settings) -> Vec<Row> {
         [Provider::Claude, Provider::Codex].map(|provider| Row::AiSource {
             provider,
             enabled: settings.reads(provider),
+        }),
+    );
+    rows.extend(
+        [OverviewInsight::Unpushed].map(|insight| Row::OverviewInsight {
+            insight,
+            enabled: settings.overview.shows(insight),
         }),
     );
     rows
@@ -188,6 +199,10 @@ fn change_for(row: &Row, step: isize) -> Option<SettingsChange> {
         },
         Row::AiSource { provider, enabled } => SettingsChange::AiSource {
             provider: *provider,
+            enabled: !enabled,
+        },
+        Row::OverviewInsight { insight, enabled } => SettingsChange::OverviewInsight {
+            insight: *insight,
             enabled: !enabled,
         },
         Row::AddWorkspace => return None,
@@ -375,6 +390,25 @@ mod tests {
             vec![command(SettingsChange::AiSource {
                 provider: Provider::Codex,
                 enabled: true,
+            })]
+        );
+    }
+
+    #[test]
+    fn overview_insights_toggle() {
+        let mut model = model();
+        select(
+            &mut model,
+            &Row::OverviewInsight {
+                insight: OverviewInsight::Unpushed,
+                enabled: true,
+            },
+        );
+        assert_eq!(
+            update(&mut model, key(KeyCode::Enter)),
+            vec![command(SettingsChange::OverviewInsight {
+                insight: OverviewInsight::Unpushed,
+                enabled: false,
             })]
         );
     }

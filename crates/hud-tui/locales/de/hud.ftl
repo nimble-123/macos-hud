@@ -130,6 +130,8 @@ settings-auto-ff = Automatischer Fast-Forward
 settings-add-workspace = Workspace hinzufügen
 settings-ai-sources = KI-Quellen
 settings-auto-install = Automatische Installation
+settings-overview = Übersicht
+insight-unpushed = Ungepushte Commits
 settings-rejected = Nicht gespeichert: { $reason }
 settings-remove-title = Workspace entfernen?
 settings-remove-body = Nur aus der Config. Ordner und Repositories bleiben unverändert.
@@ -266,6 +268,7 @@ overview-repos-behind = { $count ->
     [one] 1 Repo zurück
    *[other] { $count } Repos zurück
 }
+overview-repos-unpushed = { $count } ungepusht
 overview-repos-skipped = { $count } übersprungen
 overview-repos-diverged = { $count } divergiert
 overview-repos-errors = { $count ->

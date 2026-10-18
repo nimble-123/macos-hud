@@ -1214,6 +1214,7 @@ mod tests {
                         }),
                     ),
                     repo("/ws/d", RepoState::UpToDate),
+                    repo("/ws/e", RepoState::Skipped(SkipReason::Ahead(3))),
                 ],
             );
             insta::assert_snapshot!(
@@ -1221,6 +1222,31 @@ mod tests {
                 render_wide(&model).backend()
             );
         }
+    }
+
+    #[test]
+    fn unpushed_commits_count_as_skipped_when_switched_off() {
+        use hud_application::AppEvent;
+        use hud_application::settings::{Settings, WorkspaceSettings};
+        use hud_application::usecases::workspaces::RepoState;
+        use hud_domain::git::SkipReason;
+        let mut model = loaded_overview(
+            Language::En,
+            vec![repo("/ws/a", RepoState::Skipped(SkipReason::Ahead(3)))],
+        );
+        let mut settings = Settings {
+            workspaces: vec![WorkspaceSettings {
+                path: hud_domain::WorkspacePath::try_from(std::path::PathBuf::from("/ws"))
+                    .expect("BUG: absolute"),
+                auto_fast_forward: true,
+            }],
+            ..Settings::default()
+        };
+        settings.overview.unpushed = false;
+        update(&mut model, Msg::App(AppEvent::Settings(Box::new(settings))));
+        let screen = render_wide(&model).backend().to_string();
+        assert!(screen.contains("1 skipped"), "{screen}");
+        assert!(!screen.contains("unpushed"), "{screen}");
     }
 
     #[test]
