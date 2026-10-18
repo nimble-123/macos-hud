@@ -9,7 +9,8 @@ Options:
   -h, --help          Print help and exit
   -V, --version       Print version and exit
       --reset-config  Delete the configuration; the next start runs the setup
-      --reset-data    Delete the database (scan cache, action log, install history)
+      --reset-data    Delete the database: scan cache, action log, install history,
+                      AI usage (read again from the logs) and received telemetry
   -y, --yes           Delete without asking (with --reset-config or --reset-data)
 
 Without options hud opens the terminal UI. Configuration: ~/.config/hud/config.toml";
