@@ -133,6 +133,7 @@ settings-auto-install = Automatische Installation
 settings-overview = Übersicht
 insight-unpushed = Ungepushte Commits
 insight-update-attention = Major-Updates und Passwort-Bedarf
+insight-problems = Probleme der letzten 24 h
 settings-rejected = Nicht gespeichert: { $reason }
 settings-remove-title = Workspace entfernen?
 settings-remove-body = Nur aus der Config. Ordner und Repositories bleiben unverändert.
@@ -288,6 +289,10 @@ overview-updates-major = { $count } Major
 overview-updates-password = { $count ->
     [one] 1 braucht ein Passwort
    *[other] { $count } brauchen ein Passwort
+}
+overview-problems = { $count ->
+    [one] 1 Problem in 24 h (Protokoll)
+   *[other] { $count } Probleme in 24 h (Protokoll)
 }
 overview-calm = Alles aktuell.
 overview-calm-since = Alles aktuell. Letzte Prüfung vor { $minutes } min.

@@ -112,6 +112,8 @@ pub struct Model {
     pub(crate) quit: Quit,
     /// Time of the last tick; the only clock `update` knows.
     pub(crate) now: Option<Instant>,
+    /// Wall clock of the last tick, for comparisons with stored times.
+    pub(crate) wall: Option<jiff::Timestamp>,
     pub(crate) workspaces: Vec<WorkspaceReport>,
     pub(crate) syncing: bool,
     /// A manual update check runs; cleared by the next update report.
@@ -219,6 +221,7 @@ impl Model {
             tab: Tab::default(),
             quit: Quit::No,
             now: None,
+            wall: None,
             workspaces: Vec::new(),
             syncing: false,
             checking_updates: false,

@@ -210,6 +210,7 @@ fn with_change(
             let key = match insight {
                 OverviewInsight::Unpushed => "unpushed",
                 OverviewInsight::UpdateAttention => "update_attention",
+                OverviewInsight::Problems => "problems",
             };
             set(&mut table(&mut document, "overview")[key], *enabled);
         }
@@ -535,6 +536,7 @@ struct Price {
 struct Overview {
     unpushed: bool,
     update_attention: bool,
+    problems: bool,
 }
 
 impl Default for Overview {
@@ -543,6 +545,7 @@ impl Default for Overview {
         Self {
             unpushed: defaults.unpushed,
             update_attention: defaults.update_attention,
+            problems: defaults.problems,
         }
     }
 }
@@ -619,6 +622,7 @@ impl File {
             overview: OverviewSettings {
                 unpushed: self.overview.unpushed,
                 update_attention: self.overview.update_attention,
+                problems: self.overview.problems,
             },
             prices,
             tools: ToolPaths {
@@ -747,6 +751,7 @@ cache_read = 0.3
 [overview]
 unpushed = false
 update_attention = false
+problems = false
 
 [tools]
 npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
@@ -768,6 +773,7 @@ npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
         assert!(settings.codex.enabled);
         assert!(!settings.overview.unpushed);
         assert!(!settings.overview.update_attention);
+        assert!(!settings.overview.problems);
         assert_eq!(settings.prices["claude-opus-5-5"].cache_write_5m, 3_750_000);
         assert_eq!(settings.prices["claude-opus-5-5"].cache_write_1h, 6_000_000);
         assert_eq!(
