@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.0](https://github.com/nimble-123/macos-hud/compare/v0.9.0...v0.10.0) (2026-10-18)
+
+
+### Neue Funktionen
+
+* **tui:** confirm a manual fast-forward in the footer ([#142](https://github.com/nimble-123/macos-hud/issues/142)) ([79b3733](https://github.com/nimble-123/macos-hud/commit/79b3733713cc98f957208b5427d999168fd483a1))
+* **tui:** install every available update with a ([#145](https://github.com/nimble-123/macos-hud/issues/145)) ([ce670a7](https://github.com/nimble-123/macos-hud/commit/ce670a7632cca5aba37dfbbeddc074458f826d59))
+
+
+### Fehlerbehebungen
+
+* **git:** treat a deleted upstream branch as no upstream ([#140](https://github.com/nimble-123/macos-hud/issues/140)) ([c8278ac](https://github.com/nimble-123/macos-hud/commit/c8278ac4c07486bf3a0d97d08bbc48342f5ffdd4))
+
 ## [0.9.0](https://github.com/nimble-123/macos-hud/compare/v0.8.1...v0.9.0) (2026-10-18)
 
 
