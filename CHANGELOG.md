@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.8.0](https://github.com/nimble-123/macos-hud/compare/v0.7.0...v0.8.0) (2026-10-18)
+
+
+### Neue Funktionen
+
+* **ai:** switch Claude Code and Codex in setup and settings ([#127](https://github.com/nimble-123/macos-hud/issues/127)) ([045593c](https://github.com/nimble-123/macos-hud/commit/045593cd4ca82b19e1ad21a14e10b7d09fb8cd69))
+* **tui:** fit tables and bars to the window width ([#130](https://github.com/nimble-123/macos-hud/issues/130)) ([1a58266](https://github.com/nimble-123/macos-hud/commit/1a58266342f1d15400d14801351cb08d6d4377c6))
+* **tui:** give Enter a meaning in Workspaces and Log ([#120](https://github.com/nimble-123/macos-hud/issues/120)) ([138b54b](https://github.com/nimble-123/macos-hud/commit/138b54b5997574b0a7c59a8a58d72ad7bccefa1a))
+* **tui:** keep everything reachable when a tab does not fit ([#121](https://github.com/nimble-123/macos-hud/issues/121)) ([2978dfa](https://github.com/nimble-123/macos-hud/commit/2978dfae04556f81c97c0425ebe186fe10507567))
+* **tui:** label weekdays on both sides of the activity calendars ([#125](https://github.com/nimble-123/macos-hud/issues/125)) ([385c86f](https://github.com/nimble-123/macos-hud/commit/385c86f235dbcddeacae8b9132927e9a8021a09d))
+* **tui:** show Nerd Font icons for CPU, memory and processes ([#117](https://github.com/nimble-123/macos-hud/issues/117)) ([ae6203d](https://github.com/nimble-123/macos-hud/commit/ae6203d5dd59ed58409796a63dfe532455a518c1))
+* **updates:** say how to fix a missing tool ([#118](https://github.com/nimble-123/macos-hud/issues/118)) ([ed40963](https://github.com/nimble-123/macos-hud/commit/ed409635d9972ec2ccdad5aa00c3f267c27d0af4))
+
+
+### Fehlerbehebungen
+
+* **ai:** keep a missing reasoning count missing when merging ([#131](https://github.com/nimble-123/macos-hud/issues/131)) ([11bef8e](https://github.com/nimble-123/macos-hud/commit/11bef8e28d9707b466eaa9a9f94e1fa65cc22a26))
+* **cli:** name everything --reset-data deletes ([#115](https://github.com/nimble-123/macos-hud/issues/115)) ([ed8987b](https://github.com/nimble-123/macos-hud/commit/ed8987b4f257ee685d7ba068c0640f5a080b107b))
+* **config:** write missing tables as sections, not inline ([#128](https://github.com/nimble-123/macos-hud/issues/128)) ([3d2e397](https://github.com/nimble-123/macos-hud/commit/3d2e397ab1edab17f83dd1a84c5025a066239f50))
+* **tui:** capitalise labels and name what r does per tab ([#119](https://github.com/nimble-123/macos-hud/issues/119)) ([701bc0b](https://github.com/nimble-123/macos-hud/commit/701bc0bfe26323aa4499fa7684d45fc1cbd1cf61))
+
 ## [0.7.0](https://github.com/nimble-123/macos-hud/compare/v0.6.0...v0.7.0) (2026-10-17)
 
 
