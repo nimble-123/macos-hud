@@ -1,0 +1,16 @@
+---
+source: crates/hud-tui/src/view/mod.rs
+expression: render(&model).backend()
+---
+"  Overview    Workspaces    Updates    AI    Log    Settings                    "
+"  ────────────────────────────────────────────────────────────────────────────  "
+"                                                                                "
+"  Homebrew   7.0.9                                                              "
+"  ▌ ◆ wget          1.24.5 → 1.25.0                                             "
+"    ○ node@20       20.11.0 → 20.18.1         pinned                            "
+"    ▲ firefox       131.0 → 132.0             major update                      "
+"                                                                                "
+"                                                                                "
+"  ────────────────────────────────────────────────────────────────────────────  "
+"  Checking for updates…                                                         "
+"  ↑↓ select   u install   r check   tab switch   ? help   q quit                "

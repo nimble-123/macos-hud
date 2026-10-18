@@ -91,6 +91,8 @@ pub struct Model {
     pub(crate) now: Option<Instant>,
     pub(crate) workspaces: Vec<WorkspaceReport>,
     pub(crate) syncing: bool,
+    /// A manual update check runs; cleared by the next update report.
+    pub(crate) checking_updates: bool,
     /// Index into [`Model::repo_rows`].
     pub(crate) selected: usize,
     /// Repositories fast-forwarded recently, with the time it happened.
@@ -195,6 +197,7 @@ impl Model {
             now: None,
             workspaces: Vec::new(),
             syncing: false,
+            checking_updates: false,
             selected: 0,
             recent_ok: HashMap::new(),
             scan: None,

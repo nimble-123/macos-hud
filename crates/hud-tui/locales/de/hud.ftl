@@ -17,6 +17,7 @@ hint-refresh = aktualisieren
 hint-check = prüfen
 hint-reload-log = neu laden
 syncing = Fetch und Sync laufen…
+checking-updates = Update-Prüfung läuft…
 ws-none = Noch keine Workspaces eingerichtet.
 ws-unavailable = nicht verfügbar
 ws-auto-off = automatischer Fast-Forward aus

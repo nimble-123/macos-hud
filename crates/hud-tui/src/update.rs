@@ -82,6 +82,10 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
         KeyCode::Char('q') => return request_quit(model),
         KeyCode::Char('?') => model.help = true,
         KeyCode::Char('r') if model.tab == Tab::Updates => {
+            if model.checking_updates {
+                return Vec::new();
+            }
+            model.checking_updates = true;
             return vec![Command::Updates(UpdateCommand::CheckNow)];
         }
         KeyCode::Char('r') if !model.syncing => {
@@ -297,6 +301,7 @@ fn on_app_event(model: &mut Model, event: AppEvent) {
         }
         AppEvent::Updates(reports) => {
             model.updates = reports;
+            model.checking_updates = false;
             let count = model.update_rows().len();
             model.update_selected = model.update_selected.min(count.saturating_sub(1));
         }
@@ -834,6 +839,21 @@ mod tests {
             update(&mut model, key(KeyCode::Char('r'))),
             vec![Command::Updates(UpdateCommand::CheckNow)]
         );
+    }
+
+    #[test]
+    fn r_on_the_updates_tab_waits_for_the_running_check() {
+        let mut model = on_updates_tab(vec![]);
+        update(&mut model, key(KeyCode::Char('r')));
+        assert_eq!(update(&mut model, key(KeyCode::Char('r'))), Vec::new());
+    }
+
+    #[test]
+    fn an_update_report_ends_the_manual_check() {
+        let mut model = on_updates_tab(vec![]);
+        update(&mut model, key(KeyCode::Char('r')));
+        update(&mut model, Msg::App(AppEvent::Updates(Vec::new())));
+        assert!(!model.checking_updates);
     }
 
     #[test]
