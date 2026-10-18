@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/nimble-123/macos-hud/compare/v0.8.0...v0.8.1) (2026-10-18)
+
+
+### Fehlerbehebungen
+
+* **tui:** show a progress line while a manual update check runs ([#134](https://github.com/nimble-123/macos-hud/issues/134)) ([da92cb2](https://github.com/nimble-123/macos-hud/commit/da92cb281c50fcc0bdae189884acd8ba5783f678))
+
 ## [0.8.0](https://github.com/nimble-123/macos-hud/compare/v0.7.0...v0.8.0) (2026-10-18)
 
 
