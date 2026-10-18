@@ -173,6 +173,8 @@ pub struct Model {
     pub(crate) usage: Option<Box<hud_application::usecases::usage::UsageReport>>,
     /// Zone for showing times; UTC unless the binary sets the system zone.
     pub(crate) time_zone: jiff::tz::TimeZone,
+    /// hud's version for the tab bar; set by the binary, so tests stay independent of releases.
+    pub(crate) version: Option<&'static str>,
 }
 
 /// Switching Claude Code telemetry on from the AI tab.
@@ -258,7 +260,15 @@ impl Model {
             last_sync: None,
             telemetry_flow: TelemetryFlow::Idle,
             time_zone: jiff::tz::TimeZone::UTC,
+            version: None,
         }
+    }
+
+    /// Sets the version shown in the tab bar.
+    #[must_use]
+    pub fn with_version(mut self, version: &'static str) -> Self {
+        self.version = Some(version);
+        self
     }
 
     /// Sets the zone in which times are shown.

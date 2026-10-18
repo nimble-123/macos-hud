@@ -124,8 +124,7 @@ fn render_scrolled(
 /// Renders the model into a frame. Pure: reads the model, writes the frame.
 pub fn view(model: &Model, frame: &mut Frame) {
     let [tabs, body, footer] = areas(model, frame.area());
-    let language = model.settings.language;
-    render_tabs(model.tab(), language, &model.theme, frame, tabs);
+    render_tabs(model, frame, tabs);
     match model.tab() {
         Tab::Workspaces => workspaces::render(model, frame, body),
         Tab::Updates => updates::render(model, frame, body),
@@ -277,13 +276,27 @@ fn tab_line(active: Tab, language: Language, theme: &Theme) -> Line<'static> {
     Line::from(spans)
 }
 
-fn render_tabs(active: Tab, language: Language, theme: &Theme, frame: &mut Frame, area: Rect) {
+/// Tabs on the left, hud's version on the right when both fit; the tabs win.
+fn render_tabs(model: &Model, frame: &mut Frame, area: Rect) {
+    let theme = &model.theme;
+    let line = tab_line(model.tab(), model.settings.language, theme);
+    let tabs_width = line.width();
     let block = Block::new()
         .borders(Borders::BOTTOM)
         .border_style(Style::new().fg(theme.rule));
+    frame.render_widget(Paragraph::new(line).block(block), area);
+    let Some(version) = model.version else {
+        return;
+    };
+    let text = format!("hud {version}");
+    let width = text.chars().count();
+    if tabs_width + width > usize::from(area.width) {
+        return;
+    }
     frame.render_widget(
-        Paragraph::new(tab_line(active, language, theme)).block(block),
-        area,
+        Paragraph::new(Line::styled(text, Style::new().fg(theme.soft)))
+            .alignment(ratatui::layout::Alignment::Right),
+        Rect::new(area.x, area.y, area.width, 1),
     );
 }
 
@@ -1740,6 +1753,24 @@ mod tests {
     }
 
     /// Narrow and wide windows for every tab with tables or bars.
+    #[test]
+    fn the_tab_bar_shows_the_version_when_it_fits() {
+        let model = Model::new(UiSettings::default()).with_version("1.2.3");
+        let top = |width: u16| {
+            let mut terminal =
+                Terminal::new(TestBackend::new(width, 10)).expect("BUG: test backend");
+            terminal
+                .draw(|frame| view(&model, frame))
+                .expect("BUG: test draw");
+            let buffer = terminal.backend().buffer().clone();
+            (0..width)
+                .map(|x| buffer[(x, 0)].symbol().to_owned())
+                .collect::<String>()
+        };
+        assert!(top(115).trim_end().ends_with("hud 1.2.3"), "{}", top(115));
+        assert!(!top(70).contains("hud 1.2.3"), "{}", top(70));
+    }
+
     #[test]
     fn tabs_adapt_to_narrow_and_wide_windows() {
         use hud_application::usecases::workspaces::RepoState;
