@@ -420,8 +420,18 @@ impl<S: UsageStore + TelemetryStore, C: Clock> UsageAgent<S, C> {
     }
 
     async fn cycle(&mut self) -> UsageReport {
-        let mut states = Vec::with_capacity(self.sources.len());
-        for source in &self.sources {
+        // Sources switched off in the settings are neither read nor shown;
+        // what they stored stays in the database.
+        let enabled: Vec<Arc<dyn UsageSource>> = {
+            let settings = self.settings.borrow();
+            self.sources
+                .iter()
+                .filter(|source| settings.reads(source.provider()))
+                .cloned()
+                .collect()
+        };
+        let mut states = Vec::with_capacity(enabled.len());
+        for source in &enabled {
             states.push(self.ingest(source.as_ref()).await);
         }
         let now = self.clock.now().to_zoned(self.time_zone.clone());
@@ -438,6 +448,7 @@ impl<S: UsageStore + TelemetryStore, C: Clock> UsageAgent<S, C> {
             }
         };
         let prices = PriceTable::new(self.settings.borrow_and_update().prices.clone());
+        let providers: Vec<Provider> = states.iter().map(|state| state.provider).collect();
         let mut sources = Vec::with_capacity(states.len());
         for state in states {
             sources.push(
@@ -449,14 +460,17 @@ impl<S: UsageStore + TelemetryStore, C: Clock> UsageAgent<S, C> {
         let first = calendar_start(today)
             .to_zoned(self.time_zone.clone())
             .map_or(now.timestamp(), |start| start.timestamp());
-        let times = self
-            .store
-            .answer_times(first, now.timestamp())
-            .await
-            .unwrap_or_else(|error| {
-                tracing::warn!(%error, "could not read answer times");
-                Vec::new()
-            });
+        let mut times = Vec::new();
+        for provider in providers {
+            match self
+                .store
+                .answer_times(provider, first, now.timestamp())
+                .await
+            {
+                Ok(found) => times.extend(found),
+                Err(error) => tracing::warn!(%error, "could not read answer times"),
+            }
+        }
         UsageReport {
             calendar: calendar(&times, today, &self.time_zone),
             sources,
@@ -869,13 +883,14 @@ mod tests {
 
         async fn answer_times(
             &self,
+            provider: Provider,
             from: Timestamp,
             to: Timestamp,
         ) -> Result<Vec<Timestamp>, StoreError> {
             let records = self.records.lock().expect("BUG");
             Ok(records
                 .iter()
-                .filter(|r| r.at >= from && r.at < to)
+                .filter(|r| r.provider == provider && r.at >= from && r.at < to)
                 .map(|r| r.at)
                 .collect())
         }
@@ -930,10 +945,60 @@ mod tests {
         }
     }
 
+    fn both_sources() -> Settings {
+        let mut settings = Settings::default();
+        settings.codex.enabled = true;
+        settings
+    }
+
+    #[tokio::test]
+    async fn switching_a_source_off_hides_it_without_a_restart() {
+        let store = Arc::new(FakeStore::default());
+        let (settings, watched) = watch::channel(both_sources());
+        let agent = UsageAgent::new(
+            vec![
+                Arc::new(FakeSource(Provider::Claude)),
+                Arc::new(FakeSource(Provider::Codex)),
+            ],
+            Arc::clone(&store),
+            FakeClock,
+            TimeZone::UTC,
+            watched,
+            Duration::from_secs(3600),
+        );
+        let (events_tx, mut events) = mpsc::channel(4);
+        let cancel = CancellationToken::new();
+        let task = tokio::spawn(agent.run(events_tx, cancel.clone()));
+        let providers = |event: Option<AppEvent>| match event {
+            Some(AppEvent::Usage(report)) => report
+                .sources
+                .iter()
+                .map(|source| source.state.provider)
+                .collect::<Vec<_>>(),
+            _ => panic!("expected a usage report"),
+        };
+        assert_eq!(
+            providers(events.recv().await),
+            vec![Provider::Claude, Provider::Codex]
+        );
+        settings.send_modify(|settings| settings.codex.enabled = false);
+        let after = providers(events.recv().await);
+        assert_eq!(after, vec![Provider::Claude]);
+        let kept = store
+            .records
+            .lock()
+            .expect("BUG")
+            .iter()
+            .any(|record| record.provider == Provider::Codex);
+        assert!(kept, "Codex data stays stored");
+        cancel.cancel();
+        task.await.expect("BUG");
+    }
+
     #[tokio::test]
     async fn the_agent_reads_stores_and_reports_every_period() {
         let store = Arc::new(FakeStore::default());
-        let (_settings, watched) = watch::channel(Settings::default());
+        let (_settings, watched) = watch::channel(both_sources());
         let agent = UsageAgent::new(
             vec![
                 Arc::new(FakeSource(Provider::Claude)),

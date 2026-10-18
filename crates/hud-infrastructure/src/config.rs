@@ -11,6 +11,7 @@ use hud_application::settings::{
     WorkspaceSettings,
 };
 use hud_domain::WorkspacePath;
+use hud_domain::usage::Provider as AiProvider;
 use serde::Deserialize;
 
 /// Reads settings from a TOML file.
@@ -131,6 +132,14 @@ const NEW_FILE_HEADER: &str = "\
 fn with_setup(existing: Option<&str>, setup: &InitialSetup, home: &Path) -> Result<String, String> {
     let mut document = document(existing)?;
     document["icons"] = toml_edit::value(icons_value(setup.icons));
+    set(
+        &mut ai_table(&mut document, "claude")["enabled"],
+        setup.claude,
+    );
+    set(
+        &mut ai_table(&mut document, "codex")["enabled"],
+        setup.codex,
+    );
     for path in &setup.workspaces {
         add_workspace(&mut document, path, home)?;
     }
@@ -187,8 +196,31 @@ fn with_change(
             };
             set(&mut document["updates"][table][key], *enabled);
         }
+        SettingsChange::AiSource { provider, enabled } => {
+            let table = match provider {
+                AiProvider::Claude => "claude",
+                AiProvider::Codex => "codex",
+            };
+            set(&mut ai_table(&mut document, table)["enabled"], *enabled);
+        }
     }
     Ok(render(existing, &document))
+}
+
+/// `[ai.<name>]`, created as a section of its own: indexing would create
+/// an inline table such as `ai = { codex = { enabled = true } }`.
+fn ai_table<'a>(document: &'a mut toml_edit::DocumentMut, name: &str) -> &'a mut toml_edit::Item {
+    let ai = document.entry("ai").or_insert_with(|| {
+        let mut table = toml_edit::Table::new();
+        table.set_implicit(true);
+        toml_edit::Item::Table(table)
+    });
+    if let Some(table) = ai.as_table_mut()
+        && !table.contains_key(name)
+    {
+        table.insert(name, toml_edit::Item::Table(toml_edit::Table::new()));
+    }
+    &mut ai[name]
 }
 
 /// Replaces a value but keeps its surrounding whitespace and inline comment.
@@ -736,7 +768,32 @@ npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
         InitialSetup {
             workspaces: paths.iter().map(ToString::to_string).collect(),
             icons,
+            claude: true,
+            codex: false,
         }
+    }
+
+    #[tokio::test]
+    async fn setup_writes_the_chosen_ai_sources() {
+        let dir = tempfile::tempdir().expect("BUG");
+        let store = TomlSettings::new(dir.path().join("hud/config.toml"), PathBuf::from(HOME));
+        let mut choice = setup(&["~/workspace"], IconPreference::Unicode);
+        choice.claude = false;
+        choice.codex = true;
+        let applied = store.apply_setup(&choice).await.expect("BUG");
+        assert!(!applied.claude.enabled);
+        assert!(applied.codex.enabled);
+    }
+
+    #[test]
+    fn switching_an_ai_source_touches_only_its_key() {
+        let (text, settings) = change(&SettingsChange::AiSource {
+            provider: AiProvider::Codex,
+            enabled: true,
+        });
+        assert!(settings.codex.enabled);
+        assert!(settings.claude.enabled, "Claude Code keeps its default");
+        assert!(text.contains("[ai.codex]\nenabled = true"), "{text}");
     }
 
     #[tokio::test]

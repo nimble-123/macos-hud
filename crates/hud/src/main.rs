@@ -182,7 +182,9 @@ async fn ensure_setup(
     home: &std::path::Path,
     mut settings: hud_tui::UiSettings,
 ) -> anyhow::Result<Option<(Settings, hud_tui::UiSettings)>> {
-    let mut setup = SetupModel::new(settings, workspace_suggestions(home));
+    // Codex is offered switched on only where it has been used.
+    let codex_used = codex_roots(home).iter().any(|root| root.is_dir());
+    let mut setup = SetupModel::new(settings, workspace_suggestions(home), codex_used);
     let SetupOutcome::Done(choice) = run_setup(session.terminal(), &mut setup).await? else {
         return Ok(None);
     };
@@ -193,6 +195,8 @@ async fn ensure_setup(
             IconSet::Nerd => IconPreference::Nerd,
             IconSet::Ascii => IconPreference::Ascii,
         },
+        claude: choice.claude,
+        codex: choice.codex,
     };
     let saved = config
         .apply_setup(&initial)
@@ -226,9 +230,10 @@ fn start_background(
         .git
         .as_ref()
         .map_or_else(|| "git".to_owned(), |path| path.display().to_string());
-    // Tool paths and enabled sources are read once; changing them needs a restart.
+    // Tool paths and the enabled update sources are read once; changing them
+    // needs a restart. AI sources follow the settings while hud runs.
     let sources = update_sources(&preferences, &runner);
-    let usage_sources = usage_sources(&preferences);
+    let usage_sources = usage_sources();
     let telemetry_port = preferences.telemetry.port;
     let (current, watched) = watch::channel(preferences);
     let workspaces = WorkspaceAgent::new(
@@ -349,28 +354,26 @@ async fn bind_telemetry(preferences: &Settings) -> (ReceiverState, Option<OtlpRe
     }
 }
 
-/// AI usage sources; read once at start like the update sources.
-fn usage_sources(preferences: &Settings) -> Vec<Arc<dyn UsageSource>> {
-    let mut sources: Vec<Arc<dyn UsageSource>> = Vec::new();
-    if preferences.claude.enabled
-        && let Some(home) = std::env::var_os("HOME")
-    {
-        let config_dir = std::env::var_os("CLAUDE_CONFIG_DIR").map(PathBuf::from);
-        sources.push(Arc::new(ClaudeLogs::new(ClaudeLogs::default_root(
-            std::path::Path::new(&home),
+/// Every AI usage source; the agent reads those the settings switch on.
+fn usage_sources() -> Vec<Arc<dyn UsageSource>> {
+    let Some(home) = std::env::var_os("HOME") else {
+        return Vec::new();
+    };
+    let home = std::path::Path::new(&home);
+    let config_dir = std::env::var_os("CLAUDE_CONFIG_DIR").map(PathBuf::from);
+    vec![
+        Arc::new(ClaudeLogs::new(ClaudeLogs::default_root(
+            home,
             config_dir.as_deref(),
-        ))));
-    }
-    if preferences.codex.enabled
-        && let Some(home) = std::env::var_os("HOME")
-    {
-        let codex_home = std::env::var_os("CODEX_HOME").map(PathBuf::from);
-        sources.push(Arc::new(CodexLogs::new(CodexLogs::default_roots(
-            std::path::Path::new(&home),
-            codex_home.as_deref(),
-        ))));
-    }
-    sources
+        ))),
+        Arc::new(CodexLogs::new(codex_roots(home))),
+    ]
+}
+
+/// Where Codex keeps its sessions, honouring `$CODEX_HOME`.
+fn codex_roots(home: &std::path::Path) -> Vec<PathBuf> {
+    let codex_home = std::env::var_os("CODEX_HOME").map(PathBuf::from);
+    CodexLogs::default_roots(home, codex_home.as_deref())
 }
 
 /// Update sources in display order; Skills only when enabled in the config.

@@ -5,7 +5,7 @@ expression: rendered(&model).backend()
 "  Welcome to hud                                                                          "
 "  ──────────────────────────────────────────────────────────────────────────────────────  "
 "                                                                                          "
-"  Step 2 of 2: symbols                                                                    "
+"  Step 3 of 3: symbols                                                                    "
 "  Which line shows every symbol? Nerd icons need a Nerd Font in your terminal.            "
 "                                                                                          "
 "  ▌ 1  ● ◆ ▲ ✖ ○           Unicode (recommended)                                          "

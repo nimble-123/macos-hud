@@ -4,6 +4,7 @@ use hud_application::settings::{
     AutoInstallKind, IconPreference, LanguagePreference, Settings, ThemePreference,
 };
 use hud_domain::WorkspacePath;
+use hud_domain::usage::Provider;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Modifier, Style};
@@ -66,6 +67,7 @@ fn build<'a>(model: &Model, preferences: &Settings) -> (Vec<Line<'a>>, Vec<Optio
             Row::Language(_) | Row::Theme(_) | Row::Icons(_) => "settings-display",
             Row::Workspace { .. } | Row::AddWorkspace => "settings-workspaces",
             Row::AutoInstall { .. } => "settings-auto-install",
+            Row::AiSource { .. } => "settings-ai-sources",
         };
         if section != Some(current) {
             if section.is_some() {
@@ -145,6 +147,16 @@ fn row_line<'a>(model: &Model, row: &Row, selected: bool) -> Line<'a> {
                     AutoInstallKind::BrewFormulae => "opt-brew-formulae",
                     AutoInstallKind::BrewCasks => "opt-brew-casks",
                     AutoInstallKind::Npm => "opt-npm",
+                },
+            ),
+            switch(model, *enabled),
+        ),
+        Row::AiSource { provider, enabled } => (
+            t(
+                language,
+                match provider {
+                    Provider::Claude => "ai-claude",
+                    Provider::Codex => "ai-codex",
                 },
             ),
             switch(model, *enabled),

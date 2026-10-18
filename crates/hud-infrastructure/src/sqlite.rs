@@ -561,16 +561,22 @@ impl UsageStore for SqliteStore {
 
     async fn answer_times(
         &self,
+        provider: Provider,
         from: Timestamp,
         to: Timestamp,
     ) -> Result<Vec<Timestamp>, StoreError> {
         self.call(move |db| {
-            let mut query =
-                db.prepare("SELECT at_ms FROM ai_usage WHERE at_ms >= ?1 AND at_ms < ?2")?;
-            let rows = query
-                .query_map(params![from.as_millisecond(), to.as_millisecond()], |row| {
-                    Timestamp::from_millisecond(row.get(0)?).map_err(|e| conversion(0, e))
-                })?;
+            let mut query = db.prepare(
+                "SELECT at_ms FROM ai_usage WHERE provider = ?1 AND at_ms >= ?2 AND at_ms < ?3",
+            )?;
+            let rows = query.query_map(
+                params![
+                    provider_str(provider),
+                    from.as_millisecond(),
+                    to.as_millisecond()
+                ],
+                |row| Timestamp::from_millisecond(row.get(0)?).map_err(|e| conversion(0, e)),
+            )?;
             rows.collect()
         })
         .await
@@ -1153,10 +1159,8 @@ mod tests {
         .await
         .expect("BUG");
 
-        let records = store
-            .records(ts("2026-10-17T00:00:00Z"), ts("2026-10-18T00:00:00Z"))
-            .await
-            .expect("BUG");
+        let (day, next) = (ts("2026-10-17T00:00:00Z"), ts("2026-10-18T00:00:00Z"));
+        let records = store.records(day, next).await.expect("BUG");
         assert_eq!(records.len(), 1);
         assert_eq!(records[0].tokens.output, 120, "the highest count wins");
         assert_eq!(records[0].speed, Speed::Fast);
@@ -1164,25 +1168,17 @@ mod tests {
         assert!(records[0].subagent);
         assert_eq!(records[0].thinking, 30);
         let calls = store
-            .tool_calls(
-                Provider::Claude,
-                ts("2026-10-17T00:00:00Z"),
-                ts("2026-10-18T00:00:00Z"),
-            )
+            .tool_calls(Provider::Claude, day, next)
             .await
             .expect("BUG");
         assert_eq!(calls, 2, "repeated ids count once");
         let codex_calls = store
-            .tool_calls(
-                Provider::Codex,
-                ts("2026-10-17T00:00:00Z"),
-                ts("2026-10-18T00:00:00Z"),
-            )
+            .tool_calls(Provider::Codex, day, next)
             .await
             .expect("BUG");
         assert_eq!(codex_calls, 0, "tool calls are counted per provider");
         let times = store
-            .answer_times(ts("2026-10-17T00:00:00Z"), ts("2026-10-18T00:00:00Z"))
+            .answer_times(Provider::Claude, day, next)
             .await
             .expect("BUG");
         assert_eq!(times, vec![ts("2026-10-17T08:00:00Z")]);

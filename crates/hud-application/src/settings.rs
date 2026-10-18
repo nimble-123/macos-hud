@@ -189,6 +189,17 @@ pub struct Settings {
     pub tools: ToolPaths,
 }
 
+impl Settings {
+    /// Whether the logs of `provider` are read.
+    #[must_use]
+    pub fn reads(&self, provider: hud_domain::usage::Provider) -> bool {
+        match provider {
+            hud_domain::usage::Provider::Claude => self.claude.enabled,
+            hud_domain::usage::Provider::Codex => self.codex.enabled,
+        }
+    }
+}
+
 impl Default for Settings {
     fn default() -> Self {
         Self {
@@ -253,6 +264,10 @@ pub struct InitialSetup {
     pub workspaces: Vec<String>,
     /// Chosen glyph set.
     pub icons: IconPreference,
+    /// Read Claude Code's logs.
+    pub claude: bool,
+    /// Read Codex's logs.
+    pub codex: bool,
 }
 
 /// One change made in the settings tab.
@@ -279,6 +294,13 @@ pub enum SettingsChange {
     AutoInstall {
         /// Which opt-in.
         kind: AutoInstallKind,
+        /// New value.
+        enabled: bool,
+    },
+    /// Turns reading one AI tool's logs on or off.
+    AiSource {
+        /// Which tool.
+        provider: hud_domain::usage::Provider,
         /// New value.
         enabled: bool,
     },

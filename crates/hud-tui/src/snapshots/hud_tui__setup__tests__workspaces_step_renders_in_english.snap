@@ -5,7 +5,7 @@ expression: rendered(&with_one_workspace(language)).backend()
 "  Welcome to hud                                                                          "
 "  ──────────────────────────────────────────────────────────────────────────────────────  "
 "                                                                                          "
-"  Step 1 of 2: workspaces                                                                 "
+"  Step 1 of 3: workspaces                                                                 "
 "  Folders in which hud looks for Git repositories. Space selects a suggestion; type your  "
 "  own path below.                                                                         "
 "                                                                                          "

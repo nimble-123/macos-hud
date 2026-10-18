@@ -1,11 +1,11 @@
 ---
 source: crates/hud-tui/src/setup.rs
-expression: terminal.backend()
+expression: rendered(&with_one_workspace(language)).backend()
 ---
 "  Willkommen bei hud                                                                      "
 "  ──────────────────────────────────────────────────────────────────────────────────────  "
 "                                                                                          "
-"  Schritt 1 von 2: Workspaces                                                             "
+"  Schritt 1 von 3: Workspaces                                                             "
 "  Ordner, in denen hud nach Git-Repositories sucht. Leertaste wählt einen Vorschlag;      "
 "  eigene Pfade unten eintippen.                                                           "
 "                                                                                          "

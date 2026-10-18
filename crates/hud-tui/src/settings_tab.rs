@@ -9,6 +9,7 @@ use hud_application::settings::{
 };
 use hud_application::{Command, SettingsCommand};
 use hud_domain::WorkspacePath;
+use hud_domain::usage::Provider;
 
 use crate::Model;
 use crate::model::wrap_step;
@@ -50,6 +51,10 @@ pub(crate) enum Row {
         kind: AutoInstallKind,
         enabled: bool,
     },
+    AiSource {
+        provider: Provider,
+        enabled: bool,
+    },
 }
 
 /// Rows in display order.
@@ -72,6 +77,12 @@ pub(crate) fn rows(settings: &Settings) -> Vec<Row> {
             (AutoInstallKind::Npm, opt_ins.npm),
         ]
         .map(|(kind, enabled)| Row::AutoInstall { kind, enabled }),
+    );
+    rows.extend(
+        [Provider::Claude, Provider::Codex].map(|provider| Row::AiSource {
+            provider,
+            enabled: settings.reads(provider),
+        }),
     );
     rows
 }
@@ -173,6 +184,10 @@ fn change_for(row: &Row, step: isize) -> Option<SettingsChange> {
         },
         Row::AutoInstall { kind, enabled } => SettingsChange::AutoInstall {
             kind: *kind,
+            enabled: !enabled,
+        },
+        Row::AiSource { provider, enabled } => SettingsChange::AiSource {
+            provider: *provider,
             enabled: !enabled,
         },
         Row::AddWorkspace => return None,
@@ -340,6 +355,25 @@ mod tests {
             update(&mut model, key(KeyCode::Enter)),
             vec![command(SettingsChange::AutoInstall {
                 kind: AutoInstallKind::Npm,
+                enabled: true,
+            })]
+        );
+    }
+
+    #[test]
+    fn ai_sources_toggle() {
+        let mut model = model();
+        select(
+            &mut model,
+            &Row::AiSource {
+                provider: Provider::Codex,
+                enabled: false,
+            },
+        );
+        assert_eq!(
+            update(&mut model, key(KeyCode::Char(' '))),
+            vec![command(SettingsChange::AiSource {
+                provider: Provider::Codex,
                 enabled: true,
             })]
         );
