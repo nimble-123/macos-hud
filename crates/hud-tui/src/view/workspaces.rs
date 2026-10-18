@@ -232,6 +232,54 @@ fn repo_line<'a>(
     ])
 }
 
+/// Footer line for the last manual fast-forward: running, done, or why not.
+pub(super) fn ff_notice(model: &Model) -> Vec<Span<'static>> {
+    let Some(notice) = &model.ff_notice else {
+        return Vec::new();
+    };
+    let language = model.settings.language;
+    let repo = model.repo_label(&notice.repo);
+    let (status, text) = match &notice.result {
+        None => (
+            Status::Advisory,
+            t_args(language, "ff-running", &[("repo", &repo)]),
+        ),
+        Some(RepoState::UpToDate) => (
+            Status::Ok,
+            t_args(language, "ff-up-to-date", &[("repo", &repo)]),
+        ),
+        Some(state @ RepoState::FastForwarded(_)) => (
+            Status::Ok,
+            t_args(
+                language,
+                "ff-result",
+                &[("repo", &repo), ("result", &state_text(language, state))],
+            ),
+        ),
+        Some(state @ RepoState::Error(_)) => (
+            Status::Warning,
+            t_args(
+                language,
+                "ff-result",
+                &[("repo", &repo), ("result", &state_text(language, state))],
+            ),
+        ),
+        Some(state @ (RepoState::Behind(_) | RepoState::Skipped(_))) => (
+            Status::Caution,
+            t_args(
+                language,
+                "ff-skipped",
+                &[("repo", &repo), ("reason", &state_text(language, state))],
+            ),
+        ),
+    };
+    let glyph = status_glyph(model.settings.icons, status);
+    vec![Span::styled(
+        format!("{glyph} {text}"),
+        Style::new().fg(model.theme.status(status)),
+    )]
+}
+
 fn status_of(model: &Model, report: &RepoReport) -> Status {
     match &report.state {
         RepoState::FastForwarded(_) if model.is_recent_ok(&report.repo) => Status::Ok,

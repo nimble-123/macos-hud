@@ -189,6 +189,7 @@ Skills   1.7.2
 - `u` oder `Enter` öffnet einen zentrierten Bestätigungsdialog in `focus` mit dem genauen Befehl. Bei einem Major-Update warnt eine Zeile in `caution` (▲ Major-Update: kann inkompatible Änderungen enthalten.). `Enter` installiert, `Esc` oder `n` bricht ab; solange der Dialog offen ist, gehen alle Tasten an ihn.
 - `r` prüft die Quellen sofort.
 - Laufende Installationen erscheinen auf allen Tabs in der Fortschrittszeile der Fußzeile, vor Scan und Sync.
+- Nach `f` (oder `Enter`) im Workspaces-Tab zeigt die Fortschrittszeile gleich nach den Installationen „Fast-Forward <Repo> …“ und nach dem Ergebnis 5 s lang eine Rückmeldung mit Statussymbol: „<Repo>: bereits aktuell, nichts zu tun“ (●), „<Repo>: Fast-Forward: N Commits“ (●), „<Repo>: nicht aktualisiert, <Grund>“ (▲) oder die Fehlermeldung (✖).
 - Nach `r` im Updates-Tab zeigt die Fortschrittszeile „Update-Prüfung läuft…“, bis die Ergebnisse da sind; ein weiteres `r` startet währenddessen keine zweite Prüfung.
 
 ### 5.4 KI-Tab

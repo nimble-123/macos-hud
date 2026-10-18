@@ -33,6 +33,10 @@ state-fast-forwarded = { $count ->
    *[other] fast-forwarded { $count } commits
 }
 state-error = error: { $message }
+ff-running = Fast-forward { $repo } …
+ff-up-to-date = { $repo }: already up to date, nothing to do
+ff-result = { $repo }: { $result }
+ff-skipped = { $repo }: not updated, { $reason }
 skip-operation = { $operation } in progress
 skip-detached = detached HEAD
 skip-no-commits = no commits yet

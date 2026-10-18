@@ -31,6 +31,14 @@ pub fn update(model: &mut Model, msg: Msg) -> Vec<Command> {
             model
                 .recent_ok
                 .retain(|_, at| now.duration_since(*at) < OK_HIGHLIGHT);
+            if model
+                .ff_notice
+                .as_ref()
+                .and_then(|notice| notice.at)
+                .is_some_and(|at| now.duration_since(at) >= crate::model::FF_NOTICE)
+            {
+                model.ff_notice = None;
+            }
         }
         Msg::Mouse(event) => return crate::mouse::on_mouse(model, event),
         Msg::Resize(columns, rows) => model.area = ratatui::layout::Rect::new(0, 0, columns, rows),
@@ -135,15 +143,26 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
         // Enter does what the row offers: on a repo that is the fast-forward,
         // still guarded by the permit rules.
         KeyCode::Char('f') | KeyCode::Enter if model.tab == Tab::Workspaces => {
-            if let Some(report) = model.selected_repo() {
-                return vec![Command::Workspaces(WorkspaceCommand::FastForward(
-                    report.repo.clone(),
-                ))];
-            }
+            return fast_forward_selected(model);
         }
         _ => {}
     }
     Vec::new()
+}
+
+/// Requests a manual fast-forward of the selected repo; the footer reports
+/// at once that it runs and then what came of it.
+fn fast_forward_selected(model: &mut Model) -> Vec<Command> {
+    let Some(report) = model.selected_repo() else {
+        return Vec::new();
+    };
+    let repo = report.repo.clone();
+    model.ff_notice = Some(crate::model::FfNotice {
+        repo: repo.clone(),
+        result: None,
+        at: None,
+    });
+    vec![Command::Workspaces(WorkspaceCommand::FastForward(repo))]
 }
 
 /// Overview and AI tab show more than fits and have no selection to follow.
@@ -351,6 +370,12 @@ fn on_app_event(model: &mut Model, event: AppEvent) {
         }
         AppEvent::RepoUpdated(report) => {
             model.mark_fast_forwards(std::slice::from_ref(&report));
+            if let Some(notice) = &mut model.ff_notice
+                && notice.repo == report.repo
+            {
+                notice.result = Some(report.state.clone());
+                notice.at = model.now;
+            }
             let slot = model
                 .workspaces
                 .iter_mut()
@@ -592,6 +617,49 @@ mod tests {
         );
         update(&mut model, Msg::App(AppEvent::SyncStarted));
         assert_eq!(update(&mut model, key(KeyCode::Char('r'))), Vec::new());
+    }
+
+    fn after_f_on(state: RepoState, now: Instant) -> Model {
+        let mut model = on_workspaces_tab();
+        update(&mut model, Msg::Tick(now));
+        update(
+            &mut model,
+            Msg::App(workspaces(vec![report("/ws/a", RepoState::UpToDate)])),
+        );
+        update(&mut model, key(KeyCode::Char('f')));
+        update(
+            &mut model,
+            Msg::App(AppEvent::RepoUpdated(report("/ws/a", state))),
+        );
+        model
+    }
+
+    #[test]
+    fn f_shows_at_once_that_the_fast_forward_runs() {
+        let mut model = on_workspaces_tab();
+        update(
+            &mut model,
+            Msg::App(workspaces(vec![report("/ws/a", RepoState::UpToDate)])),
+        );
+        update(&mut model, key(KeyCode::Char('f')));
+        assert_eq!(model.ff_notice.and_then(|notice| notice.result), None);
+    }
+
+    #[test]
+    fn f_reports_its_result_even_when_nothing_changed() {
+        let model = after_f_on(RepoState::UpToDate, Instant::now());
+        assert_eq!(
+            model.ff_notice.and_then(|notice| notice.result),
+            Some(RepoState::UpToDate)
+        );
+    }
+
+    #[test]
+    fn the_fast_forward_result_disappears_after_a_few_seconds() {
+        let start = Instant::now();
+        let mut model = after_f_on(RepoState::UpToDate, start);
+        update(&mut model, Msg::Tick(start + Duration::from_secs(6)));
+        assert_eq!(model.ff_notice, None);
     }
 
     #[test]

@@ -27,7 +27,11 @@ pub(crate) use overview::SPARK_SAMPLES;
 
 /// While work runs in the background the footer gets an extra progress line.
 fn busy(model: &Model) -> bool {
-    model.scan.is_some() || model.syncing || model.checking_updates || !model.jobs.is_empty()
+    model.scan.is_some()
+        || model.syncing
+        || model.checking_updates
+        || model.ff_notice.is_some()
+        || !model.jobs.is_empty()
 }
 
 /// Tab bar, body and footer of a frame; shared with mouse hit-testing so a
@@ -313,6 +317,7 @@ fn render_footer(model: &Model, frame: &mut Frame, area: Rect) {
     // Running installations matter most: they change the system.
     let progress = match model.scan {
         _ if !model.jobs.is_empty() => jobs_progress(model),
+        _ if model.ff_notice.is_some() => workspaces::ff_notice(model),
         Some(scan) => scan_progress(model, scan),
         None if model.syncing => vec![Span::styled(
             t(language, "syncing"),
@@ -523,6 +528,52 @@ mod tests {
             insta::assert_snapshot!(
                 format!("footer_shows_scan_progress_{suffix}"),
                 render(&model).backend()
+            );
+        }
+    }
+
+    #[test]
+    fn footer_reports_a_fast_forward_with_nothing_to_do() {
+        use hud_application::AppEvent;
+        use hud_application::usecases::workspaces::RepoState;
+        for (language, suffix) in LANGUAGES {
+            let mut model = workspaces_tab(language);
+            update(
+                &mut model,
+                Msg::Key(KeyEvent::new(KeyCode::Char('f'), KeyModifiers::NONE)),
+            );
+            update(
+                &mut model,
+                Msg::App(AppEvent::RepoUpdated(repo("/ws/api", RepoState::UpToDate))),
+            );
+            insta::assert_snapshot!(
+                format!("footer_reports_a_fast_forward_with_nothing_to_do_{suffix}"),
+                render_big(&model).backend()
+            );
+        }
+    }
+
+    #[test]
+    fn footer_reports_why_a_fast_forward_was_skipped() {
+        use hud_application::AppEvent;
+        use hud_application::usecases::workspaces::RepoState;
+        use hud_domain::git::SkipReason;
+        for (language, suffix) in LANGUAGES {
+            let mut model = workspaces_tab(language);
+            update(
+                &mut model,
+                Msg::Key(KeyEvent::new(KeyCode::Char('f'), KeyModifiers::NONE)),
+            );
+            update(
+                &mut model,
+                Msg::App(AppEvent::RepoUpdated(repo(
+                    "/ws/api",
+                    RepoState::Skipped(SkipReason::TrackedChanges),
+                ))),
+            );
+            insta::assert_snapshot!(
+                format!("footer_reports_why_a_fast_forward_was_skipped_{suffix}"),
+                render_big(&model).backend()
             );
         }
     }
