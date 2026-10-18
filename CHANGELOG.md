@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/nimble-123/macos-hud/compare/v0.11.0...v0.12.0) (2026-10-18)
+
+
+### Neue Funktionen
+
+* **tui:** show the hud version in the tab bar ([#175](https://github.com/nimble-123/macos-hud/issues/175)) ([4dcfa3b](https://github.com/nimble-123/macos-hud/commit/4dcfa3b87b519fb0079a8a348f5d307b511a598e))
+
 ## [0.11.0](https://github.com/nimble-123/macos-hud/compare/v0.10.0...v0.11.0) (2026-10-18)
 
 
