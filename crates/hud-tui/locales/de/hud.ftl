@@ -139,6 +139,24 @@ confirm-all-packages = { $count ->
 confirm-all-skills = alle Skills
 confirm-all-major = Major-Updates: { $names }
 confirm-install-all = alle installieren
+confirm-everything-title = Alles aktualisieren?
+confirm-everything = alles aktualisieren
+confirm-repos = Repos
+confirm-all-repos = { $count ->
+    [one] 1 Fast-Forward
+   *[other] { $count } Fast-Forwards
+}
+hint-update-everything = alles updaten
+help-update-everything = zurückliegende Repos per Fast-Forward und alle Pakete aktualisieren (mit Rückfrage)
+bulk-running = Alles aktualisieren
+bulk-done = { $count ->
+    [one] Alles aktualisiert: 1 erledigt
+   *[other] Alles aktualisiert: { $count } erledigt
+}
+bulk-problems = { $count ->
+    [one] 1 Problem (Protokoll)
+   *[other] { $count } Probleme (Protokoll)
+}
 jobs-running = { $count ->
     [one] 1 Installation läuft
    *[other] { $count } Installationen laufen

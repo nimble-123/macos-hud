@@ -39,8 +39,9 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
     frame.render_widget(Paragraph::new(lines).scroll((offset, 0)), area);
     match &model.confirm {
         Some(Confirm::One(target)) => render_confirm(model, target, frame, area),
-        Some(Confirm::All(targets)) => render_confirm_all(model, targets, frame, area),
-        None => {}
+        Some(Confirm::All(targets)) => render_confirm_all(model, None, targets, frame, area),
+        // Drawn over whichever tab asked for it, see `view`.
+        Some(Confirm::Everything { .. }) | None => {}
     }
 }
 
@@ -407,23 +408,17 @@ fn render_confirm(model: &Model, target: &InstallTarget, frame: &mut Frame, area
 }
 
 /// Dialog after `a`: how many packages per source, and which are major updates.
-fn render_confirm_all(model: &Model, targets: &[InstallTarget], frame: &mut Frame, area: Rect) {
+/// Confirmation for many installations at once; with `repos`, also for that
+/// many fast-forwards ("update everything").
+pub(super) fn render_confirm_all(
+    model: &Model,
+    repos: Option<usize>,
+    targets: &[InstallTarget],
+    frame: &mut Frame,
+    area: Rect,
+) {
     let language = model.settings.language;
     let theme = &model.theme;
-    let mut sources: Vec<(SourceId, u32, bool)> = Vec::new();
-    for target in targets {
-        let (source, all) = match target {
-            InstallTarget::Package(candidate) => (candidate.source, false),
-            InstallTarget::AllSkills => (SourceId::Skills, true),
-        };
-        match sources.iter_mut().find(|(id, ..)| *id == source) {
-            Some(entry) => {
-                entry.1 += 1;
-                entry.2 |= all;
-            }
-            None => sources.push((source, 1, all)),
-        }
-    }
     let majors: Vec<String> = targets
         .iter()
         .filter_map(|target| match target {
@@ -435,20 +430,7 @@ fn render_confirm_all(model: &Model, targets: &[InstallTarget], frame: &mut Fram
         .collect();
 
     let mut lines = vec![Line::raw("")];
-    for (source, count, all) in &sources {
-        let amount = if *all {
-            t(language, "confirm-all-skills")
-        } else {
-            t_count(language, "confirm-all-packages", "count", *count)
-        };
-        lines.push(Line::from(vec![
-            Span::styled(
-                format!("  {}", fit(&t(language, source_name(*source)), 16)),
-                Style::new().fg(theme.ink).add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(amount, Style::new().fg(theme.muted)),
-        ]));
-    }
+    lines.extend(amount_lines(model, repos, targets));
     // The major warning may wrap; each extra row needs room in the dialog.
     let mut wrapped = 0;
     if !majors.is_empty() {
@@ -472,7 +454,17 @@ fn render_confirm_all(model: &Model, targets: &[InstallTarget], frame: &mut Fram
             Style::new().fg(theme.focus).add_modifier(Modifier::BOLD),
         ),
         Span::styled(
-            format!("{}   ", t(language, "confirm-install-all")),
+            format!(
+                "{}   ",
+                t(
+                    language,
+                    if repos.is_some() {
+                        "confirm-everything"
+                    } else {
+                        "confirm-install-all"
+                    }
+                )
+            ),
             Style::new().fg(theme.soft),
         ),
         Span::styled(
@@ -492,7 +484,17 @@ fn render_confirm_all(model: &Model, targets: &[InstallTarget], frame: &mut Fram
         .borders(Borders::ALL)
         .border_style(Style::new().fg(theme.focus))
         .title(Span::styled(
-            format!(" {} ", t(language, "confirm-all-title")),
+            format!(
+                " {} ",
+                t(
+                    language,
+                    if repos.is_some() {
+                        "confirm-everything-title"
+                    } else {
+                        "confirm-all-title"
+                    }
+                )
+            ),
             Style::new().fg(theme.focus).add_modifier(Modifier::BOLD),
         ));
     frame.render_widget(Clear, dialog);
@@ -502,6 +504,59 @@ fn render_confirm_all(model: &Model, targets: &[InstallTarget], frame: &mut Fram
             .wrap(Wrap { trim: false }),
         dialog,
     );
+}
+
+/// One line per kind of work: fast-forwards, then packages per source.
+fn amount_lines<'a>(
+    model: &Model,
+    repos: Option<usize>,
+    targets: &[InstallTarget],
+) -> Vec<Line<'a>> {
+    let language = model.settings.language;
+    let theme = &model.theme;
+    let mut sources: Vec<(SourceId, u32, bool)> = Vec::new();
+    for target in targets {
+        let (source, all) = match target {
+            InstallTarget::Package(candidate) => (candidate.source, false),
+            InstallTarget::AllSkills => (SourceId::Skills, true),
+        };
+        match sources.iter_mut().find(|(id, ..)| *id == source) {
+            Some(entry) => {
+                entry.1 += 1;
+                entry.2 |= all;
+            }
+            None => sources.push((source, 1, all)),
+        }
+    }
+    let mut lines = Vec::new();
+    if let Some(count) = repos.filter(|count| *count > 0) {
+        let count = u32::try_from(count).unwrap_or(u32::MAX);
+        lines.push(Line::from(vec![
+            Span::styled(
+                format!("  {}", fit(&t(language, "confirm-repos"), 16)),
+                Style::new().fg(theme.ink).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                t_count(language, "confirm-all-repos", "count", count),
+                Style::new().fg(theme.muted),
+            ),
+        ]));
+    }
+    for (source, count, all) in &sources {
+        let amount = if *all {
+            t(language, "confirm-all-skills")
+        } else {
+            t_count(language, "confirm-all-packages", "count", *count)
+        };
+        lines.push(Line::from(vec![
+            Span::styled(
+                format!("  {}", fit(&t(language, source_name(*source)), 16)),
+                Style::new().fg(theme.ink).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(amount, Style::new().fg(theme.muted)),
+        ]));
+    }
+    lines
 }
 
 fn fit(text: &str, width: usize) -> String {

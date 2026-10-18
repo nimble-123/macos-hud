@@ -42,6 +42,7 @@ Entwickler:innen, die mehrere lokale Repositories und CLI-Werkzeuge nutzen und d
 - KI-Aktivität (Antworten pro Tag) und Git-Aktivität (eigene Commits laut `git config user.email` über alle Branches aller Repositories) als Kalender im Stil des GitHub-Contribution-Graphs, bis zu 53 Wochen; ohne Aktivität entfällt der Kalender
 - Zeigt nur Abweichungen; ist alles normal, erscheint ein einzelner neutraler Satz mit dem Zeitpunkt der letzten Prüfung („Alles aktuell. Letzte Prüfung vor N min.“)
 - Zusatzanzeigen lassen sich im Einstellungen-Tab und in der Config einzeln ausschalten, standardmäßig sind alle an: ungepushte Commits (sonst zählen diese Repos als übersprungen); Major-Updates und Updates, deren Installation in dieser Sitzung ein Passwort verlangt hat, neben der Zahl der Updates; Zahl der Protokolleinträge der letzten 24 Stunden, die nicht erfolgreich waren; Abo-Limit-Fenster (Codex) ab 80 % Auslastung; Volumes der Systemplatte und der Workspaces mit weniger als 10 % freiem Platz (Prüfung jede Minute)
+- Taste `a` aktualisiert nach einer Rückfrage alles auf einmal: Fast-Forward für jedes zurückliegende Repository (auch bei Opt-out) und Installation aller verfügbaren Updates ohne gepinnte und laufende, inklusive Skills; jede Aktion gilt einzeln über ihr Permit. Grundlage ist der zuletzt bekannte Stand. Die Fußzeile zeigt den gemeinsamen Fortschritt und danach 5 s das Ergebnis
 - Laufende Installationen, Scans, Syncs und manuell gestartete Update-Prüfungen erscheinen auf allen Tabs in einer Fortschrittszeile der Fußzeile
 
 ### 4.2 Workspaces und Git

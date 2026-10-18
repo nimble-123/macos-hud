@@ -91,6 +91,11 @@ pub(crate) enum Confirm {
     One(InstallTarget),
     /// Every row that can be installed now, after `a`.
     All(Vec<InstallTarget>),
+    /// Every repository behind and every package, after `a` on the overview.
+    Everything {
+        repos: Vec<RepoPath>,
+        targets: Vec<InstallTarget>,
+    },
 }
 
 /// Moves a list cursor one row up (`-1`) or down (`1`), wrapping around at
@@ -149,6 +154,8 @@ pub struct Model {
     pub(crate) update_selected: usize,
     /// Installations waiting for confirmation in the dialog.
     pub(crate) confirm: Option<Confirm>,
+    /// The run started by `a` on the overview, until its result has shown.
+    pub(crate) bulk: Option<crate::bulk::Bulk>,
     /// What the system reported at start-up; used for `auto` preferences.
     pub(crate) system: System,
     /// Settings as last reported; `None` until the settings agent sent them.
@@ -253,6 +260,7 @@ impl Model {
             finished_jobs: BTreeMap::new(),
             update_selected: 0,
             confirm: None,
+            bulk: None,
             system: System {
                 language: settings.language,
                 appearance: settings.appearance,

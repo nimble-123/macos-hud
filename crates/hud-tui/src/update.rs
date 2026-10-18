@@ -40,6 +40,7 @@ pub fn update(model: &mut Model, msg: Msg) -> Vec<Command> {
             {
                 model.ff_notice = None;
             }
+            crate::bulk::tick(model, now);
         }
         Msg::Mouse(event) => return crate::mouse::on_mouse(model, event),
         Msg::Resize(columns, rows) => model.area = ratatui::layout::Rect::new(0, 0, columns, rows),
@@ -115,6 +116,7 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
             ask_install_selected(model);
         }
         KeyCode::Char('a') if model.tab == Tab::Updates => ask_install_all(model),
+        KeyCode::Char('a') if model.tab == Tab::Overview => crate::bulk::ask(model),
         KeyCode::Down | KeyCode::Char('j') if scrolls_freely(model) => scroll_by(model, 1),
         KeyCode::Up | KeyCode::Char('k') if scrolls_freely(model) => scroll_by(model, -1),
         KeyCode::PageDown if scrolls_freely(model) => {
@@ -207,6 +209,9 @@ fn on_confirm_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
             let targets = match model.confirm.take() {
                 Some(Confirm::One(target)) => vec![target],
                 Some(Confirm::All(targets)) => targets,
+                Some(Confirm::Everything { repos, targets }) => {
+                    return crate::bulk::start(model, repos, targets);
+                }
                 None => Vec::new(),
             };
             // One job per package: each passes the permit rules on its own.
@@ -286,6 +291,7 @@ fn on_workspaces(
 
 /// Keeps running and finished jobs apart and notes when hud updated itself.
 fn on_job(model: &mut Model, job: hud_application::usecases::updates::JobUpdate) {
+    crate::bulk::job_changed(model, &job);
     if job.state == hud_application::usecases::updates::JobState::Succeeded
         && let Some(version) = crate::model::hud_update(&job.target)
     {
@@ -373,6 +379,7 @@ fn on_app_event(model: &mut Model, event: AppEvent) {
         }
         AppEvent::RepoUpdated(report) => {
             model.mark_fast_forwards(std::slice::from_ref(&report));
+            crate::bulk::repo_updated(model, &report);
             if let Some(notice) = &mut model.ff_notice
                 && notice.repo == report.repo
             {

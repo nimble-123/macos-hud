@@ -3,6 +3,7 @@
 //! [`update`] and [`view`] are pure: no I/O, no clock, no terminal access.
 //! The binary owns the event loop and the terminal.
 
+mod bulk;
 mod i18n;
 pub mod icons;
 mod log_tab;
