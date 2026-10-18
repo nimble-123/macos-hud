@@ -228,17 +228,6 @@ fn sample_calendar() -> hud_application::usecases::usage::ActivityCalendar {
     hud_application::usecases::usage::ActivityCalendar { first_day, days }
 }
 
-fn sample_context() -> hud_application::usecases::usage::ContextUse {
-    hud_application::usecases::usage::ContextUse {
-        model: hud_domain::usage::ModelId::try_from("claude-opus-5-5".to_owned()).expect("BUG"),
-        project: Some("macos-hud".into()),
-        prompt: 121_000,
-        window: 1_000_000,
-        at: jiff::Timestamp::UNIX_EPOCH,
-        idle: std::time::Duration::from_secs(360),
-    }
-}
-
 fn sample_usage() -> hud_application::usecases::usage::UsageReport {
     use hud_application::usecases::usage::{
         ModelUsage, PeriodUsage, SourceState, SourceUsage, UsageReport,
@@ -325,7 +314,6 @@ fn sample_usage() -> hud_application::usecases::usage::UsageReport {
                     read_ms: 239,
                 },
                 periods,
-                context: Some(sample_context()),
                 plan: None,
             },
             sample_codex(),
@@ -417,14 +405,6 @@ fn sample_codex() -> hud_application::usecases::usage::SourceUsage {
             read_ms: 84,
         },
         periods,
-        context: Some(hud_application::usecases::usage::ContextUse {
-            model: luna,
-            project: Some("macos-hud".into()),
-            prompt: 64_000,
-            window: 258_400,
-            at: later(-20),
-            idle: std::time::Duration::from_mins(20),
-        }),
         plan: Some(PlanUsage {
             at: later(-3),
             plan: Some("plus".into()),

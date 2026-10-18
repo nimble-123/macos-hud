@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use hud_domain::usage::{
     Accuracy, CostEstimate, Measured, ModelId, PRICES_AS_OF, Period, PlanUsage, PriceTable,
-    Provider, TelemetryTotals, TokenUsage, UsageRecord, context_window,
+    Provider, TelemetryTotals, TokenUsage, UsageRecord,
 };
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
@@ -70,23 +70,6 @@ pub struct SourceState {
     pub files: u64,
     /// How long the read took, milliseconds.
     pub read_ms: u64,
-}
-
-/// The last answer of the main conversation and how full its context was.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ContextUse {
-    /// Model.
-    pub model: ModelId,
-    /// Project.
-    pub project: Option<String>,
-    /// Tokens the model read for it.
-    pub prompt: u64,
-    /// Context window of the model.
-    pub window: u64,
-    /// When it was answered.
-    pub at: Timestamp,
-    /// Time from the answer to the report.
-    pub idle: Duration,
 }
 
 /// Shares and activity of one period. Shares are in per mille; `None`
@@ -164,23 +147,6 @@ pub fn period_kpis(
     }
 }
 
-/// The latest answer of a main conversation before `now`.
-#[must_use]
-pub fn latest_context(records: &[UsageRecord], now: Timestamp) -> Option<ContextUse> {
-    records
-        .iter()
-        .filter(|r| !r.subagent && r.at <= now)
-        .max_by_key(|r| r.at)
-        .map(|r| ContextUse {
-            model: r.model.clone(),
-            project: r.project.clone(),
-            prompt: r.tokens.prompt(),
-            window: r.context_window.unwrap_or_else(|| context_window(&r.model)),
-            at: r.at,
-            idle: now.duration_since(r.at).unsigned_abs(),
-        })
-}
-
 /// `part / total` in per mille, rounded.
 fn share(part: u64, total: u64) -> Option<u16> {
     (total > 0).then(|| {
@@ -210,8 +176,6 @@ pub struct SourceUsage {
     pub state: SourceState,
     /// One entry per period, in [`Period::ALL`] order.
     pub periods: Vec<PeriodUsage>,
-    /// Context of the latest main answer; independent of the period.
-    pub context: Option<ContextUse>,
     /// Subscription usage as last reported (Codex).
     pub plan: Option<PlanUsage>,
 }
@@ -451,10 +415,7 @@ impl<S: UsageStore + TelemetryStore, C: Clock> UsageAgent<S, C> {
         let providers: Vec<Provider> = states.iter().map(|state| state.provider).collect();
         let mut sources = Vec::with_capacity(states.len());
         for state in states {
-            sources.push(
-                self.source_usage(state, &records, &ranges, &prices, now.timestamp())
-                    .await,
-            );
+            sources.push(self.source_usage(state, &records, &ranges, &prices).await);
         }
         let today = now.date();
         let first = calendar_start(today)
@@ -485,7 +446,6 @@ impl<S: UsageStore + TelemetryStore, C: Clock> UsageAgent<S, C> {
         all: &[UsageRecord],
         ranges: &[(Period, Timestamp, Timestamp)],
         prices: &PriceTable,
-        now: Timestamp,
     ) -> SourceUsage {
         let provider = state.provider;
         let records: Vec<UsageRecord> = all
@@ -517,10 +477,9 @@ impl<S: UsageStore + TelemetryStore, C: Clock> UsageAgent<S, C> {
             None
         });
         SourceUsage {
-            context: latest_context(&records, now),
+            state,
             periods,
             plan,
-            state,
         }
     }
 
@@ -611,7 +570,6 @@ mod tests {
             project: Some("hud".into()),
             subagent: false,
             thinking: 0,
-            context_window: None,
         }
     }
 
@@ -706,32 +664,12 @@ mod tests {
     }
 
     #[test]
-    fn the_context_is_the_latest_main_answer() {
-        let mut main = record("a", "s1", "claude-opus-5-5", "2026-10-17T08:00:00Z", 1);
-        main.tokens.cache_read = 121_000;
-        let mut sub = record("b", "s1", "claude-haiku-4-5", "2026-10-17T09:00:00Z", 1);
-        sub.subagent = true;
-        let context = latest_context(&[main, sub], at("2026-10-17T08:06:00Z")).expect("BUG");
-        assert_eq!(context.prompt, 121_000);
-        assert_eq!(context.window, 1_000_000);
-        assert_eq!(context.idle.as_secs(), 360);
-    }
-
-    #[test]
     fn reasoning_counts_as_thinking_against_all_output() {
         let mut answer = record("a", "s", "gpt-6-luna", "2026-10-17T08:00:00Z", 300);
         answer.tokens.reasoning = Some(100);
         let range = (at("2026-10-17T00:00:00Z"), at("2026-10-17T12:00:00Z"));
         let kpis = period_kpis(&[answer], range, &hours(), 0);
         assert_eq!(kpis.thinking, Some(250), "100 of 400 output");
-    }
-
-    #[test]
-    fn a_reported_context_window_wins_over_the_model_table() {
-        let mut answer = record("a", "s", "gpt-6-luna", "2026-10-17T08:00:00Z", 1);
-        answer.context_window = Some(258_400);
-        let context = latest_context(&[answer], at("2026-10-17T09:00:00Z")).expect("BUG");
-        assert_eq!(context.window, 258_400);
     }
 
     #[test]

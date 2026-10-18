@@ -219,10 +219,6 @@ Aktivität
   0 Uhr                                      24 Uhr
   Gesamt              5 Sessions, 1.751 Antworten, 837 Tool-Calls
 
-Kontext   aktuell
-  ██████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   12 %   121,0 k / 1,0 M
-  opus-5-5, macos-hud, vor 6 min
-
 Projekte
   macos-hud 34 %      takt 14 %      skills-hub 7 %
 
@@ -241,13 +237,10 @@ Aufwand
 Abo-Auslastung   Plan Plus, Stand vor 3 min
   5 Stunden           ███████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   13 %   neu ab 14:14
   7 Tage              █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   3 %   neu ab 21.10. 12:00
-
-Kontext   aktuell
-  ██████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   25 %   64,0 k / 258,4 k
 ```
 
-- Die Zeitraumauswahl steht ganz oben und gilt für alle Abschnitte; jede Kennzahl zeigt genau einen Wert. Nur „Kontext“ und „Abo-Auslastung“ zeigen den aktuellen Stand.
-- Reihenfolge der Abschnitte: Verbrauch, Modelle, Aufwand, Aktivität, Abo-Auslastung (Codex), Kontext, Projekte, Telemetrie (Claude Code).
+- Die Zeitraumauswahl steht ganz oben und gilt für alle Abschnitte; jede Kennzahl zeigt genau einen Wert. Nur „Abo-Auslastung“ zeigt den aktuellen Stand.
+- Reihenfolge der Abschnitte: Verbrauch, Modelle, Aufwand, Aktivität, Abo-Auslastung (Codex), Projekte, Telemetrie (Claude Code).
 - Jede Quelle hat einen eigenen Block mit eigener Überschrift; zwischen den Blöcken stehen zwei Leerzeilen. Telemetrie gibt es nur bei Claude Code.
 - Codex: Statt „Cache schr.“ steht „Reasoning“ in Verbrauch und Modelltabelle; „Aufwand“ zeigt nur den Reasoning-Anteil. „Abo-Auslastung“ zeigt je Limit-Fenster einen Balken mit Prozent und lokalem Rücksetzzeitpunkt (mit Datum, wenn nicht heute), ab 90 % in `caution`. Ist ein Fenster schon zurückgesetzt, steht dort nur, seit wann, bis Codex den neuen Stand meldet.
 - Abschnitte haben eine fette Überschrift und eine Leerzeile davor. Token und Kosten stehen nur unter „Verbrauch“ und in der Modelltabelle, nie doppelt.
