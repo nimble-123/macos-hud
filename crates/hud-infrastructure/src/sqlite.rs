@@ -120,6 +120,8 @@ fn migrations() -> Migrations<'static> {
             DELETE FROM ingest_offset;",
         ),
         M::up(PLAN_USAGE),
+        // Merging used to turn a missing reasoning count into 0; Claude never reports one.
+        M::up("UPDATE ai_usage SET reasoning = NULL WHERE provider = 'claude' AND reasoning = 0;"),
     ])
 }
 
@@ -449,7 +451,10 @@ impl UsageStore for SqliteStore {
                          cache_write_5m = max(cache_write_5m, excluded.cache_write_5m),
                          cache_write_1h = max(cache_write_1h, excluded.cache_write_1h),
                          cache_read = max(cache_read, excluded.cache_read),
-                         reasoning = max(coalesce(reasoning, 0), coalesce(excluded.reasoning, 0))",
+                         reasoning = CASE
+                             WHEN reasoning IS NULL AND excluded.reasoning IS NULL THEN NULL
+                             ELSE max(coalesce(reasoning, 0), coalesce(excluded.reasoning, 0))
+                         END",
                 )?;
                 for record in &batch.records {
                     let tokens = &record.tokens;
@@ -1167,6 +1172,10 @@ mod tests {
         assert_eq!(records[0].project.as_deref(), Some("hud"));
         assert!(records[0].subagent);
         assert_eq!(records[0].thinking, 30);
+        assert_eq!(
+            records[0].tokens.reasoning, None,
+            "merging keeps a missing reasoning count missing"
+        );
         let calls = store
             .tool_calls(Provider::Claude, day, next)
             .await
