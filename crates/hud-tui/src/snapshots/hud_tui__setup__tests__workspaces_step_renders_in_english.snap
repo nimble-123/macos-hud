@@ -1,0 +1,20 @@
+---
+source: crates/hud-tui/src/setup.rs
+expression: rendered(&with_one_workspace(language)).backend()
+---
+"  Welcome to hud                                                                          "
+"  ──────────────────────────────────────────────────────────────────────────────────────  "
+"                                                                                          "
+"  Step 1 of 2: workspaces                                                                 "
+"  Folders in which hud looks for Git repositories. Space selects a suggestion; type your  "
+"  own path below.                                                                         "
+"                                                                                          "
+"  ▌ [x] ~/workspace                                                                       "
+"                                                                                          "
+"    Add path:                                                                             "
+"                                                                                          "
+"                                                                                          "
+"                                                                                          "
+"                                                                                          "
+"  ──────────────────────────────────────────────────────────────────────────────────────  "
+"  ↑↓ move   space select   enter next   esc cancel                                        "

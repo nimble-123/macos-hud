@@ -457,40 +457,59 @@ mod tests {
         terminal
     }
 
-    fn german() -> Model {
+    fn in_language(language: Language) -> Model {
         Model::new(UiSettings {
-            language: Language::De,
+            language,
             ..UiSettings::default()
         })
     }
 
+    /// Both languages with the snapshot suffix AGENTS.md asks for.
+    const LANGUAGES: [(Language, &str); 2] =
+        [(Language::De, "in_german"), (Language::En, "in_english")];
+
     #[test]
-    fn overview_is_active_on_start() {
-        insta::assert_snapshot!(render(&Model::default()).backend());
+    fn overview_on_start() {
+        for (language, suffix) in LANGUAGES {
+            insta::assert_snapshot!(
+                format!("overview_on_start_{suffix}"),
+                render(&in_language(language)).backend()
+            );
+        }
     }
 
     #[test]
     fn tab_key_activates_workspaces() {
-        let mut model = Model::default();
-        update(
-            &mut model,
-            Msg::Key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE)),
-        );
-        insta::assert_snapshot!(render(&model).backend());
+        for (language, suffix) in LANGUAGES {
+            let mut model = in_language(language);
+            update(
+                &mut model,
+                Msg::Key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE)),
+            );
+            insta::assert_snapshot!(
+                format!("tab_key_activates_workspaces_{suffix}"),
+                render(&model).backend()
+            );
+        }
     }
 
     #[test]
     fn footer_shows_scan_progress_on_every_tab() {
         use hud_application::AppEvent;
-        let mut model = german();
-        update(
-            &mut model,
-            Msg::App(AppEvent::ScanStarted {
-                total: 4,
-                fetch: false,
-            }),
-        );
-        insta::assert_snapshot!(render(&model).backend());
+        for (language, suffix) in LANGUAGES {
+            let mut model = in_language(language);
+            update(
+                &mut model,
+                Msg::App(AppEvent::ScanStarted {
+                    total: 4,
+                    fetch: false,
+                }),
+            );
+            insta::assert_snapshot!(
+                format!("footer_shows_scan_progress_{suffix}"),
+                render(&model).backend()
+            );
+        }
     }
 
     fn settings_tab(language: Language) -> Model {
@@ -857,13 +876,22 @@ mod tests {
     }
 
     #[test]
-    fn telemetry_dialog_in_german() {
+    fn telemetry_dialog() {
+        for (language, suffix) in LANGUAGES {
+            insta::assert_snapshot!(
+                format!("telemetry_dialog_{suffix}"),
+                render_wide(&telemetry_dialog_open(language)).backend()
+            );
+        }
+    }
+
+    fn telemetry_dialog_open(language: Language) -> Model {
         use hud_application::AppEvent;
         use hud_application::ports::telemetry::{
             ClaudeTelemetry, ReceiverState, telemetry_entries,
         };
         use hud_application::usecases::telemetry::TelemetryStatus;
-        let mut model = ai_tab(Language::De);
+        let mut model = ai_tab(language);
         let status = TelemetryStatus {
             receiver: ReceiverState::Listening(4318),
             claude: ClaudeTelemetry::Disabled,
@@ -877,7 +905,7 @@ mod tests {
             &mut model,
             Msg::Key(KeyEvent::new(KeyCode::Char('t'), KeyModifiers::NONE)),
         );
-        insta::assert_snapshot!(render_wide(&model).backend());
+        model
     }
 
     fn press(model: &mut Model, code: KeyCode) {
@@ -902,10 +930,15 @@ mod tests {
 
     #[test]
     fn a_scrolled_ai_tab_keeps_the_period_bar() {
-        let mut model = ai_tab(Language::De);
-        update(&mut model, Msg::Resize(115, 22));
-        press(&mut model, KeyCode::End);
-        insta::assert_snapshot!(render_wide(&model).backend());
+        for (language, suffix) in LANGUAGES {
+            let mut model = ai_tab(language);
+            update(&mut model, Msg::Resize(115, 22));
+            press(&mut model, KeyCode::End);
+            insta::assert_snapshot!(
+                format!("scrolled_ai_tab_{suffix}"),
+                render_wide(&model).backend()
+            );
+        }
     }
 
     #[test]
@@ -948,32 +981,42 @@ mod tests {
     }
 
     #[test]
-    fn help_overlay_on_the_log_tab_in_german() {
-        let mut model = german();
-        model.tab = Tab::Log;
-        update(
-            &mut model,
-            Msg::Key(KeyEvent::new(KeyCode::Char('?'), KeyModifiers::NONE)),
-        );
-        insta::assert_snapshot!(render_wide(&model).backend());
+    fn help_overlay_on_the_log_tab() {
+        for (language, suffix) in LANGUAGES {
+            let mut model = in_language(language);
+            model.tab = Tab::Log;
+            update(
+                &mut model,
+                Msg::Key(KeyEvent::new(KeyCode::Char('?'), KeyModifiers::NONE)),
+            );
+            insta::assert_snapshot!(
+                format!("help_overlay_on_the_log_tab_{suffix}"),
+                render_wide(&model).backend()
+            );
+        }
     }
 
     #[test]
-    fn quit_dialog_in_german() {
+    fn quit_dialog() {
         use hud_application::AppEvent;
         use hud_application::usecases::updates::{JobId, JobState, JobUpdate};
-        let mut model = german();
-        let job = JobUpdate {
-            id: JobId(1),
-            target: hud_domain::update::InstallTarget::AllSkills,
-            state: JobState::Running,
-        };
-        update(&mut model, Msg::App(AppEvent::Job(job)));
-        update(
-            &mut model,
-            Msg::Key(KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE)),
-        );
-        insta::assert_snapshot!(render_tall(&model).backend());
+        for (language, suffix) in LANGUAGES {
+            let mut model = in_language(language);
+            let job = JobUpdate {
+                id: JobId(1),
+                target: hud_domain::update::InstallTarget::AllSkills,
+                state: JobState::Running,
+            };
+            update(&mut model, Msg::App(AppEvent::Job(job)));
+            update(
+                &mut model,
+                Msg::Key(KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE)),
+            );
+            insta::assert_snapshot!(
+                format!("quit_dialog_{suffix}"),
+                render_tall(&model).backend()
+            );
+        }
     }
 
     #[test]
@@ -1021,25 +1064,33 @@ mod tests {
 
     #[test]
     fn settings_remove_dialog() {
-        let mut model = settings_tab(Language::De);
-        for _ in 0..3 {
+        for (language, suffix) in LANGUAGES {
+            let mut model = settings_tab(language);
+            for _ in 0..3 {
+                update(
+                    &mut model,
+                    Msg::Key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)),
+                );
+            }
             update(
                 &mut model,
-                Msg::Key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)),
+                Msg::Key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE)),
+            );
+            insta::assert_snapshot!(
+                format!("settings_remove_dialog_{suffix}"),
+                render_tall(&model).backend()
             );
         }
-        update(
-            &mut model,
-            Msg::Key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE)),
-        );
-        insta::assert_snapshot!(render_tall(&model).backend());
     }
 
-    fn loaded_overview(repos: Vec<hud_application::usecases::workspaces::RepoReport>) -> Model {
+    fn loaded_overview(
+        language: Language,
+        repos: Vec<hud_application::usecases::workspaces::RepoReport>,
+    ) -> Model {
         use hud_application::ports::system::SystemSample;
         use hud_application::usecases::workspaces::WorkspaceReport;
         use hud_application::{AppEvent, ReportSource};
-        let mut model = german();
+        let mut model = in_language(language);
         update(&mut model, Msg::Tick(std::time::Instant::now()));
         for step in 0..40u8 {
             let sample = SystemSample {
@@ -1082,46 +1133,313 @@ mod tests {
     fn overview_lists_only_deviations() {
         use hud_application::usecases::workspaces::RepoState;
         use hud_domain::git::SkipReason;
-        let model = loaded_overview(vec![
-            repo("/ws/a", RepoState::Behind(2)),
-            repo("/ws/b", RepoState::Skipped(SkipReason::TrackedChanges)),
-            repo(
-                "/ws/c",
-                RepoState::Skipped(SkipReason::Diverged {
-                    ahead: 2,
-                    behind: 5,
-                }),
-            ),
-            repo("/ws/d", RepoState::UpToDate),
-        ]);
-        insta::assert_snapshot!(render_wide(&model).backend());
+        for (language, suffix) in LANGUAGES {
+            let model = loaded_overview(
+                language,
+                vec![
+                    repo("/ws/a", RepoState::Behind(2)),
+                    repo("/ws/b", RepoState::Skipped(SkipReason::TrackedChanges)),
+                    repo(
+                        "/ws/c",
+                        RepoState::Skipped(SkipReason::Diverged {
+                            ahead: 2,
+                            behind: 5,
+                        }),
+                    ),
+                    repo("/ws/d", RepoState::UpToDate),
+                ],
+            );
+            insta::assert_snapshot!(
+                format!("overview_lists_only_deviations_{suffix}"),
+                render_wide(&model).backend()
+            );
+        }
     }
 
     #[test]
     fn overview_shows_ai_and_git_activity_calendars() {
         use hud_application::AppEvent;
         use hud_application::usecases::workspaces::RepoState;
-        let mut model = loaded_overview(vec![repo("/ws/a", RepoState::UpToDate)]);
-        let mut report = sample_usage();
-        report.calendar = sample_calendar();
-        update(&mut model, Msg::App(AppEvent::Usage(Box::new(report))));
-        let git = hud_domain::activity::ActivityCalendar {
-            first_day: hud_domain::activity::calendar_start(jiff::civil::date(2026, 10, 17)),
-            days: (0..(52 * 7 + 6)).map(|day: u64| day % 3).collect(),
-        };
-        update(&mut model, Msg::App(AppEvent::GitActivity(git)));
-        let mut terminal = Terminal::new(TestBackend::new(115, 40)).expect("BUG: test backend");
-        terminal
-            .draw(|frame| view(&model, frame))
-            .expect("BUG: test draw");
-        insta::assert_snapshot!(terminal.backend());
+        for (language, suffix) in LANGUAGES {
+            let mut model = loaded_overview(language, vec![repo("/ws/a", RepoState::UpToDate)]);
+            let mut report = sample_usage();
+            report.calendar = sample_calendar();
+            update(&mut model, Msg::App(AppEvent::Usage(Box::new(report))));
+            let git = hud_domain::activity::ActivityCalendar {
+                first_day: hud_domain::activity::calendar_start(jiff::civil::date(2026, 10, 17)),
+                days: (0..(52 * 7 + 6)).map(|day: u64| day % 3).collect(),
+            };
+            update(&mut model, Msg::App(AppEvent::GitActivity(git)));
+            let mut terminal = Terminal::new(TestBackend::new(115, 40)).expect("BUG: test backend");
+            terminal
+                .draw(|frame| view(&model, frame))
+                .expect("BUG: test draw");
+            insta::assert_snapshot!(
+                format!("overview_shows_activity_calendars_{suffix}"),
+                terminal.backend()
+            );
+        }
     }
 
     #[test]
     fn overview_is_calm_when_nothing_deviates() {
         use hud_application::usecases::workspaces::RepoState;
-        let model = loaded_overview(vec![repo("/ws/a", RepoState::UpToDate)]);
-        insta::assert_snapshot!(render_wide(&model).backend());
+        for (language, suffix) in LANGUAGES {
+            let model = loaded_overview(language, vec![repo("/ws/a", RepoState::UpToDate)]);
+            insta::assert_snapshot!(
+                format!("overview_is_calm_{suffix}"),
+                render_wide(&model).backend()
+            );
+        }
+    }
+
+    fn render_big(model: &Model) -> Terminal<TestBackend> {
+        let mut terminal = Terminal::new(TestBackend::new(115, 30)).expect("BUG: test backend");
+        terminal
+            .draw(|frame| view(model, frame))
+            .expect("BUG: test draw");
+        terminal
+    }
+
+    fn status(branch: &str, ahead: u32, behind: u32, tracked: u32) -> hud_domain::git::RepoStatus {
+        use hud_domain::git::{BranchName, CommitId, Head, RepoStatus, Upstream};
+        let oid =
+            |c: char| CommitId::try_from(c.to_string().repeat(40).as_str()).expect("BUG: hex");
+        RepoStatus {
+            head: Head::Branch(BranchName::try_from(branch.to_owned()).expect("BUG: branch")),
+            head_oid: Some(oid('a')),
+            upstream: Some(Upstream {
+                name: format!("origin/{branch}"),
+                oid: oid('b'),
+            }),
+            ahead,
+            behind,
+            tracked_changes: tracked,
+            untracked: 0,
+            operation: None,
+        }
+    }
+
+    /// Two workspaces with every kind of repository state, one opted out,
+    /// and one folder that is gone.
+    fn workspaces_tab(language: Language) -> Model {
+        use hud_application::usecases::workspaces::{RepoReport, RepoState, WorkspaceReport};
+        use hud_application::{AppEvent, ReportSource};
+        use hud_domain::git::{RepoPath, SkipReason};
+        let mut model = in_language(language);
+        model.tab = Tab::Workspaces;
+        let report = |path: &str, state, status| RepoReport {
+            repo: RepoPath::try_from(std::path::PathBuf::from(path)).expect("BUG: absolute"),
+            status: Some(status),
+            state,
+        };
+        let workspace = |path: &str, auto, repos| WorkspaceReport {
+            workspace: hud_domain::WorkspacePath::try_from(std::path::PathBuf::from(path))
+                .expect("BUG: absolute"),
+            auto_fast_forward: auto,
+            repos,
+            unavailable: None,
+        };
+        let mut gone = workspace("/Volumes/USB/old", true, None);
+        gone.unavailable = Some("not found".into());
+        let reports = vec![
+            workspace(
+                "/ws",
+                true,
+                Some(vec![
+                    report(
+                        "/ws/api",
+                        RepoState::FastForwarded(3),
+                        status("main", 0, 0, 0),
+                    ),
+                    report("/ws/app", RepoState::Behind(2), status("main", 0, 2, 0)),
+                    report(
+                        "/ws/blog",
+                        RepoState::Skipped(SkipReason::TrackedChanges),
+                        status("draft", 0, 1, 4),
+                    ),
+                    report(
+                        "/ws/lib",
+                        RepoState::Skipped(SkipReason::Diverged {
+                            ahead: 1,
+                            behind: 3,
+                        }),
+                        status("main", 1, 3, 0),
+                    ),
+                    report(
+                        "/ws/web",
+                        RepoState::Error("fetch timed out".into()),
+                        status("main", 0, 0, 0),
+                    ),
+                    report("/ws/wiki", RepoState::UpToDate, status("main", 0, 0, 0)),
+                ]),
+            ),
+            workspace(
+                "/clients",
+                false,
+                Some(vec![report(
+                    "/clients/acme",
+                    RepoState::Skipped(SkipReason::OptedOut),
+                    status("main", 0, 5, 0),
+                )]),
+            ),
+            gone,
+        ];
+        update(
+            &mut model,
+            Msg::App(AppEvent::Workspaces {
+                reports,
+                source: ReportSource::Sync,
+            }),
+        );
+        model
+    }
+
+    #[test]
+    fn workspaces_tab_shows_every_repository_state() {
+        for (language, suffix) in LANGUAGES {
+            insta::assert_snapshot!(
+                format!("workspaces_tab_{suffix}"),
+                render_big(&workspaces_tab(language)).backend()
+            );
+        }
+    }
+
+    /// Homebrew with a pinned formula and a running job, npm with a major
+    /// update and a failed job, Skills whose check failed.
+    fn updates_tab(language: Language) -> Model {
+        use hud_application::AppEvent;
+        use hud_application::ports::updates::{Availability, SourceCheck, UpdateError};
+        use hud_application::usecases::updates::{JobId, JobState, JobUpdate, SourceReport};
+        use hud_domain::update::{
+            InstallTarget, PackageKind, PackageName, SourceId, UpdateCandidate, Version,
+        };
+        let mut model = in_language(language);
+        model.tab = Tab::Updates;
+        let candidate = |source, kind, name: &str, current: &str, latest: &str| UpdateCandidate {
+            source,
+            kind,
+            name: PackageName::try_from(name.to_owned()).expect("BUG: name"),
+            current: Version::new(current),
+            latest: Version::new(latest),
+            pinned: false,
+        };
+        let check = |candidates| {
+            Some(Ok(SourceCheck {
+                candidates,
+                installed: Vec::new(),
+                updates_known: true,
+            }))
+        };
+        let wget = candidate(
+            SourceId::Homebrew,
+            PackageKind::Formula,
+            "wget",
+            "1.24.5",
+            "1.25.0",
+        );
+        let mut node = candidate(
+            SourceId::Homebrew,
+            PackageKind::Formula,
+            "node@20",
+            "20.11.0",
+            "20.18.1",
+        );
+        node.pinned = true;
+        let firefox = candidate(
+            SourceId::Homebrew,
+            PackageKind::Cask,
+            "firefox",
+            "131.0",
+            "132.0",
+        );
+        let wrangler = candidate(
+            SourceId::Npm,
+            PackageKind::NpmGlobal,
+            "wrangler",
+            "3.99.0",
+            "4.151.1",
+        );
+        let pnpm = candidate(
+            SourceId::Npm,
+            PackageKind::NpmGlobal,
+            "pnpm",
+            "10.2.0",
+            "10.4.1",
+        );
+        update(
+            &mut model,
+            Msg::App(AppEvent::Updates(vec![
+                SourceReport {
+                    source: SourceId::Homebrew,
+                    availability: Availability::Available("7.0.9".into()),
+                    check: check(vec![wget.clone(), node, firefox]),
+                },
+                SourceReport {
+                    source: SourceId::Npm,
+                    availability: Availability::Available("11.6.2".into()),
+                    check: check(vec![wrangler, pnpm.clone()]),
+                },
+                SourceReport {
+                    source: SourceId::Skills,
+                    availability: Availability::Available("1.7.2".into()),
+                    check: Some(Err(UpdateError::Failed {
+                        tool: "npx",
+                        message: "registry unreachable".into(),
+                    })),
+                },
+            ])),
+        );
+        for (id, target, state) in [
+            (1, InstallTarget::Package(wget), JobState::Running),
+            (
+                2,
+                InstallTarget::Package(pnpm),
+                JobState::Failed("EACCES: permission denied".into()),
+            ),
+        ] {
+            update(
+                &mut model,
+                Msg::App(AppEvent::Job(JobUpdate {
+                    id: JobId(id),
+                    target,
+                    state,
+                })),
+            );
+        }
+        model
+    }
+
+    #[test]
+    fn updates_tab_shows_candidates_jobs_and_errors() {
+        for (language, suffix) in LANGUAGES {
+            insta::assert_snapshot!(
+                format!("updates_tab_{suffix}"),
+                render_big(&updates_tab(language)).backend()
+            );
+        }
+    }
+
+    #[test]
+    fn install_dialog_warns_about_a_major_update() {
+        for (language, suffix) in LANGUAGES {
+            let mut model = updates_tab(language);
+            // Homebrew shows three rows; the npm major update comes next.
+            for _ in 0..3 {
+                update(
+                    &mut model,
+                    Msg::Key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)),
+                );
+            }
+            update(
+                &mut model,
+                Msg::Key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)),
+            );
+            insta::assert_snapshot!(
+                format!("install_dialog_major_{suffix}"),
+                render_big(&model).backend()
+            );
+        }
     }
 
     fn missing_tools(language: Language) -> Terminal<TestBackend> {
@@ -1161,10 +1479,5 @@ mod tests {
     #[test]
     fn a_missing_tool_says_how_to_fix_it_in_english() {
         insta::assert_snapshot!(missing_tools(Language::En).backend());
-    }
-
-    #[test]
-    fn german_overview_uses_german_texts() {
-        insta::assert_snapshot!(render(&german()).backend());
     }
 }

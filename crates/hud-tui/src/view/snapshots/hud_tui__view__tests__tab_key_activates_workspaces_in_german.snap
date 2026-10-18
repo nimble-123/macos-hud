@@ -1,0 +1,16 @@
+---
+source: crates/hud-tui/src/view/mod.rs
+expression: render(&model).backend()
+---
+"  Übersicht    Workspaces    Updates    KI    Protokoll    Einstellungen        "
+"  ────────────────────────────────────────────────────────────────────────────  "
+"                                                                                "
+"  Noch keine Workspaces eingerichtet.                                           "
+"                                                                                "
+"                                                                                "
+"                                                                                "
+"                                                                                "
+"                                                                                "
+"                                                                                "
+"  ────────────────────────────────────────────────────────────────────────────  "
+"  ↑↓ auswählen   f Fast-Forward   r aktualisieren   tab wechseln   ? Hilfe   q  "

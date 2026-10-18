@@ -1,0 +1,26 @@
+---
+source: crates/hud-tui/src/view/mod.rs
+expression: render_wide(&telemetry_dialog_open(language)).backend()
+---
+"  Overview    Workspaces    Updates    AI    Log    Settings                                                       "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"                                                                                                                   "
+"  Today   7 days   30 days   This month   Last month                                                               "
+"                                                                                                                   "
+"  Claude Cod┌ Switch on telemetry in Claude Code? ─────────────────────────────────────────────────────┐          ┃"
+"  Telemetry │                                                                                          │          ┃"
+"            │  hud adds to "env" in ~/.claude/settings.json:                                           │          ┃"
+"  Consumptio│                                                                                          │          │"
+"    Tokens  │    "CLAUDE_CODE_ENABLE_TELEMETRY": "1"                                                   │          │"
+"    Cost    │    "OTEL_METRICS_EXPORTER": "otlp"                                                       │          │"
+"    Cache hi│    "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL": "http/json"                                    │          │"
+"            │    "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT": "http://127.0.0.1:4318/v1/metrics"             │          │"
+"  Models    │                                                                                          │          │"
+"    ████████│  Metrics only, no prompts or answers. Other entries stay as they are.                    │          │"
+"    ■ Opus 5│                                                                                          │          │"
+"            │  enter add   esc cancel                                                                  │          │"
+"    Model   └──────────────────────────────────────────────────────────────────────────────────────────┘    Cost  │"
+"    claude-opus-5-5                     1,537         3.1k       212.4k        12.4M       180.2M      ≈ $137.48  │"
+"                                                                                                                   "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"  ←→ period   t switch on   r refresh   tab switch   ? help   q quit                                               "
