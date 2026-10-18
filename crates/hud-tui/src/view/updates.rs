@@ -29,19 +29,29 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         );
         return;
     }
-    let (lines, _) = build(model);
-    frame.render_widget(Paragraph::new(lines), area);
+    let (lines, map) = build(model);
+    let offset = super::follow(area, selected_line(&map, model.update_selected));
+    frame.render_widget(Paragraph::new(lines).scroll((offset, 0)), area);
     if let Some(target) = &model.confirm {
         render_confirm(model, target, frame, area);
     }
 }
 
-/// Update row under line `y` of the tab's area.
-pub(super) fn row_at(model: &Model, y: u16) -> Option<usize> {
+/// Line that shows row `selected`; the view keeps it on screen.
+fn selected_line(map: &[Option<usize>], selected: usize) -> usize {
+    map.iter()
+        .position(|row| *row == Some(selected))
+        .unwrap_or(0)
+}
+
+/// Update row under line `y` of the tab's area, as the frame shows it.
+pub(super) fn row_at(model: &Model, area: Rect, y: u16) -> Option<usize> {
     if model.updates.is_empty() {
         return None;
     }
-    build(model).1.get(usize::from(y)).copied().flatten()
+    let map = build(model).1;
+    let offset = super::follow(area, selected_line(&map, model.update_selected));
+    map.get(usize::from(y + offset)).copied().flatten()
 }
 
 /// Lines and, per line, the index into [`Model::update_rows`] it shows.

@@ -10,7 +10,6 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::Paragraph;
 
 use crate::Model;
 use crate::i18n::{t, t_args, t_count};
@@ -26,6 +25,12 @@ const BLOCKS: [char; 8] = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█
 const HIGH_LOAD: u8 = 90;
 
 pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
+    let lines = lines(model, area.width);
+    super::render_scrolled(model, frame, area, lines, model.overview_scroll);
+}
+
+/// Everything the overview shows, top to bottom, for an area `width` wide.
+pub(super) fn lines<'a>(model: &Model, width: u16) -> Vec<Line<'a>> {
     let mut lines = system_lines(model);
     lines.push(Line::raw(""));
     let deviations = deviation_lines(model);
@@ -38,7 +43,7 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         lines.push(Line::raw(""));
         lines.push(line);
     }
-    let width = usize::from(area.width);
+    let width = usize::from(width);
     let calendars = [
         model
             .usage
@@ -56,7 +61,7 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
             lines.extend(calendar);
         }
     }
-    frame.render_widget(Paragraph::new(lines), area);
+    lines
 }
 
 fn system_lines<'a>(model: &Model) -> Vec<Line<'a>> {

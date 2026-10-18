@@ -14,7 +14,7 @@ const KEY_WIDTH: usize = 18;
 /// Keys and what they do, as message ids, for `tab`.
 fn tab_keys(tab: Tab) -> &'static [(&'static str, &'static str)] {
     match tab {
-        Tab::Overview => &[("key-r", "help-sync")],
+        Tab::Overview => &[("help-key-scroll", "help-scroll"), ("key-r", "help-sync")],
         Tab::Workspaces => &[
             ("key-arrows", "help-select"),
             ("help-key-fast-forward", "help-fast-forward"),
@@ -27,6 +27,7 @@ fn tab_keys(tab: Tab) -> &'static [(&'static str, &'static str)] {
         ],
         Tab::Ai => &[
             ("help-key-period", "help-period"),
+            ("help-key-scroll", "help-scroll"),
             ("key-t", "help-telemetry"),
             ("key-r", "help-sync"),
         ],

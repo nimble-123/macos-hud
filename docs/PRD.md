@@ -101,7 +101,8 @@ Entwickler:innen, die mehrere lokale Repositories und CLI-Werkzeuge nutzen und d
 
 - Vollständig per Tastatur bedienbar; `?` zeigt die Tasten des aktuellen Tabs und die globalen Tasten
 - Listenauswahl und Zeitraumwahl laufen am Ende um
-- Maus optional: Klick auf Tab, Zeitraum, Zeile oder Fußzeilen-Aktion; ein zweiter Klick auf die gewählte Zeile wirkt wie `Enter`; das Mausrad bewegt die Auswahl; Dialoge reagieren nur auf Tasten, ein Klick schließt die Hilfe
+- Maus optional: Klick auf Tab, Zeitraum, Zeile oder Fußzeilen-Aktion; ein zweiter Klick auf die gewählte Zeile wirkt wie `Enter`; das Mausrad bewegt die Auswahl bzw. blättert; Dialoge reagieren nur auf Tasten, ein Klick schließt die Hilfe
+- Inhalte, die nicht ins Fenster passen, sind erreichbar: Listen halten die Auswahl sichtbar, Übersicht und KI-Tab lassen sich blättern
 - Ohne Maus-Support des Terminals funktioniert hud vollständig per Tastatur
 - Einstellungen-Tab: Sprache, Theme, Symbolsatz, Workspaces verwalten, Fast-Forward-Opt-out, Update-Opt-ins
 - Hintergrundaktionen mit Status in einer Fortschrittszeile der Fußzeile; Ergebnis und Dauer stehen im Protokoll

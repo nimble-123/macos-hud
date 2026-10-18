@@ -316,7 +316,7 @@ Befehle der TUI sind nach Agent gruppiert: `Command::Workspaces(WorkspaceCommand
 | `model` | `Model`: aktiver Tab, Auswahl, Scroll-Offsets, Dialoge, zuletzt empfangene Daten, Terminalgröße |
 | `msg` | `Msg`: `Key`, `Mouse`, `Resize(Spalten, Zeilen)`, `Tick(Instant)`, `App(AppEvent)`; der Tick trägt die Zeit, damit `update` ohne Uhr auskommt |
 | `update` | `fn update(model: &mut Model, msg: Msg) -> Vec<Command>`, rein, ohne I/O |
-| `view` | `fn view(model: &Model, frame: &mut Frame)`, rein; je Tab ein Untermodul (`overview`, `workspaces`, `updates`, `ai`, `log`, `settings`) plus `ai_kpis` (Kennzahlen des KI-Tabs), `calendar` (Aktivitätskalender), `help` (Hilfe-Overlay); `areas` und `hit` für die Maus |
+| `view` | `fn view(model: &Model, frame: &mut Frame)`, rein; je Tab ein Untermodul (`overview`, `workspaces`, `updates`, `ai`, `log`, `settings`) plus `ai_kpis` (Kennzahlen des KI-Tabs), `calendar` (Aktivitätskalender), `help` (Hilfe-Overlay); `areas` und `hit` für die Maus; `follow` hält in Listen die Auswahl sichtbar, `render_scrolled` und `max_scroll` begrenzen das freie Blättern von Übersicht und KI-Tab auf den Inhalt bei der aktuellen Terminalgröße |
 | `mouse` | löst Klicks und Mausrad über `view::hit` auf und übersetzt sie in Tasten-Aktionen (Abschnitt 8.10) |
 | `log_tab` | Filter, Suche und Auswahl des Protokoll-Tabs; fordert das Protokoll neu an, solange der Tab offen ist |
 | `settings_tab` | Zeilen des Einstellungen-Tabs, Pfadeingabe, Entfernen-Dialog; Änderungen nur als `SettingsCommand` |

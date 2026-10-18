@@ -125,7 +125,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 - **Rahmen** nur für Dialoge und die Hilfe, in `focus`; Bereiche haben keine Rahmen.
 - **Fußzeile** zeigt kontextabhängige Aktionen; jede Aktion hat ein Tastenkürzel und ist per Maus klickbar. Hinweise, die nur Tasten erklären (z. B. ↑↓), reagieren nicht auf Klicks.
 - **Maus**: Tab-Beschriftungen, Zeitraumauswahl und Listenzeilen sind klickbar; ein zweiter Klick auf die gewählte Zeile wirkt wie Enter (Workspaces: Fast-Forward, Updates: Bestätigungsdialog, Protokoll: Details vergrößern, Einstellungen: Wert ändern). Das Mausrad bewegt die Auswahl. Solange ein Dialog offen ist, werden Klicks ignoriert; ein Klick schließt die Hilfe.
-- **Scrollen**: Workspaces und Protokoll halten die Auswahl im sichtbaren Bereich. Übersicht, Updates, KI und Einstellungen scrollen nicht; was nicht ins Fenster passt, wird abgeschnitten.
+- **Scrollen**: Workspaces, Updates, Protokoll und Einstellungen halten die Auswahl im sichtbaren Bereich. Übersicht und KI-Tab blättern frei mit `↑` `↓`, Bild↑/Bild↓, Pos1/Ende und dem Mausrad, nie über das Ende des Inhalts hinaus; im KI-Tab bleibt die Zeitraumleiste oben stehen. Passt der Inhalt nicht, zeigt ein Scrollbalken im rechten Rand (Spur `│` in `rule`, Griff `┃` in `muted`) die Position, und die Fußzeile nennt „↑↓ blättern“.
 - **Übersicht zeigt nur Abweichungen** (Dark Cockpit). Ist alles normal, steht dort ein einziger neutraler Satz, z. B. „Alles aktuell. Letzte Prüfung vor 4 min.“ Repos zählen als „zurück“ (auch bei Opt-out), „übersprungen“ (Regel blockiert), „divergiert“ oder „Fehler“; nicht verfügbare Workspaces erscheinen eigens. Updates zählen ohne gepinnte Pakete.
 - Die Sparklines sind rechtsbündig: der neueste Wert steht immer an derselben Stelle. CPU oder Speicher ab 90 % erscheinen in `caution`.
 - Darunter die **KI-Aktivität** im Stil des GitHub-Contribution-Graphs: Kopf „KI-Aktivität   letzte N Wochen“, eine Spalte je Woche (so viele, wie in die Breite passen, höchstens 53), sieben Zeilen Mo bis So, beschriftet Mo, Mi, Fr; Monatskürzel über der Woche, in der ein Monat beginnt. Mit Farbe besteht eine Zelle aus `■` und Leerzeichen, fünf Stufen von `rule` bis `advisory` (0 und die Quartile der aktiven Tage); ohne Farben (`NO_COLOR`) zeigen `·░▒▓█` die Stufe. In der letzten Zeile Antworten, aktive Tage und längste Serie, rechts daneben die Legende „weniger ■■■■■ mehr“. Ohne jede Aktivität entfällt der Kalender.
@@ -136,7 +136,8 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 | Taste | Aktion |
 |---|---|
 | `Tab` / `Shift-Tab` | nächster / vorheriger Tab |
-| `↑` `↓`, `k` `j` | Auswahl bewegen; am Listenende geht es oben weiter und umgekehrt |
+| `↑` `↓`, `k` `j` | Auswahl bewegen; am Listenende geht es oben weiter und umgekehrt. In Übersicht und KI-Tab: blättern |
+| Bild↑ Bild↓, Pos1 Ende | Übersicht und KI-Tab: seitenweise bzw. an Anfang oder Ende blättern |
 | `Enter` | Workspaces: Fast-Forward wie `f`; Updates: Bestätigungsdialog öffnen; Protokoll: Details vergrößern oder verkleinern; Einstellungen: Wert ändern; in Dialogen: bestätigen |
 | `f` | Workspaces: Fast-Forward für das ausgewählte Repo; Protokoll: Filter wechseln |
 | `u` | Updates: ausgewähltes Paket aktualisieren |

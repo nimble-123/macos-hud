@@ -4,7 +4,9 @@ use ratatui::Frame;
 use ratatui::layout::{Constraint, Flex, Layout, Margin, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph};
+use ratatui::widgets::{
+    Block, Borders, Clear, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
+};
 
 mod ai;
 mod ai_kpis;
@@ -39,6 +41,69 @@ pub(crate) fn areas(model: &Model, full: Rect) -> [Rect; 3] {
     .horizontal_margin(2)
     .areas(full);
     [tabs, body.inner(Margin::new(0, 1)), footer]
+}
+
+/// Keeps the selection visible: scrolls so the selected line stays on screen.
+fn follow(area: Rect, selected_line: usize) -> u16 {
+    let height = usize::from(area.height).max(1);
+    let scroll = selected_line.saturating_sub(height.saturating_sub(2));
+    u16::try_from(scroll).unwrap_or(u16::MAX)
+}
+
+/// Lines that do not fit into `height`.
+fn max_offset(lines: usize, height: u16) -> u16 {
+    u16::try_from(lines.saturating_sub(usize::from(height))).unwrap_or(u16::MAX)
+}
+
+/// How far the overview or the AI tab can scroll at the current terminal size.
+pub(crate) fn max_scroll(model: &Model) -> u16 {
+    // Before the first resize the size is unknown; nothing scrolls then.
+    if model.area.is_empty() {
+        return 0;
+    }
+    let [_, body, _] = areas(model, model.area);
+    match model.tab() {
+        Tab::Overview => max_offset(overview::lines(model, body.width).len(), body.height),
+        Tab::Ai => {
+            let [_, rest] = ai::split(body);
+            max_offset(ai::lines(model).len(), rest.height)
+        }
+        Tab::Workspaces | Tab::Updates | Tab::Log | Tab::Settings => 0,
+    }
+}
+
+/// Lines of the scrolling area per page; one line overlaps.
+pub(crate) fn page(model: &Model) -> u16 {
+    let [_, body, _] = areas(model, model.area);
+    body.height.saturating_sub(1).max(1)
+}
+
+/// Draws `lines` from `offset`, clamped so the last page stays full; a
+/// scrollbar in the right margin shows when they do not fit.
+fn render_scrolled(
+    model: &Model,
+    frame: &mut Frame,
+    area: Rect,
+    lines: Vec<Line<'_>>,
+    offset: u16,
+) {
+    let max = max_offset(lines.len(), area.height);
+    let offset = offset.min(max);
+    frame.render_widget(Paragraph::new(lines).scroll((offset, 0)), area);
+    let column = area.right() + 1;
+    if max > 0 && column < frame.area().right() {
+        let mut state = ScrollbarState::new(usize::from(max))
+            .viewport_content_length(usize::from(area.height))
+            .position(usize::from(offset));
+        let bar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+            .begin_symbol(None)
+            .end_symbol(None)
+            .track_symbol(Some("│"))
+            .thumb_symbol("┃")
+            .track_style(Style::new().fg(model.theme.rule))
+            .thumb_style(Style::new().fg(model.theme.muted));
+        frame.render_stateful_widget(bar, Rect::new(column, area.y, 1, area.height), &mut state);
+    }
 }
 
 /// Renders the model into a frame. Pure: reads the model, writes the frame.
@@ -174,8 +239,8 @@ pub(crate) fn hit(model: &Model, full: Rect, x: u16, y: u16) -> Option<Hit> {
         Tab::Ai if row == 0 => span_at(&ai::period_bar(model), body.x, x)
             .map(|index| Hit::Period(hud_domain::usage::Period::ALL[index / 2])),
         Tab::Workspaces => workspaces::row_at(model, body, row).map(Hit::Row),
-        Tab::Updates => updates::row_at(model, row).map(Hit::Row),
-        Tab::Settings => settings::row_at(model, row).map(Hit::Row),
+        Tab::Updates => updates::row_at(model, body, row).map(Hit::Row),
+        Tab::Settings => settings::row_at(model, body, row).map(Hit::Row),
         Tab::Log => log::row_at(model, body, row).map(Hit::Row),
         Tab::Ai | Tab::Overview => None,
     }
@@ -285,6 +350,9 @@ fn footer_hints(model: &Model) -> Vec<(&'static str, &'static str)> {
         ]),
         Tab::Ai => {
             hints.push(("key-left-right", "hint-period"));
+            if max_scroll(model) > 0 {
+                hints.push(("key-arrows", "hint-scroll"));
+            }
             let can_enable = model.telemetry.as_ref().is_some_and(|status| {
                 status.claude == hud_application::ports::telemetry::ClaudeTelemetry::Disabled
             });
@@ -292,7 +360,11 @@ fn footer_hints(model: &Model) -> Vec<(&'static str, &'static str)> {
                 hints.push(("key-t", "telemetry-enable"));
             }
         }
-        Tab::Overview => {}
+        Tab::Overview => {
+            if max_scroll(model) > 0 {
+                hints.push(("key-arrows", "hint-scroll"));
+            }
+        }
     }
     // `r` does what fits the tab, and the hint says which.
     let refresh = match model.tab() {
@@ -806,6 +878,41 @@ mod tests {
             Msg::Key(KeyEvent::new(KeyCode::Char('t'), KeyModifiers::NONE)),
         );
         insta::assert_snapshot!(render_wide(&model).backend());
+    }
+
+    fn press(model: &mut Model, code: KeyCode) {
+        update(model, Msg::Key(KeyEvent::new(code, KeyModifiers::NONE)));
+    }
+
+    #[test]
+    fn the_ai_tab_scrolls_within_its_content() {
+        let mut model = ai_tab(Language::De);
+        update(&mut model, Msg::Resize(115, 22));
+        let max = max_scroll(&model);
+        assert!(max > 0, "two sources do not fit into 22 rows");
+        press(&mut model, KeyCode::End);
+        assert_eq!(model.ai_scroll, max);
+        press(&mut model, KeyCode::Down);
+        assert_eq!(model.ai_scroll, max, "never past the end");
+        press(&mut model, KeyCode::Home);
+        assert_eq!(model.ai_scroll, 0);
+        press(&mut model, KeyCode::PageDown);
+        assert_eq!(model.ai_scroll, page(&model).min(max));
+    }
+
+    #[test]
+    fn a_scrolled_ai_tab_keeps_the_period_bar() {
+        let mut model = ai_tab(Language::De);
+        update(&mut model, Msg::Resize(115, 22));
+        press(&mut model, KeyCode::End);
+        insta::assert_snapshot!(render_wide(&model).backend());
+    }
+
+    #[test]
+    fn nothing_scrolls_before_the_size_is_known() {
+        let mut model = ai_tab(Language::De);
+        press(&mut model, KeyCode::Down);
+        assert_eq!(model.ai_scroll, 0);
     }
 
     #[test]
