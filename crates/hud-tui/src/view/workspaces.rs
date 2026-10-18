@@ -65,6 +65,12 @@ fn build(model: &Model, width: u16) -> (Vec<Line<'_>>, Vec<Option<usize>>, usize
     let mut lines = Vec::new();
     let mut map = Vec::new();
     let mut selected_line = 0usize;
+    let tab = &model.workspaces_tab;
+    if tab.searching || !tab.query.is_empty() {
+        // The first workspace heading adds the blank line below.
+        lines.push(search_line(model));
+        map.push(None);
+    }
     for (index, row) in rows.iter().enumerate() {
         let line = match row {
             Row::Workspace { report, open } => {
@@ -132,6 +138,28 @@ fn build(model: &Model, width: u16) -> (Vec<Line<'_>>, Vec<Option<usize>>, usize
     }
 
     (lines, map, selected_line)
+}
+
+/// `Suche: portal█`, the cursor only while typing.
+fn search_line<'a>(model: &Model) -> Line<'a> {
+    let theme = &model.theme;
+    let tab = &model.workspaces_tab;
+    let query_style = if tab.searching {
+        Style::new().fg(theme.focus).add_modifier(Modifier::BOLD)
+    } else {
+        Style::new().fg(theme.ink)
+    };
+    let mut spans = vec![
+        Span::styled(
+            format!("{} ", t(model.settings.language, "log-search")),
+            Style::new().fg(theme.soft),
+        ),
+        Span::styled(tab.query.clone(), query_style),
+    ];
+    if tab.searching {
+        spans.push(Span::styled("█", Style::new().fg(theme.focus)));
+    }
+    Line::from(spans)
 }
 
 /// `▌▾ /path   23 Repos   ◆ 2`: marker, fold state, path, then counts or state.

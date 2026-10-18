@@ -10,7 +10,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 use hud_application::usecases::workspaces::{RepoReport, RepoState, WorkspaceReport};
 use hud_application::{Command, WorkspaceCommand};
 use hud_domain::WorkspacePath;
-use hud_domain::git::{RepoPath, SkipReason};
+use hud_domain::git::{Head, RepoPath, SkipReason};
 
 use crate::Model;
 use crate::icons::Status;
@@ -25,6 +25,10 @@ pub(crate) struct WorkspacesTab {
     pub(crate) all: bool,
     /// Most urgent repositories first instead of by name.
     pub(crate) by_status: bool,
+    /// Text the list is filtered by; empty shows everything.
+    pub(crate) query: String,
+    /// The search input is open and takes all keys.
+    pub(crate) searching: bool,
     /// Groups the user opened (`true`) or closed (`false`), by folder; the
     /// others follow [`opens_by_default`].
     pub(crate) open: HashMap<PathBuf, bool>,
@@ -126,7 +130,15 @@ pub(crate) fn deviations<'r>(
 
 /// Handles a key on the Workspaces tab; `None` leaves it to the global keys.
 pub(crate) fn on_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Command>> {
+    if model.workspaces_tab.searching {
+        on_search_key(&mut model.workspaces_tab, key);
+        return Some(Vec::new());
+    }
     match key.code {
+        KeyCode::Char('/') => model.workspaces_tab.searching = true,
+        KeyCode::Esc if !model.workspaces_tab.query.is_empty() => {
+            model.workspaces_tab.query.clear();
+        }
         KeyCode::Down | KeyCode::Char('j') => move_selection(model, 1),
         KeyCode::Up | KeyCode::Char('k') => move_selection(model, -1),
         KeyCode::Char('v') => model.workspaces_tab.all = !model.workspaces_tab.all,
@@ -140,6 +152,22 @@ pub(crate) fn on_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Command>> {
         _ => return None,
     }
     Some(Vec::new())
+}
+
+/// The search filters while typing; Enter keeps the text, Esc drops it.
+fn on_search_key(tab: &mut WorkspacesTab, key: KeyEvent) {
+    match key.code {
+        KeyCode::Char(c) => tab.query.push(c),
+        KeyCode::Backspace => {
+            tab.query.pop();
+        }
+        KeyCode::Enter => tab.searching = false,
+        KeyCode::Esc => {
+            tab.query.clear();
+            tab.searching = false;
+        }
+        _ => {}
+    }
 }
 
 /// Requests a manual fast-forward of the selected repo; the footer reports
@@ -184,7 +212,11 @@ pub(crate) fn rows(model: &Model) -> Vec<Row<'_>> {
             .filter(|report| status(model, report) != Status::Neutral)
             .map(|report| report.repo.as_path())
             .collect();
-        let open = is_open(model, workspace.workspace.as_path(), !attention.is_empty());
+        let matches = matches(model, repos);
+        let open = match &matches {
+            Some(matches) => !matches.is_empty(),
+            None => is_open(model, workspace.workspace.as_path(), !attention.is_empty()),
+        };
         rows.push(Row::Workspace {
             report: workspace,
             open,
@@ -216,8 +248,15 @@ pub(crate) fn rows(model: &Model) -> Vec<Row<'_>> {
                 continue;
             }
             closed = None;
-            if !model.workspaces_tab.all && !attention.iter().any(|repo| repo.starts_with(path)) {
-                hidden += 1;
+            let shown = match &matches {
+                Some(matches) => matches.iter().any(|repo| repo.starts_with(path)),
+                None => {
+                    model.workspaces_tab.all || attention.iter().any(|repo| repo.starts_with(path))
+                }
+            };
+            if !shown {
+                // A search hides what does not match without summing it up.
+                hidden += usize::from(matches.is_none());
                 continue;
             }
             let nested: Vec<&RepoReport> = ordered[index + 1..]
@@ -227,7 +266,7 @@ pub(crate) fn rows(model: &Model) -> Vec<Row<'_>> {
                 .collect();
             let group = (!nested.is_empty()).then(|| {
                 let deviations = deviations(model, nested.iter().copied());
-                let open = is_open(model, path, !deviations.is_empty());
+                let open = matches.is_some() || is_open(model, path, !deviations.is_empty());
                 if !open {
                     closed = Some(path);
                 }
@@ -252,6 +291,34 @@ pub(crate) fn rows(model: &Model) -> Vec<Row<'_>> {
         }
     }
     rows
+}
+
+/// Paths of `repos` whose name or branch contains the search text, ignoring
+/// case; `None` without a search.
+fn matches<'r>(model: &Model, repos: &'r [RepoReport]) -> Option<Vec<&'r Path>> {
+    let query = model.workspaces_tab.query.to_lowercase();
+    if query.is_empty() {
+        return None;
+    }
+    let found = repos
+        .iter()
+        .filter(|report| {
+            let branch = report
+                .status
+                .as_ref()
+                .and_then(|status| match &status.head {
+                    Head::Branch(name) => Some(name.to_string()),
+                    Head::Detached => None,
+                });
+            model
+                .repo_label(&report.repo)
+                .to_lowercase()
+                .contains(&query)
+                || branch.is_some_and(|branch| branch.to_lowercase().contains(&query))
+        })
+        .map(|report| report.repo.as_path())
+        .collect();
+    Some(found)
 }
 
 /// `repos` (sorted by path) in display order: by name, or most urgent first
@@ -434,6 +501,8 @@ mod tests {
 
     use hud_application::usecases::workspaces::WorkspaceReport;
     use hud_application::{AppEvent, ReportSource};
+
+    use crossterm::event::KeyModifiers;
 
     use super::*;
     use crate::{Msg, Tab, update};
@@ -668,5 +737,47 @@ mod tests {
                 "/ws/a/one"
             ]
         );
+    }
+
+    #[test]
+    fn a_search_shows_matching_repositories_with_their_parents() {
+        let mut model = model(vec![
+            report("/ws/a", RepoState::UpToDate),
+            report("/ws/a/portal", RepoState::UpToDate),
+            report("/ws/a/orders", RepoState::Behind(1)),
+            report("/ws/b", RepoState::Behind(1)),
+        ]);
+        for key in [KeyCode::Char('/'), KeyCode::Char('P'), KeyCode::Char('o')] {
+            update(&mut model, Msg::Key(KeyEvent::new(key, KeyModifiers::NONE)));
+        }
+        assert_eq!(
+            shown(&model),
+            ["/ws open: true", "/ws/a open: true", "/ws/a/portal"]
+        );
+    }
+
+    #[test]
+    fn escape_ends_the_search_and_shows_the_list_again() {
+        let mut model = model(vec![report("/ws/b", RepoState::Behind(1))]);
+        for key in [KeyCode::Char('/'), KeyCode::Char('x'), KeyCode::Enter] {
+            update(&mut model, Msg::Key(KeyEvent::new(key, KeyModifiers::NONE)));
+        }
+        assert_eq!(shown(&model), ["/ws open: false"], "nothing matches");
+        update(
+            &mut model,
+            Msg::Key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE)),
+        );
+        assert_eq!(shown(&model), ["/ws open: true", "/ws/b"]);
+    }
+
+    #[test]
+    fn keys_go_into_the_search_while_it_is_open() {
+        let mut model = model(vec![report("/ws/b", RepoState::Behind(1))]);
+        for key in [KeyCode::Char('/'), KeyCode::Char('q'), KeyCode::Char('r')] {
+            let commands = update(&mut model, Msg::Key(KeyEvent::new(key, KeyModifiers::NONE)));
+            assert_eq!(commands, Vec::new());
+        }
+        assert!(!model.should_quit());
+        assert_eq!(model.workspaces_tab.query, "qr");
     }
 }

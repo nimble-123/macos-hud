@@ -21,6 +21,8 @@ fn tab_keys(tab: Tab) -> &'static [(&'static str, &'static str)] {
             ("key-left-right", "help-fold"),
             ("key-v", "help-view"),
             ("key-s", "help-sort"),
+            ("key-slash", "help-search-repos"),
+            ("key-esc", "help-clear-search"),
             ("key-r", "help-sync"),
         ],
         Tab::Updates => &[
