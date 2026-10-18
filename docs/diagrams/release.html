@@ -61,7 +61,7 @@
     <div class="diagram-container">
       <svg viewBox="0 0 960 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="release-title release-desc">
 <title id="release-title">Release-Pipeline</title>
-<desc id="release-desc">Release-Pipeline: release-please erzeugt Release-PR und GitHub-Release; Release-Build baut auf macOS ein Universal-Binary (aarch64 und x86_64 per lipo) und prüft --version; Publish hängt Archiv, Prüfsumme und Build-Attestation an das Release; der Tap-Job schreibt Formula/hud.rb in nimble-123/homebrew-tap, von wo brew installiert. Release-PRs werden nur gebaut.</desc>
+<desc id="release-desc">Release-Pipeline: release-please erzeugt Release-PR und GitHub-Release; Release-Build baut auf macOS das Binary für Apple Silicon (aarch64) und prüft --version; Publish hängt Archiv, Prüfsumme und Build-Attestation an das Release; der Tap-Job schreibt Formula/hud.rb in nimble-123/homebrew-tap, von wo brew installiert. Release-PRs werden nur gebaut.</desc>
 <defs>
   <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#47505c"/></marker>
   <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#b02a8a"/></marker>
@@ -96,8 +96,8 @@
 <rect x="220" y="102" width="31.8" height="12" rx="2" fill="transparent" stroke="rgba(176,42,138,0.5)" stroke-width="0.8"/>
 <text x="235.9" y="111" fill="#b02a8a" font-size="7" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">MACOS</text>
 <text x="284.0" y="147.0" fill="#1c2128" font-size="12" font-weight="600" font-family="'Chakra Petch', system-ui, sans-serif" text-anchor="middle">Release-Build</text>
-<text x="284.0" y="159.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">aarch64 + x86_64</text>
-<text x="284.0" y="171.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">lipo → universal</text>
+<text x="284.0" y="159.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">aarch64-apple-darwin</text>
+<text x="284.0" y="171.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">cargo build --release</text>
 <text x="284.0" y="183.0" fill="#47505c" font-size="9" font-family="'IBM Plex Mono', ui-monospace, monospace" text-anchor="middle">--version-Prüfung</text>
 <rect x="408" y="96" width="144" height="112" rx="6" fill="#f2f3f1"/>
 <rect x="408" y="96" width="144" height="112" rx="6" fill="#ffffff" stroke="#1c2128" stroke-width="1"/>

@@ -64,10 +64,10 @@ Snapshot-Tests prüfen und annehmen: `cargo insta review`.
 
 ## Releases
 
-release-please pflegt auf `main` einen Release-PR mit Versionssprung und `CHANGELOG.md`. Es läuft mit dem Secret `RELEASE_PLEASE_TOKEN`; nur deshalb löst das Release den Build-Workflow aus. Auf diesem PR und auf jedem PR, der `release-build.yml` selbst ändert, baut der Workflow das Universal Binary zur Probe. Wird der PR gemergt, entstehen Tag und GitHub-Release, und derselbe Workflow
+release-please pflegt auf `main` einen Release-PR mit Versionssprung und `CHANGELOG.md`. Es läuft mit dem Secret `RELEASE_PLEASE_TOKEN`; nur deshalb löst das Release den Build-Workflow aus. Auf diesem PR und auf jedem PR, der `release-build.yml` selbst ändert, baut der Workflow das Binary zur Probe. Wird der PR gemergt, entstehen Tag und GitHub-Release, und derselbe Workflow
 
-1. baut `hud` für Apple Silicon und Intel und führt beide per `lipo` zusammen,
-2. hängt `hud-<version>-universal-apple-darwin.tar.gz` mit `.sha256` und Build-Provenance an das Release,
+1. baut `hud` für Apple Silicon (`aarch64-apple-darwin`),
+2. hängt `hud-<version>-aarch64-apple-darwin.tar.gz` mit `.sha256` und Build-Provenance an das Release,
 3. prüft `hud --version` und ergänzt den Release-Text um einen Installationshinweis,
 4. schreibt `Formula/hud.rb` in `nimble-123/homebrew-tap` neu (Secret `HOMEBREW_TAP_TOKEN`; fehlt es, warnt der Workflow nur, und die Formel zeigt weiter auf das vorige Release).
 

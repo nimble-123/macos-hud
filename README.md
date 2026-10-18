@@ -87,7 +87,7 @@ The rule lives in a pure function in the domain layer. Passing it is the only wa
 
 ## Install
 
-With [Homebrew](https://brew.sh), from the [nimble-123/tap](https://github.com/nimble-123/homebrew-tap) tap:
+hud runs on macOS on Apple Silicon. With [Homebrew](https://brew.sh), from the [nimble-123/tap](https://github.com/nimble-123/homebrew-tap) tap:
 
 ```bash
 brew install nimble-123/tap/hud
@@ -95,10 +95,10 @@ brew install nimble-123/tap/hud
 
 Update with `brew upgrade hud`; every release updates the formula automatically.
 
-Or download `hud-<version>-universal-apple-darwin.tar.gz` (Apple Silicon and Intel) from the [latest release](https://github.com/nimble-123/macos-hud/releases/latest), unpack it and put `hud` on your `PATH`. The binary is not signed or notarized; if macOS blocks a browser download, run `xattr -d com.apple.quarantine hud`. To check that an archive was built by this repository's release workflow:
+Or download `hud-<version>-aarch64-apple-darwin.tar.gz` (Apple Silicon only) from the [latest release](https://github.com/nimble-123/macos-hud/releases/latest), unpack it and put `hud` on your `PATH`. The binary is not signed or notarized; if macOS blocks a browser download, run `xattr -d com.apple.quarantine hud`. To check that an archive was built by this repository's release workflow:
 
 ```bash
-gh attestation verify hud-<version>-universal-apple-darwin.tar.gz --repo nimble-123/macos-hud
+gh attestation verify hud-<version>-aarch64-apple-darwin.tar.gz --repo nimble-123/macos-hud
 ```
 
 ### From source

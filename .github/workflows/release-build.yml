@@ -1,6 +1,6 @@
 name: Release-Build
 
-# Builds the universal macOS binary (Apple Silicon + Intel).
+# Builds the macOS binary for Apple Silicon.
 # - Release PRs from release-please and PRs touching this workflow: build and package only, as a check.
 # - Published release: build, attest, attach archive + checksum, then update the formula in
 #   nimble-123/homebrew-tap. Fires only because release-please runs with RELEASE_PLEASE_TOKEN.
@@ -43,7 +43,7 @@ jobs:
               - .github/workflows/release-build.yml
 
   build:
-    name: Release-Build (universal)
+    name: Release-Build (Apple Silicon)
     needs: changes
     # Skipped on ordinary PRs; !cancelled() keeps it running when "changes" is skipped on releases.
     if: >-
@@ -66,7 +66,7 @@ jobs:
       - name: Install toolchain and targets
         run: |
           rustup show active-toolchain || rustup toolchain install
-          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          rustup target add aarch64-apple-darwin
 
       - uses: Swatinem/rust-cache@v2
 
@@ -82,13 +82,11 @@ jobs:
           [ -n "${version}" ] || { echo "version not found" >&2; exit 1; }
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 
-      - name: Build universal binary
+      - name: Build binary
         run: |
-          cargo build --release --locked -p hud --target aarch64-apple-darwin --target x86_64-apple-darwin
+          cargo build --release --locked -p hud --target aarch64-apple-darwin
           mkdir -p dist/stage
-          lipo -create -output dist/stage/hud \
-            target/aarch64-apple-darwin/release/hud \
-            target/x86_64-apple-darwin/release/hud
+          cp target/aarch64-apple-darwin/release/hud dist/stage/hud
           lipo -info dist/stage/hud
 
       - name: Check the binary reports the release version
@@ -101,7 +99,7 @@ jobs:
 
       - name: Package
         run: |
-          archive="hud-${{ steps.version.outputs.version }}-universal-apple-darwin.tar.gz"
+          archive="hud-${{ steps.version.outputs.version }}-aarch64-apple-darwin.tar.gz"
           cp LICENSE README.md dist/stage/
           tar -C dist/stage -czf "dist/${archive}" hud LICENSE README.md
           (cd dist && shasum -a 256 "${archive}" > "${archive}.sha256")
@@ -111,7 +109,7 @@ jobs:
       - name: Keep artifact
         uses: actions/upload-artifact@v7
         with:
-          name: hud-${{ steps.version.outputs.version }}-universal-apple-darwin
+          name: hud-${{ steps.version.outputs.version }}-aarch64-apple-darwin
           path: dist/
           retention-days: 14
 
@@ -131,7 +129,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v7
         with:
-          pattern: hud-*-universal-apple-darwin
+          pattern: hud-*-aarch64-apple-darwin
           path: dist/
           merge-multiple: true
 
@@ -157,9 +155,9 @@ jobs:
           brew install nimble-123/tap/hud
           ```
 
-          Or download `hud-*-universal-apple-darwin.tar.gz` (Apple Silicon and Intel), unpack it and put `hud` on your `PATH`. The binary is not signed or notarized; if macOS blocks a browser download, run `xattr -d com.apple.quarantine hud`.
+          Or download `hud-*-aarch64-apple-darwin.tar.gz` (Apple Silicon), unpack it and put `hud` on your `PATH`. The binary is not signed or notarized; if macOS blocks a browser download, run `xattr -d com.apple.quarantine hud`.
 
-          Verify the origin: `gh attestation verify hud-*-universal-apple-darwin.tar.gz --repo nimble-123/macos-hud`
+          Verify the origin: `gh attestation verify hud-*-aarch64-apple-darwin.tar.gz --repo nimble-123/macos-hud`
           EOF
             printf '%s\n\n%s\n' "${notes}" "$(cat note.md)" > notes.md
             gh release edit "${TAG}" --notes-file notes.md
@@ -201,7 +199,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           version="${TAG#v}"
-          archive="hud-${version}-universal-apple-darwin.tar.gz"
+          archive="hud-${version}-aarch64-apple-darwin.tar.gz"
           url="https://github.com/${REPO}/releases/download/${TAG}/${archive}"
           curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors -o "${archive}" "${url}"
           sha="$(sha256sum "${archive}" | cut -d' ' -f1)"
@@ -215,6 +213,7 @@ jobs:
             sha256 "${sha}"
             license :cannot_represent
 
+            depends_on arch: :arm64
             depends_on :macos
 
             def install

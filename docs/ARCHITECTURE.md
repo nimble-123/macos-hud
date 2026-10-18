@@ -42,7 +42,7 @@ Alle Diagramme liegen als Quelle in `docs/diagrams/*.html` und eingebettet als `
 
 | Randbedingung | Erläuterung |
 |---|---|
-| Plattform | macOS (Apple Silicon und Intel), beliebiges Terminal mit mindestens 16 Farben |
+| Plattform | macOS auf Apple Silicon, beliebiges Terminal mit mindestens 16 Farben |
 | Sprache | Rust, Edition 2024, Toolchain fixiert per `rust-toolchain.toml` (1.99), `rust-version = "1.99"` |
 | UI | Ratatui + Crossterm |
 | Nebenläufigkeit | Tokio (Multi-Thread-Runtime) |
@@ -437,7 +437,7 @@ Ist `[ai.telemetry]` aktiv (Standard), öffnet das Binary beim Start den `OtlpRe
 
 | Artefakt | Ort |
 |---|---|
-| Binary | Homebrew-Formel `nimble-123/tap/hud` (Universal Binary aus dem GitHub-Release), alternativ Archiv aus dem Release oder `cargo install --path crates/hud` |
+| Binary | Homebrew-Formel `nimble-123/tap/hud` (Apple-Silicon-Binary aus dem GitHub-Release), alternativ Archiv aus dem Release oder `cargo install --path crates/hud` |
 | Config | `~/.config/hud/config.toml` (respektiert `XDG_CONFIG_HOME`) |
 | Datenbank | `~/Library/Application Support/hud/hud.db` (WAL-Modus) |
 | Logs | `~/Library/Logs/hud/hud.log.YYYY-MM-DD`, 7 Tage aufbewahrt |
@@ -448,9 +448,9 @@ Ist `[ai.telemetry]` aktiv (Standard), öffnet das Binary beim Start den `OtlpRe
 
 Pfade werden aus `$HOME`, `XDG_CONFIG_HOME` (nur wenn absolut), `CLAUDE_CONFIG_DIR`, `CODEX_HOME` und `SHELL` gebildet; ein zusätzliches Crate für Pfade ist nicht nötig.
 
-![Release-Pipeline: release-please, Universal-Build, Veröffentlichung und Homebrew-Tap](diagrams/release.svg)
+![Release-Pipeline: release-please, Build für Apple Silicon, Veröffentlichung und Homebrew-Tap](diagrams/release.svg)
 
-Release: release-please erzeugt Tag und Release; der Workflow `release-build.yml` baut auf macOS für `aarch64` und `x86_64`, fügt beides mit `lipo` zum Universal Binary zusammen, prüft `hud --version`, hängt Archiv und SHA-256 an das Release, erzeugt eine Build-Provenance-Attestierung (`gh attestation verify …`) und aktualisiert die Formel im Tap `nimble-123/homebrew-tap`. Das Binary ist weder signiert noch notarisiert.
+Release: release-please erzeugt Tag und Release; der Workflow `release-build.yml` baut auf macOS für `aarch64-apple-darwin` (nur Apple Silicon), prüft `hud --version`, hängt Archiv und SHA-256 an das Release, erzeugt eine Build-Provenance-Attestierung (`gh attestation verify …`) und aktualisiert die Formel im Tap `nimble-123/homebrew-tap` (mit `depends_on arch: :arm64`). Das Binary ist weder signiert noch notarisiert.
 
 ---
 

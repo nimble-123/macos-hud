@@ -5,7 +5,7 @@
 | **Version** | 0.7.0 |
 | **Status** | zur Prüfung |
 | **Stand** | 2026-10-18 |
-| **Zielplattform** | macOS (Apple Silicon und Intel), Terminal |
+| **Zielplattform** | macOS auf Apple Silicon, Terminal |
 | **Repository** | `nimble-123/macos-hud` (öffentlich) |
 | **Verwandte Dokumente** | [ARCHITECTURE.md](ARCHITECTURE.md) · [DESIGN.md](DESIGN.md) · Planung: GitHub Issues |
 
