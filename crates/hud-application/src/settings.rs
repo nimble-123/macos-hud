@@ -346,6 +346,8 @@ pub enum SettingsChange {
     AddWorkspace(String),
     /// Removes a workspace.
     RemoveWorkspace(WorkspacePath),
+    /// Maximum folder depth below a workspace.
+    ScanDepth(u8),
     /// Turns automatic fast-forward of one workspace on or off.
     AutoFastForward {
         /// Workspace.

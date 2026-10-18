@@ -181,6 +181,12 @@ fn with_change(
             let index = workspace_index(tables, workspace.as_path(), home)?;
             tables.remove(index);
         }
+        SettingsChange::ScanDepth(depth) => {
+            set(
+                &mut table(&mut document, "scan")["max_depth"],
+                i64::from(*depth),
+            );
+        }
         SettingsChange::AutoFastForward { workspace, enabled } => {
             let tables = workspaces_mut(&mut document)?;
             let index = workspace_index(tables, workspace.as_path(), home)?;
@@ -879,6 +885,13 @@ npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
         assert!(settings.codex.enabled);
         assert!(settings.claude.enabled, "Claude Code keeps its default");
         assert!(text.contains("[ai.codex]\nenabled = true"), "{text}");
+    }
+
+    #[test]
+    fn the_scan_depth_is_written_to_its_section() {
+        let (text, settings) = change(&SettingsChange::ScanDepth(5));
+        assert_eq!(settings.scan.max_depth, 5);
+        assert!(text.contains("[scan]\nmax_depth = 5"), "{text}");
     }
 
     #[test]

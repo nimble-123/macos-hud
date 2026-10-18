@@ -12,7 +12,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 
 use crate::Model;
-use crate::i18n::{t, t_args};
+use crate::i18n::{t, t_args, t_count};
 use crate::icons::{Status, status_glyph};
 use crate::settings::{Appearance, Language};
 use crate::settings_tab::{Notice, Row, rows};
@@ -79,7 +79,7 @@ fn build<'a>(
     for (index, row) in rows(preferences).iter().enumerate() {
         let current = match row {
             Row::Language(_) | Row::Theme(_) | Row::Icons(_) => "settings-display",
-            Row::Workspace { .. } | Row::AddWorkspace => "settings-workspaces",
+            Row::Workspace { .. } | Row::AddWorkspace | Row::ScanDepth(_) => "settings-workspaces",
             Row::AutoInstall { .. } => "settings-auto-install",
             Row::AiSource { .. } => "settings-ai-sources",
             Row::OverviewInsight { .. } => "settings-overview",
@@ -154,6 +154,13 @@ fn row_line<'a>(model: &Model, row: &Row, selected: bool, labels: usize) -> Line
         Row::AddWorkspace => (
             format!("+ {}", t(language, "settings-add-workspace")),
             Vec::new(),
+        ),
+        Row::ScanDepth(depth) => (
+            t(language, "settings-scan-depth"),
+            vec![Span::styled(
+                t_count(language, "settings-levels", "count", u32::from(*depth)),
+                Style::new().fg(theme.ink),
+            )],
         ),
         Row::AutoInstall { kind, enabled } => (
             t(

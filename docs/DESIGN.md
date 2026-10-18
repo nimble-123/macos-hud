@@ -295,6 +295,7 @@ Workspaces                      Automatischer Fast-Forward
   /Users/nimble/workspace       ● an
   /Volumes/1TB EXT/workspace    ○ aus                      aus in muted
   + Workspace hinzufügen
+  Suchtiefe                     3 Ebenen
 Automatische Installation
   Homebrew-Formeln              ○ aus
   Homebrew-Casks                ○ aus
@@ -313,6 +314,7 @@ KI-Quellen
 - Fünf Abschnitte, je ein fetter Kopf in `ink`; Werte in einer eigenen Spalte.
 - `Enter`, Leertaste oder `→` ändern die Zeile: Auswahlen wechseln zum nächsten Wert, `←` zum vorherigen; Schalter kippen. Die Anzeige zeigt immer den gespeicherten Stand, nicht eine lokale Vorschau.
 - `a` oder `Enter` auf „Workspace hinzufügen“ öffnet eine Eingabezeile in `focus` mit Cursor `█`; Pfade beginnen mit `/` oder `~/`. Solange die Eingabe offen ist, gehen alle Tasten an sie.
+- „Suchtiefe“ geht mit `Enter`/`→` eine Ebene tiefer, mit `←` eine flacher, zwischen 1 und 6 Ebenen; danach scannt hud sofort lokal neu.
 - `d` oder `Entf` öffnet einen zentrierten Dialog „Workspace entfernen?“ mit dem Hinweis, dass nur die Config geändert wird.
 - Sprache, Theme, Symbolsatz, KI-Quellen und die Zusatzanzeigen der Übersicht gelten sofort; eine abgeschaltete Zusatzanzeige verschwindet aus der Übersicht; eine abgeschaltete KI-Quelle verschwindet aus dem KI-Tab, ihre gespeicherten Daten bleiben. Ein abgelehnter Schreibversuch erscheint unter den Einstellungen in `warning`, ein ungültiger Pfad in `caution`.
 

@@ -47,7 +47,7 @@ Entwickler:innen, die mehrere lokale Repositories und CLI-Werkzeuge nutzen und d
 ### 4.2 Workspaces und Git
 
 - Workspace-Ordner werden beim **ersten Start** in einem Einrichtungsdialog festgelegt; weitere lassen sich jederzeit in den Einstellungen hinzufügen oder entfernen
-- hud findet Repositories bis zur eingestellten Suchtiefe unter dem Workspace, auch eigenständige Klone innerhalb eines anderen Repositorys; Submodule gehören zu ihrem Repository und erscheinen nicht einzeln
+- hud findet Repositories bis zur eingestellten Suchtiefe (Standard 3, im Einstellungen-Tab 1 bis 6 Ebenen; eine Änderung löst sofort einen lokalen Scan aus) unter dem Workspace, auch eigenständige Klone innerhalb eines anderen Repositorys; Submodule gehören zu ihrem Repository und erscheinen nicht einzeln
 - Nicht erreichbare Workspace-Ordner (z. B. ausgehängtes externes Volume) erscheinen als „nicht verfügbar“, ohne Fehler für andere Workspaces
 - Pro Repository: Statussymbol, Name, Branch, Ahead-/Behind-Zahlen (↑/↓) und Status bzw. Grund des Überspringens
 - Standardmäßig zeigt der Tab nur Repositories, die Aufmerksamkeit brauchen, und fasst die aktuellen je Workspace in einer Zeile zusammen; Taste `v` schaltet für die Sitzung auf alle um

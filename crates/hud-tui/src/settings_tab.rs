@@ -48,6 +48,7 @@ pub(crate) enum Row {
         auto_fast_forward: bool,
     },
     AddWorkspace,
+    ScanDepth(u8),
     AutoInstall {
         kind: AutoInstallKind,
         enabled: bool,
@@ -74,6 +75,7 @@ pub(crate) fn rows(settings: &Settings) -> Vec<Row> {
         auto_fast_forward: workspace.auto_fast_forward,
     }));
     rows.push(Row::AddWorkspace);
+    rows.push(Row::ScanDepth(settings.scan.max_depth));
     let opt_ins = settings.auto_install;
     rows.extend(
         [
@@ -212,9 +214,13 @@ fn change_for(row: &Row, step: isize) -> Option<SettingsChange> {
             insight: *insight,
             enabled: !enabled,
         },
+        Row::ScanDepth(current) => SettingsChange::ScanDepth(cycle(&SCAN_DEPTHS, *current, step)),
         Row::AddWorkspace => return None,
     })
 }
+
+/// Depths the settings tab offers; deeper scans take noticeably longer.
+const SCAN_DEPTHS: [u8; 6] = [1, 2, 3, 4, 5, 6];
 
 fn cycle<T: Copy + PartialEq>(values: &[T], current: T, step: isize) -> T {
     let position = values
@@ -417,6 +423,20 @@ mod tests {
                 insight: OverviewInsight::Unpushed,
                 enabled: false,
             })]
+        );
+    }
+
+    #[test]
+    fn the_scan_depth_steps_up_and_down() {
+        let mut model = model();
+        select(&mut model, &Row::ScanDepth(3));
+        assert_eq!(
+            update(&mut model, key(KeyCode::Right)),
+            vec![command(SettingsChange::ScanDepth(4))]
+        );
+        assert_eq!(
+            update(&mut model, key(KeyCode::Left)),
+            vec![command(SettingsChange::ScanDepth(2))]
         );
     }
 
