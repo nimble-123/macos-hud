@@ -496,20 +496,48 @@ mod tests {
         assert_eq!(choice.icons, IconSet::Ascii);
     }
 
-    #[test]
-    fn workspaces_step_renders_in_german() {
+    fn rendered(model: &SetupModel) -> Terminal<TestBackend> {
+        let mut terminal = Terminal::new(TestBackend::new(90, 16)).expect("BUG");
+        terminal
+            .draw(|frame| view_setup(model, frame))
+            .expect("BUG");
+        terminal
+    }
+
+    fn with_one_workspace(language: Language) -> SetupModel {
         let mut model = SetupModel::new(
             UiSettings {
-                language: Language::De,
+                language,
                 ..UiSettings::default()
             },
             vec!["~/workspace".into()],
         );
         update_setup(&mut model, &key(KeyCode::Char(' ')));
-        let mut terminal = Terminal::new(TestBackend::new(90, 16)).expect("BUG");
-        terminal
-            .draw(|frame| view_setup(&model, frame))
-            .expect("BUG");
-        insta::assert_snapshot!(terminal.backend());
+        model
+    }
+
+    const LANGUAGES: [(Language, &str); 2] =
+        [(Language::De, "in_german"), (Language::En, "in_english")];
+
+    #[test]
+    fn workspaces_step_renders() {
+        for (language, suffix) in LANGUAGES {
+            insta::assert_snapshot!(
+                format!("workspaces_step_renders_{suffix}"),
+                rendered(&with_one_workspace(language)).backend()
+            );
+        }
+    }
+
+    #[test]
+    fn symbol_step_renders() {
+        for (language, suffix) in LANGUAGES {
+            let mut model = with_one_workspace(language);
+            update_setup(&mut model, &key(KeyCode::Enter));
+            insta::assert_snapshot!(
+                format!("symbol_step_renders_{suffix}"),
+                rendered(&model).backend()
+            );
+        }
     }
 }

@@ -686,7 +686,7 @@ Die Summen der KI-Nutzung je Zeitraum (Sessions, Token, Kosten, Telemetrie) sind
 | Domain | Unit-Tests aller Regeln; Property-Tests für Grenzfälle (z. B. „bei `tracked_changes > 0` nie `FastForward`“) | `proptest` |
 | Application | Use-Case- und Agent-Tests gegen handgeschriebene Fakes (`FakeGit`, `FakeDiscovery`, `FakeLog`, `FakeCache`, `FakeHistory`, `FakeClock` in `testing.rs`; lokale `FakeSource`/`FakeStore`); Aufrufe werden über Zähler in den Fakes geprüft (z. B. „Upgrade wurde *nicht* aufgerufen“) | Fakes |
 | Infrastructure | Parser-Tests mit Fixtures (Skills, npm, Claude einschließlich Subagents, Codex einschließlich `.jsonl.zst`); Git-Integrationstests mit temporären Repos und lokalem Bare-Repo als Upstream; Update-Adapter gegen `FakeRunner`; SQLite in-memory | `tempfile` |
-| TUI | `update`- und Maus-Tests (Msg → Model/Commands); Snapshot-Tests von `view` und Einrichtung mit `TestBackend` (Text ohne Farben) in Deutsch und Englisch | `insta` |
+| TUI | `update`- und Maus-Tests (Msg → Model/Commands); Snapshot-Tests von `view` und Einrichtung mit `TestBackend` (Text ohne Farben); jede Ansicht als Paar `…_in_german`/`…_in_english`, auch Dialoge, Hilfe, Einrichtung (beide Schritte), Updates- und Workspaces-Tab | `insta` |
 | Binary | CLI-Auswertung und Reset | `tempfile` |
 
 - Review-Screenshots: `scripts/tui-screenshots.sh` rendert jeden Tab über das Example `hud-tui/examples/screenshot.rs` mit dem echten `view` in SVG und PNG.

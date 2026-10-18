@@ -1,16 +1,16 @@
 ---
 source: crates/hud-tui/src/view/mod.rs
-expression: render(&german()).backend()
+expression: render(&in_language(language)).backend()
 ---
-"  Übersicht    Workspaces    Updates    KI    Protokoll    Einstellungen        "
+"  Overview    Workspaces    Updates    AI    Log    Settings                    "
 "  ────────────────────────────────────────────────────────────────────────────  "
 "                                                                                "
-"  Systemwerte werden gemessen …                                                 "
+"  Measuring system values …                                                     "
 "                                                                                "
-"  Erste Prüfung läuft …                                                         "
+"  First check running …                                                         "
 "                                                                                "
 "                                                                                "
 "                                                                                "
 "                                                                                "
 "  ────────────────────────────────────────────────────────────────────────────  "
-"  r aktualisieren   tab wechseln   ? Hilfe   q beenden                          "
+"  r refresh   tab switch   ? help   q quit                                      "

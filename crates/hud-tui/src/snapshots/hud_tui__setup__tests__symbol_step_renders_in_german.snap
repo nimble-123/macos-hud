@@ -1,0 +1,20 @@
+---
+source: crates/hud-tui/src/setup.rs
+expression: rendered(&model).backend()
+---
+"  Willkommen bei hud                                                                      "
+"  ──────────────────────────────────────────────────────────────────────────────────────  "
+"                                                                                          "
+"  Schritt 2 von 2: Symbole                                                                "
+"  In welcher Zeile werden alle Symbole angezeigt? Nerd-Symbole brauchen eine Nerd Font i  "
+"                                                                                          "
+"  ▌ 1  ● ◆ ▲ ✖ ○           Unicode (empfohlen)                                            "
+"    2          󰚩   Nerd Font                                                      "
+"    3  + i ! x -           ASCII                                                          "
+"                                                                                          "
+"                                                                                          "
+"                                                                                          "
+"                                                                                          "
+"                                                                                          "
+"  ──────────────────────────────────────────────────────────────────────────────────────  "
+"  ↑↓ bewegen   Enter fertig   Esc abbrechen                                               "

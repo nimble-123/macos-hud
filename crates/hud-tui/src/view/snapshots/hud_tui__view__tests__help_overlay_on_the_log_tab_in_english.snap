@@ -1,0 +1,26 @@
+---
+source: crates/hud-tui/src/view/mod.rs
+expression: render_wide(&model).backend()
+---
+"  Overview    Workspaces    Updates    AI    Log    Settings                                                       "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"                                                                                                                   "
+"  Filter: all ┌ Keys ────────────────────────────────────────────────────────────────────────────────┐             "
+"              │                                                                                      │             "
+"  No actions l│  Log                                                                                 │             "
+"              │  ↑↓                move the selection, wrapping at both ends                         │             "
+"              │  /                 search, filters while typing                                      │             "
+"              │  f                 cycle the filter: all, automatic, manual, problems                │             "
+"              │  enter             enlarge or shrink the details                                     │             "
+"              │  esc               drop the search                                                   │             "
+"              │  r                 reload the log                                                    │             "
+"              │                                                                                      │             "
+"              │  Everywhere                                                                          │             "
+"              │  Tab, Shift-Tab    next or previous tab                                              │             "
+"              │  ?                 this help                                                         │             "
+"              │  q                 quit, asks while an installation runs                             │             "
+"              │  Ctrl-C            quit, even from an input                                          │             "
+"              └──────────────────────────────────────────────────────────────────────────────────────┘             "
+"                                                                                                                   "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"  ↑↓ select   enter details   / search   f filter   r reload   tab switch   ? help   q quit                        "

@@ -1,0 +1,26 @@
+---
+source: crates/hud-tui/src/view/mod.rs
+expression: render_wide(&model).backend()
+---
+"  Overview    Workspaces    Updates    AI    Log    Settings                                                       "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"                                                                                                                   "
+"  Today   7 days   30 days   This month   Last month                                                               "
+"                                                                                                                   "
+"                      ▃▃▆▆██▂▂  ▅▅▇▇▇▇▄▄                                                                          │"
+"    0:00                                       24:00                                                              │"
+"    Total               3 sessions, 212 responses, 96 tool calls                                                  │"
+"                                                                                                                  │"
+"  Plan usage   Plus plan, as of 3 min ago                                                                         │"
+"    5 hours             ███████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   13 %   resets 14:14        │"
+"    7 days              █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   3 %   resets 10/21 12:00   │"
+"                                                                                                                  │"
+"  Context   current                                                                                               │"
+"    ██████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   25 %   64.0k / 258.4k                          │"
+"    gpt-6-luna, macos-hud, 20 min ago                                                                             │"
+"                                                                                                                  ┃"
+"  Projects                                                                                                        ┃"
+"    macos-hud 100 %                                                                                               ┃"
+"                                                                                                                   "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"  ←→ period   ↑↓ scroll   r refresh   tab switch   ? help   q quit                                                 "
