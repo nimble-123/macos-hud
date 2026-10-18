@@ -206,6 +206,26 @@ async fn branch_without_upstream_is_skipped() {
 }
 
 #[tokio::test]
+async fn branch_whose_upstream_was_deleted_is_skipped() {
+    let fixture = Fixture::new();
+    git(&fixture.work, &["checkout", "-q", "-b", "feature"]);
+    git(&fixture.work, &["push", "-q", "-u", "origin", "feature"]);
+    git(
+        &fixture.other,
+        &["push", "-q", "origin", "--delete", "feature"],
+    );
+    git(&fixture.work, &["fetch", "-q", "--prune"]);
+    let status = Fixture::cli()
+        .status(&fixture.repo())
+        .await
+        .expect("BUG: status");
+    assert_eq!(
+        sync_decision(&fixture.repo(), &status, AUTO),
+        SyncDecision::Skip(SkipReason::NoUpstream)
+    );
+}
+
+#[tokio::test]
 async fn unfinished_rebase_is_detected() {
     let fixture = Fixture::new();
     commit(&fixture.other, "README.md", "remote edit\n");

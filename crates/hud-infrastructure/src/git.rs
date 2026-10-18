@@ -253,6 +253,9 @@ fn parse_status(stdout: &str) -> Result<ParsedStatus, GitError> {
         tracked_changes: 0,
         untracked: 0,
     };
+    // Git names a configured upstream even when its branch is gone (deleted
+    // on the remote and pruned); only `branch.ab` proves that it exists.
+    let mut upstream_exists = false;
     for line in stdout.lines() {
         if let Some(header) = line.strip_prefix("# ") {
             let (key, value) = header.split_once(' ').unwrap_or((header, ""));
@@ -266,7 +269,10 @@ fn parse_status(stdout: &str) -> Result<ParsedStatus, GitError> {
                     status.head = Head::Branch(name);
                 }
                 "branch.upstream" => status.upstream_name = Some(value.to_owned()),
-                "branch.ab" => (status.ahead, status.behind) = parse_ahead_behind(value)?,
+                "branch.ab" => {
+                    (status.ahead, status.behind) = parse_ahead_behind(value)?;
+                    upstream_exists = true;
+                }
                 _ => {}
             }
         } else if line.starts_with("1 ") || line.starts_with("2 ") || line.starts_with("u ") {
@@ -274,6 +280,9 @@ fn parse_status(stdout: &str) -> Result<ParsedStatus, GitError> {
         } else if line.starts_with("? ") {
             status.untracked = status.untracked.saturating_add(1);
         }
+    }
+    if !upstream_exists {
+        status.upstream_name = None;
     }
     Ok(status)
 }
@@ -380,6 +389,15 @@ mod tests {
         assert_eq!((status.ahead, status.behind), (1, 4));
         assert_eq!(status.tracked_changes, 3);
         assert_eq!(status.untracked, 2);
+    }
+
+    #[test]
+    fn upstream_without_branch_counts_as_none() {
+        let status = parse_status(&format!(
+            "# branch.oid {OID}\n# branch.head master\n# branch.upstream origin/master\n"
+        ))
+        .expect("BUG");
+        assert!(status.upstream_name.is_none());
     }
 
     #[test]
