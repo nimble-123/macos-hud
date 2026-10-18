@@ -293,10 +293,12 @@ fn footer_hints(model: &Model) -> Vec<(&'static str, &'static str)> {
         }
         Tab::Overview => {}
     }
-    let refresh = if model.tab() == Tab::Settings {
-        "hint-reload"
-    } else {
-        "hint-refresh"
+    // `r` does what fits the tab, and the hint says which.
+    let refresh = match model.tab() {
+        Tab::Settings => "hint-reload",
+        Tab::Updates => "hint-check",
+        Tab::Log => "hint-reload-log",
+        Tab::Overview | Tab::Workspaces | Tab::Ai => "hint-refresh",
     };
     hints.extend([
         ("key-r", refresh),
