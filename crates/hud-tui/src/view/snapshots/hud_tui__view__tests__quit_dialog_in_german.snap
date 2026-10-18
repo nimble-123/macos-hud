@@ -23,4 +23,4 @@ expression: render_tall(&model).backend()
 "                                                                                "
 "  ────────────────────────────────────────────────────────────────────────────  "
 "  ⠋ 1 Installation läuft   npx skills update --global --yes                     "
-"  r aktualisieren   tab wechseln   ? Hilfe   q beenden                          "
+"  a alles updaten   r aktualisieren   tab wechseln   ? Hilfe   q beenden        "

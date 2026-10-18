@@ -32,6 +32,7 @@ fn busy(model: &Model) -> bool {
         || model.checking_updates
         || model.ff_notice.is_some()
         || !model.jobs.is_empty()
+        || model.bulk.is_some()
 }
 
 /// Tab bar, body and footer of a frame; shared with mouse hit-testing so a
@@ -132,6 +133,9 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Tab::Log => log::render(model, frame, body),
         Tab::Ai => ai::render(model, frame, body),
         Tab::Overview => overview::render(model, frame, body),
+    }
+    if let Some(crate::model::Confirm::Everything { repos, targets }) = &model.confirm {
+        updates::render_confirm_all(model, Some(repos.len()), targets, frame, body);
     }
     render_footer(model, frame, footer);
     if model.help {
@@ -340,6 +344,7 @@ fn render_footer(model: &Model, frame: &mut Frame, area: Rect) {
     frame.render_widget(block, area);
     // Running installations matter most: they change the system.
     let progress = match model.scan {
+        _ if model.bulk.is_some() => bulk_progress(model),
         _ if !model.jobs.is_empty() => jobs_progress(model),
         _ if model.ff_notice.is_some() => workspaces::ff_notice(model),
         Some(scan) => scan_progress(model, scan),
@@ -422,6 +427,7 @@ fn footer_hints(model: &Model) -> Vec<(&'static str, &'static str)> {
             if max_scroll(model) > 0 {
                 hints.push(("key-arrows", "hint-scroll"));
             }
+            hints.push(("key-a", "hint-update-everything"));
         }
     }
     // `r` does what fits the tab, and the hint says which.
@@ -472,9 +478,6 @@ const BAR_WIDTH: usize = 20;
 
 /// Spinner, label, bar and count, e.g. `⠋ Lokaler Scan ████████░░░░ 23 / 79`.
 fn scan_progress(model: &Model, scan: crate::model::ScanProgress) -> Vec<Span<'static>> {
-    let theme = &model.theme;
-    let accent = theme.status(crate::icons::Status::Advisory);
-    let frame = SPINNER[usize::try_from(model.ticks % 10).unwrap_or(0)];
     let label = t(
         model.settings.language,
         if scan.fetch {
@@ -483,17 +486,55 @@ fn scan_progress(model: &Model, scan: crate::model::ScanProgress) -> Vec<Span<'s
             "scan-local"
         },
     );
-    let filled = (scan.done * BAR_WIDTH)
-        .checked_div(scan.total)
-        .unwrap_or(BAR_WIDTH);
+    bar_progress(model, &label, scan.done, scan.total)
+}
+
+/// The run of `a` on the overview: a bar while it runs, then its result.
+fn bulk_progress(model: &Model) -> Vec<Span<'static>> {
+    let Some(bulk) = &model.bulk else {
+        return Vec::new();
+    };
+    let language = model.settings.language;
+    if bulk.finished_at.is_none() {
+        let label = t(language, "bulk-running");
+        return bar_progress(model, &label, bulk.done(), bulk.total);
+    }
+    let ok = u32::try_from(bulk.total - bulk.problems).unwrap_or(u32::MAX);
+    let (status, text) = if bulk.problems == 0 {
+        (
+            crate::icons::Status::Ok,
+            crate::i18n::t_count(language, "bulk-done", "count", ok),
+        )
+    } else {
+        let problems = u32::try_from(bulk.problems).unwrap_or(u32::MAX);
+        (
+            crate::icons::Status::Caution,
+            format!(
+                "{}, {}",
+                crate::i18n::t_count(language, "bulk-done", "count", ok),
+                crate::i18n::t_count(language, "bulk-problems", "count", problems)
+            ),
+        )
+    };
+    vec![Span::styled(
+        format!(
+            "{} {text}",
+            crate::icons::status_glyph(model.settings.icons, status)
+        ),
+        Style::new().fg(model.theme.status(status)),
+    )]
+}
+
+fn bar_progress(model: &Model, label: &str, done: usize, total: usize) -> Vec<Span<'static>> {
+    let theme = &model.theme;
+    let accent = theme.status(crate::icons::Status::Advisory);
+    let frame = SPINNER[usize::try_from(model.ticks % 10).unwrap_or(0)];
+    let filled = (done * BAR_WIDTH).checked_div(total).unwrap_or(BAR_WIDTH);
     vec![
         Span::styled(format!("{frame} {label} "), Style::new().fg(accent)),
         Span::styled("█".repeat(filled), Style::new().fg(accent)),
         Span::styled("░".repeat(BAR_WIDTH - filled), Style::new().fg(theme.rule)),
-        Span::styled(
-            format!(" {} / {}", scan.done, scan.total),
-            Style::new().fg(theme.muted),
-        ),
+        Span::styled(format!(" {done} / {total}"), Style::new().fg(theme.muted)),
     ]
 }
 
@@ -1363,6 +1404,70 @@ mod tests {
             insta::assert_snapshot!(
                 format!("overview_warns_about_low_space_{suffix}"),
                 render_wide(&model).backend()
+            );
+        }
+    }
+
+    /// The updates fixture plus repos behind, on the overview.
+    fn update_everything(language: Language) -> Model {
+        use hud_application::usecases::workspaces::{RepoState, WorkspaceReport};
+        use hud_application::{AppEvent, ReportSource};
+        let mut model = updates_tab(language);
+        let workspace = WorkspaceReport {
+            workspace: hud_domain::WorkspacePath::try_from(std::path::PathBuf::from("/ws"))
+                .expect("BUG: absolute"),
+            auto_fast_forward: true,
+            repos: Some(vec![
+                repo("/ws/a", RepoState::Behind(2)),
+                repo("/ws/b", RepoState::Behind(1)),
+            ]),
+            unavailable: None,
+        };
+        update(
+            &mut model,
+            Msg::App(AppEvent::Workspaces {
+                reports: vec![workspace],
+                source: ReportSource::Sync,
+            }),
+        );
+        model.tab = Tab::Overview;
+        update(
+            &mut model,
+            Msg::Key(KeyEvent::new(KeyCode::Char('a'), KeyModifiers::NONE)),
+        );
+        model
+    }
+
+    #[test]
+    fn update_everything_asks_with_repositories_and_packages() {
+        for (language, suffix) in LANGUAGES {
+            insta::assert_snapshot!(
+                format!("update_everything_dialog_{suffix}"),
+                render_big(&update_everything(language)).backend()
+            );
+        }
+    }
+
+    #[test]
+    fn update_everything_shows_its_progress_in_the_footer() {
+        use hud_application::AppEvent;
+        use hud_application::usecases::workspaces::RepoState;
+        for (language, suffix) in LANGUAGES {
+            let mut model = update_everything(language);
+            update(
+                &mut model,
+                Msg::Key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)),
+            );
+            update(
+                &mut model,
+                Msg::App(AppEvent::RepoUpdated(repo(
+                    "/ws/a",
+                    RepoState::FastForwarded(2),
+                ))),
+            );
+            insta::assert_snapshot!(
+                format!("update_everything_progress_{suffix}"),
+                render_big(&model).backend()
             );
         }
     }

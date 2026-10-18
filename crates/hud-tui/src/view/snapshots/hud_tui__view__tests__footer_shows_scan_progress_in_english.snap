@@ -13,4 +13,4 @@ expression: render(&model).backend()
 "                                                                                "
 "  ────────────────────────────────────────────────────────────────────────────  "
 "  ⠋ Local scan ░░░░░░░░░░░░░░░░░░░░ 0 / 4                                       "
-"  r refresh   tab switch   ? help   q quit                                      "
+"  a update all   r refresh   tab switch   ? help   q quit                       "

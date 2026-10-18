@@ -23,4 +23,4 @@ expression: render_wide(&model).backend()
 "                                                                                                                   "
 "                                                                                                                   "
 "  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
-"  r refresh   tab switch   ? help   q quit                                                                         "
+"  a update all   r refresh   tab switch   ? help   q quit                                                          "

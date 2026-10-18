@@ -13,4 +13,4 @@ expression: render(&in_language(language)).backend()
 "                                                                                "
 "                                                                                "
 "  ────────────────────────────────────────────────────────────────────────────  "
-"  r refresh   tab switch   ? help   q quit                                      "
+"  a update all   r refresh   tab switch   ? help   q quit                       "
