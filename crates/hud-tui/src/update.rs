@@ -76,6 +76,11 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
     {
         return commands;
     }
+    if model.tab == Tab::Workspaces
+        && let Some(commands) = crate::workspaces_tab::on_key(model, key)
+    {
+        return commands;
+    }
     match key.code {
         KeyCode::Tab | KeyCode::BackTab => {
             model.tab = if key.code == KeyCode::Tab {
@@ -99,15 +104,6 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
         }
         KeyCode::Char('r') if !model.syncing => {
             return vec![Command::Workspaces(WorkspaceCommand::SyncNow)];
-        }
-        KeyCode::Down | KeyCode::Char('j') if model.tab == Tab::Workspaces => {
-            crate::workspaces_tab::move_selection(model, 1);
-        }
-        KeyCode::Up | KeyCode::Char('k') if model.tab == Tab::Workspaces => {
-            crate::workspaces_tab::move_selection(model, -1);
-        }
-        KeyCode::Char('v') if model.tab == Tab::Workspaces => {
-            model.workspaces_tab.all = !model.workspaces_tab.all;
         }
         KeyCode::Down | KeyCode::Char('j') if model.tab == Tab::Updates => {
             move_update_selection(model, 1);
@@ -138,29 +134,9 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
             let index = usize::from(u8::try_from(c).unwrap_or(b'1') - b'1');
             model.ai_period = Period::ALL[index];
         }
-        // Enter does what the row offers: on a repo that is the fast-forward,
-        // still guarded by the permit rules.
-        KeyCode::Char('f') | KeyCode::Enter if model.tab == Tab::Workspaces => {
-            return fast_forward_selected(model);
-        }
         _ => {}
     }
     Vec::new()
-}
-
-/// Requests a manual fast-forward of the selected repo; the footer reports
-/// at once that it runs and then what came of it.
-fn fast_forward_selected(model: &mut Model) -> Vec<Command> {
-    let Some(report) = crate::workspaces_tab::selected_repo(model) else {
-        return Vec::new();
-    };
-    let repo = report.repo.clone();
-    model.ff_notice = Some(crate::model::FfNotice {
-        repo: repo.clone(),
-        result: None,
-        at: None,
-    });
-    vec![Command::Workspaces(WorkspaceCommand::FastForward(repo))]
 }
 
 /// Opens the dialog for the selected row, unless it is pinned.
@@ -699,7 +675,7 @@ mod tests {
                 report("/ws/b", RepoState::Behind(2)),
             ])),
         );
-        update(&mut model, key(KeyCode::Down));
+        // Only the behind repository is shown, so it is selected.
         let commands = update(&mut model, key(KeyCode::Char('f')));
         assert_eq!(
             commands,
@@ -725,7 +701,7 @@ mod tests {
     }
 
     #[test]
-    fn repository_selection_wraps_at_both_ends() {
+    fn selection_wraps_at_both_ends_and_passes_the_workspace_heading() {
         let mut model = on_workspaces_tab();
         update(
             &mut model,
@@ -737,18 +713,21 @@ mod tests {
         let selected =
             |model: &Model| crate::workspaces_tab::selected_repo(model).map(|r| r.repo.to_string());
         update(&mut model, key(KeyCode::Char('v')));
+        assert_eq!(selected(&model).as_deref(), Some("/ws/a"));
+        update(&mut model, key(KeyCode::Up));
+        assert_eq!(
+            selected(&model),
+            None,
+            "the heading above the first repository"
+        );
         update(&mut model, key(KeyCode::Up));
         assert_eq!(
             selected(&model).as_deref(),
             Some("/ws/b"),
-            "up from the first row"
+            "up from the top wraps"
         );
         update(&mut model, key(KeyCode::Down));
-        assert_eq!(
-            selected(&model).as_deref(),
-            Some("/ws/a"),
-            "down from the last row"
-        );
+        assert_eq!(selected(&model), None, "down from the bottom wraps");
     }
 
     #[test]

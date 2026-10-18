@@ -1480,6 +1480,21 @@ mod tests {
     }
 
     #[test]
+    fn a_closed_repository_group_sums_up_what_it_holds() {
+        for (language, suffix) in LANGUAGES {
+            let mut model = workspaces_tab(language);
+            model
+                .workspaces_tab
+                .open
+                .insert(std::path::PathBuf::from("/ws/app"), false);
+            insta::assert_snapshot!(
+                format!("workspaces_closed_group_{suffix}"),
+                render_big(&model).backend()
+            );
+        }
+    }
+
+    #[test]
     fn workspaces_tab_shows_every_repository_state() {
         for (language, suffix) in LANGUAGES {
             insta::assert_snapshot!(

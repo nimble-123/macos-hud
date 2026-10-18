@@ -29,6 +29,10 @@ ws-repo-count = { $count ->
    *[other] { $count } repos
 }
 ws-all-current = all up to date
+ws-nested = { $count ->
+    [one] 1 nested repo
+   *[other] { $count } nested repos
+}
 ws-more-up-to-date = { $count ->
     [one] 1 more up to date
    *[other] { $count } more up to date
@@ -384,6 +388,7 @@ help-select = move the selection, wrapping at both ends
 help-details = enlarge or shrink the details
 help-fast-forward = fast-forward the selected repo
 help-view = show all repositories or only those that need attention
+help-fold = close or open a group; ← moves to the row above it
 help-sync = start fetch and sync now
 help-install = install the selected package (asks first)
 help-install-all = install every available update (asks first, skips pinned)

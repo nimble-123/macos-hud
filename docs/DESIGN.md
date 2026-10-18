@@ -142,10 +142,11 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 | `Tab` / `Shift-Tab` | nächster / vorheriger Tab |
 | `↑` `↓`, `k` `j` | Auswahl bewegen; am Listenende geht es oben weiter und umgekehrt. In Übersicht und KI-Tab: blättern |
 | Bild↑ Bild↓, Pos1 Ende | Übersicht und KI-Tab: seitenweise bzw. an Anfang oder Ende blättern |
-| `Enter` | Workspaces: Fast-Forward wie `f`; Updates: Bestätigungsdialog öffnen; Protokoll: Details vergrößern oder verkleinern; Einstellungen: Wert ändern; in Dialogen: bestätigen |
+| `Enter` | Workspaces: auf einem Workspace-Kopf ein- oder ausklappen, auf einem Repo Fast-Forward wie `f`; Updates: Bestätigungsdialog öffnen; Protokoll: Details vergrößern oder verkleinern; Einstellungen: Wert ändern; in Dialogen: bestätigen |
 | `f` | Workspaces: Fast-Forward für das ausgewählte Repo; Protokoll: Filter wechseln |
 | `u` | Updates: ausgewähltes Paket aktualisieren |
 | `v` | Workspaces: zwischen „nur Abweichungen“ (Standard) und allen Repos umschalten |
+| `←` `→`, `h` `l` | Workspaces: Workspace oder Repo mit Unterrepos einklappen bzw. ausklappen; `←` auf einer Zeile ohne offene Gruppe springt zum Eltern-Repo bzw. Workspace-Kopf |
 | `←` `→`, `h` `l`, `1`–`5` | KI: Zeitraum wechseln (läuft am Ende um) |
 | `t` | KI: Telemetrie in Claude Code einschalten (mit Rückfrage) |
 | `/` / `Esc` | Protokoll: Suche öffnen / Suche verwerfen |
@@ -160,18 +161,21 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 ### 5.2 Workspaces-Tab
 
 ```
-/Users/nimble/workspace/projects   14 Repos   ◆ 1  ✖ 1
-▌ ◆ hud                          main              ↓3       3 Commits zurück, Fast-Forward möglich
-  ✖ takt                         feature/x         ↑1 ↓2    divergiert
-  ○ 12 weitere aktuell
-/Volumes/extern   ✖ nicht verfügbar
+ ▾ /Users/nimble/workspace/projects   64 Repos   ◆ 2  ✖ 1
+▌ ◆   hud                        main              ↓3       3 Commits zurück, Fast-Forward möglich
+  ✖   takt                       feature/x         ↑1 ↓2    divergiert
+  ○ ▸ NETZbau                    main                       50 Unterrepos   ◆ 1
+  ○ 11 weitere aktuell
+ ▸ /Users/nimble/oss   8 Repos   alles aktuell
+   /Volumes/extern   ✖ nicht verfügbar
 ```
 
-- Je Workspace ein Kopf mit dem Pfad in `ink`, fett; dahinter die Zahl der Repos in `soft` und je abweichendem Status Symbol und Anzahl in der Statusfarbe (ohne Abweichung „alles aktuell“ in `soft`), danach gegebenenfalls „automatischer Fast-Forward aus“ in `soft`. Ein nicht verfügbarer Workspace zeigt nur „✖ nicht verfügbar“ in `warning`.
+- Je Workspace ein Kopf: Auswahlmarker, Klapp-Symbol `▾`/`▸` in `soft` (ASCII `v`/`>`), Pfad in `ink`, fett (ausgewählt in `focus`); dahinter die Zahl der Repos in `soft` und je abweichendem Status Symbol und Anzahl in der Statusfarbe (ohne Abweichung „alles aktuell“ in `soft`), danach gegebenenfalls „automatischer Fast-Forward aus“ in `soft`. Ein nicht verfügbarer Workspace zeigt nur „✖ nicht verfügbar“ in `warning`.
 - Je Repo: Auswahlmarker `▌` in `focus`, Statussymbol, Name relativ zum Workspace (ausgewählt in `focus`, fett; ein in einem anderen Repo liegendes Repo steht direkt darunter, je Ebene um zwei Spalten eingerückt, mit dem Pfad ab dem äußeren Repo), Branch (oder „(detached)“), `↑a ↓b` und Zustandstext in der Statusfarbe; aktuelle Repos mit Namen in `muted` und Details in `soft`.
 - Zurückliegende Repos zeigen „N Commits zurück, Fast-Forward möglich“ (◆), bei Opt-out „zurück, automatischer Fast-Forward aus (f)“ (▲); ein erledigter Fast-Forward „Fast-Forward: N Commits“ (●, 30 s).
 - **Nur Abweichungen** (Standard): Aktuelle Repos stehen je Workspace in einer Zeile „○ N weitere aktuell“ in `soft` (ohne Abweichung „○ alle N Repos aktuell“). Ein aktuelles Repo bleibt sichtbar, wenn es ein abweichendes Unterrepo enthält, ein frischer Fast-Forward (●) für 30 s. `v` schaltet auf alle Repos um und zurück; die Fußzeile nennt die jeweils andere Ansicht.
-- Die Auswahl hängt am Repo, nicht an der Zeile: Verschwinden Zeilen darüber, bleibt sie stehen; ist das gewählte Repo ausgeblendet, gilt das erste sichtbare.
+- **Einklappen**: Workspace-Köpfe und Repos mit Unterrepos tragen `▾` (offen) bzw. `▸` (eingeklappt); jeder Repo-Name hält dafür zwei Spalten frei. Ein eingeklapptes Repo zeigt statt der Unterrepos „N Unterrepos“ in `soft` und je abweichendem Status Symbol und Anzahl; den eigenen Zustand nur, wenn er abweicht, gekürzt, damit die Summe passt. In „nur Abweichungen“ starten Workspaces ohne Abweichung eingeklappt, in „alle“ ist alles offen; eigene Klapp-Entscheidungen gelten für die Sitzung.
+- Die Auswahl hängt am Workspace-Kopf oder Repo, nicht an der Zeile: Verschwinden Zeilen darüber, bleibt sie stehen; ist das gewählte Repo ausgeblendet, gilt das erste sichtbare.
 - Die Liste scrollt so, dass die Auswahl sichtbar bleibt; leere Workspaces zeigen während eines Scans „Suche Repositories …“.
 
 ### 5.3 Updates-Tab
