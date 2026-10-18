@@ -538,7 +538,7 @@ Alle Fremdwerkzeuge laufen über den internen `ProcessRunner`:
 - Timeouts: Git-Status/`rev-parse`/`config` 10 s, `log` 30 s, Fetch und Merge 60 s; `--version` 30 s (brew, npm) bzw. 60 s (Skills, auch `ls`); `brew update` und Outdated 120 s; Upgrade/Install/`skills update` 15 min; Login-Shell 3 s.
 - Bei Abbruch (`CancellationToken` des Runners): SIGTERM an die Prozessgruppe, nach 5 s SIGKILL; das Ergebnis ist `ProcessError::Cancelled`, das die Adapter auf `GitError::Cancelled` bzw. `UpdateError::Cancelled` abbilden. Bei Zeitüberschreitung erhält die Gruppe sofort SIGKILL.
 
-**Repo-Suche (`FsDiscovery`, in `spawn_blocking`).** Ein Repo ist ein Ordner mit `.git` (Ordner oder Worktree-Datei) bis `scan.max_depth` unter dem Workspace. Nicht betreten werden Repos selbst (Submodule und verschachtelte Repos gehören dazu), versteckte Ordner, Namen aus `scan.exclude` und Symlinks. Ein nicht lesbarer Unterordner wird übersprungen; ein fehlender Workspace ist ein Zustand („nicht verfügbar“), kein Fehler.
+**Repo-Suche (`FsDiscovery`, in `spawn_blocking`).** Ein Repo ist ein Ordner mit `.git` (Ordner oder Worktree-Datei) bis `scan.max_depth` unter dem Workspace. Die Suche geht auch in Repos hinein: Ein innerer Ordner mit eigenem `.git`-Ordner ist ein eigenständiger Klon und wird gelistet; eine `.git`-Datei kennzeichnet dort ein Submodul oder einen Worktree des äußeren Repos, der weder gelistet noch betreten wird. Nie betreten werden versteckte Ordner, Namen aus `scan.exclude` und Symlinks. Ein nicht lesbarer Unterordner wird übersprungen; ein fehlender Workspace ist ein Zustand („nicht verfügbar“), kein Fehler.
 
 ### 8.6 Persistenz
 

@@ -1252,8 +1252,8 @@ mod tests {
         }
     }
 
-    /// Two workspaces with every kind of repository state, one opted out,
-    /// and one folder that is gone.
+    /// Two workspaces with every kind of repository state, two clones nested
+    /// in another repository, one workspace opted out and one folder gone.
     fn workspaces_tab(language: Language) -> Model {
         use hud_application::usecases::workspaces::{RepoReport, RepoState, WorkspaceReport};
         use hud_application::{AppEvent, ReportSource};
@@ -1285,6 +1285,16 @@ mod tests {
                         status("main", 0, 0, 0),
                     ),
                     report("/ws/app", RepoState::Behind(2), status("main", 0, 2, 0)),
+                    report(
+                        "/ws/app/sap/bau-sap-orders",
+                        RepoState::UpToDate,
+                        status("main", 0, 0, 0),
+                    ),
+                    report(
+                        "/ws/app/ui/portal",
+                        RepoState::Behind(1),
+                        status("main", 0, 1, 0),
+                    ),
                     report(
                         "/ws/blog",
                         RepoState::Skipped(SkipReason::TrackedChanges),

@@ -9,8 +9,10 @@ use hud_domain::git::RepoPath;
 
 /// Finds Git repositories by looking for `.git` (folder or worktree file).
 ///
-/// Does not descend into a repository (submodules and nested repositories
-/// belong to it), into hidden folders, into excluded names or through symlinks.
+/// Descends into repositories as well: a folder inside one with its own `.git`
+/// folder is an independent clone. A `.git` file there marks a submodule or
+/// worktree that belongs to the outer repository; it is neither listed nor
+/// entered. Hidden folders, excluded names and symlinks are never entered.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct FsDiscovery;
 
@@ -36,13 +38,19 @@ fn walk(root: &Path, scan: &ScanSettings) -> Result<Vec<RepoPath>, DiscoveryErro
         return Err(DiscoveryError::Unavailable(root.display().to_string()));
     }
     let mut found = Vec::new();
-    let mut pending = vec![(root.to_path_buf(), 0u8)];
-    while let Some((dir, depth)) = pending.pop() {
-        if dir.join(".git").exists() {
-            if let Ok(repo) = RepoPath::try_from(dir) {
-                found.push(repo);
+    // Each folder carries whether it lies inside a repository found above it.
+    let mut pending = vec![(root.to_path_buf(), 0u8, false)];
+    while let Some((dir, depth, nested)) = pending.pop() {
+        let mut inside = nested;
+        match std::fs::metadata(dir.join(".git")) {
+            Ok(git) if nested && !git.is_dir() => continue,
+            Ok(_) => {
+                if let Ok(repo) = RepoPath::try_from(dir.clone()) {
+                    found.push(repo);
+                }
+                inside = true;
             }
-            continue;
+            Err(_) => {}
         }
         if depth >= scan.max_depth {
             continue;
@@ -73,7 +81,7 @@ fn walk(root: &Path, scan: &ScanSettings) -> Result<Vec<RepoPath>, DiscoveryErro
             if name.starts_with('.') || scan.exclude.iter().any(|excluded| *excluded == name) {
                 continue;
             }
-            pending.push((entry.path(), depth + 1));
+            pending.push((entry.path(), depth + 1, inside));
         }
     }
     found.sort();
@@ -116,12 +124,48 @@ mod tests {
     }
 
     #[test]
-    fn does_not_descend_into_repositories() {
+    fn finds_independent_clones_inside_a_repository() {
+        let dir = tempfile::tempdir().expect("BUG");
+        mkrepo(&dir.path().join("netzbau"));
+        mkrepo(&dir.path().join("netzbau/sap/bau-sap-a"));
+        mkrepo(&dir.path().join("netzbau/middleware/facade"));
+        let repos = walk(dir.path(), &ScanSettings::default()).expect("BUG");
+        assert_eq!(
+            names(dir.path(), &repos),
+            vec![
+                "netzbau",
+                "netzbau/middleware/facade",
+                "netzbau/sap/bau-sap-a"
+            ]
+        );
+    }
+
+    #[test]
+    fn skips_submodules_and_their_contents() {
         let dir = tempfile::tempdir().expect("BUG");
         mkrepo(&dir.path().join("api"));
-        mkrepo(&dir.path().join("api/vendor/lib"));
+        std::fs::create_dir_all(dir.path().join("api/vendor/lib")).expect("BUG");
+        std::fs::write(
+            dir.path().join("api/vendor/lib/.git"),
+            "gitdir: ../../.git/modules/lib\n",
+        )
+        .expect("BUG");
+        mkrepo(&dir.path().join("api/vendor/lib/inner"));
         let repos = walk(dir.path(), &ScanSettings::default()).expect("BUG");
         assert_eq!(names(dir.path(), &repos), vec!["api"]);
+    }
+
+    #[test]
+    fn nested_repositories_count_towards_max_depth() {
+        let dir = tempfile::tempdir().expect("BUG");
+        mkrepo(&dir.path().join("outer"));
+        mkrepo(&dir.path().join("outer/group/inner"));
+        let scan = ScanSettings {
+            max_depth: 2,
+            exclude: vec![],
+        };
+        let repos = walk(dir.path(), &scan).expect("BUG");
+        assert_eq!(names(dir.path(), &repos), vec!["outer"]);
     }
 
     #[test]

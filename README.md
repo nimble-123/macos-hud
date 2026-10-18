@@ -50,7 +50,7 @@ A typical machine carries dozens of repositories, three package managers and a c
 | | |
 | --- | --- |
 | **Overview** | CPU and memory with two-minute sparklines and the process count, a single list of what needs attention across repos and updates, and contribution graphs of your AI answers and own commits over the last 53 weeks. |
-| **Workspaces** | Point hud at your project folders. It finds every Git repository and shows branch, ahead/behind counts and its state, or why it was skipped. |
+| **Workspaces** | Point hud at your project folders. It finds every Git repository, including clones nested inside another one, and shows branch, ahead/behind counts and its state, or why it was skipped. |
 | **Auto fast-forward** | Every 15 minutes (configurable) hud fetches quietly and fast-forwards repos that are clean and only behind. On by default, switchable off per workspace. |
 | **Updates** | Outdated Homebrew formulae and casks, global npm packages and installed skills, each with the state of its CLI. Update one package, or all skills at once, after a confirmation. Pinned packages are shown but never installed. |
 | **Automatic installs** | Separate opt-ins for Homebrew formulae, casks and npm. Casks that ask for a password are flagged as manual and not retried. |

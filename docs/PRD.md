@@ -46,6 +46,7 @@ Entwickler:innen, die mehrere lokale Repositories und CLI-Werkzeuge nutzen und d
 ### 4.2 Workspaces und Git
 
 - Workspace-Ordner werden beim **ersten Start** in einem Einrichtungsdialog festgelegt; weitere lassen sich jederzeit in den Einstellungen hinzufügen oder entfernen
+- hud findet Repositories bis zur eingestellten Suchtiefe unter dem Workspace, auch eigenständige Klone innerhalb eines anderen Repositorys; Submodule gehören zu ihrem Repository und erscheinen nicht einzeln
 - Nicht erreichbare Workspace-Ordner (z. B. ausgehängtes externes Volume) erscheinen als „nicht verfügbar“, ohne Fehler für andere Workspaces
 - Pro Repository: Statussymbol, Name, Branch, Ahead-/Behind-Zahlen (↑/↓) und Status bzw. Grund des Überspringens
 - Upstream-Stand wird per `git fetch` ermittelt: direkt nach dem Start, danach periodisch (Default alle 15 min) und per Taste `r`, ohne interaktive Passwortabfragen

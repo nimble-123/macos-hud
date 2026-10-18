@@ -2,6 +2,8 @@
 
 use hud_application::usecases::workspaces::{RepoReport, RepoState, WorkspaceReport};
 use hud_domain::git::{GitOperation, Head, SkipReason};
+use std::path::Path;
+
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
@@ -83,14 +85,29 @@ fn build(model: &Model, width: u16) -> (Vec<Line<'_>>, Vec<Option<usize>>, usize
                 rows.push(None);
             }
             Some(repos) => {
+                // Repos arrive sorted by path, so an outer repository always
+                // comes right before the ones nested inside it.
+                let mut outer: Vec<&Path> = Vec::new();
                 for report in repos {
+                    let path = report.repo.as_path();
+                    while outer.last().is_some_and(|parent| !path.starts_with(parent)) {
+                        outer.pop();
+                    }
+                    let place = Place {
+                        base: outer
+                            .last()
+                            .copied()
+                            .unwrap_or(workspace.workspace.as_path()),
+                        level: outer.len(),
+                    };
+                    outer.push(path);
                     if row == model.selected {
                         selected_line = lines.len();
                     }
                     lines.push(repo_line(
                         model,
-                        workspace,
                         report,
+                        &place,
                         row == model.selected,
                         names,
                         rest,
@@ -127,10 +144,18 @@ fn header<'a>(model: &Model, workspace: &'a WorkspaceReport) -> Line<'a> {
     Line::from(spans)
 }
 
+/// Where a repository row sits: below the workspace or nested in another repo.
+struct Place<'a> {
+    /// The name is shown relative to this folder.
+    base: &'a Path,
+    /// Number of repositories it is nested in; each indents the row.
+    level: usize,
+}
+
 fn repo_line<'a>(
     model: &Model,
-    workspace: &WorkspaceReport,
     report: &'a RepoReport,
+    place: &Place<'_>,
     selected: bool,
     names: usize,
     rest: usize,
@@ -140,10 +165,11 @@ fn repo_line<'a>(
     let status = status_of(model, report);
     let quiet = status == Status::Neutral;
 
+    let indent = "  ".repeat(place.level);
     let name = report
         .repo
         .as_path()
-        .strip_prefix(workspace.workspace.as_path())
+        .strip_prefix(place.base)
         .ok()
         .filter(|relative| !relative.as_os_str().is_empty())
         .map_or_else(
@@ -186,7 +212,13 @@ fn repo_line<'a>(
             Style::new().fg(theme.status(status)),
         ),
         Span::raw(" "),
-        Span::styled(format!("{git_icon}{}", fit(&name, names)), name_style),
+        Span::styled(
+            format!(
+                "{indent}{git_icon}{}",
+                fit(&name, names.saturating_sub(indent.len()))
+            ),
+            name_style,
+        ),
         Span::styled(fit(&branch, BRANCH_WIDTH), detail_style),
         Span::styled(fit(&counts, COUNTS_WIDTH), detail_style),
         Span::styled(
