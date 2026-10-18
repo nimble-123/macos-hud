@@ -72,6 +72,7 @@ src-homebrew = Homebrew
 src-npm = npm (global)
 src-skills = Skills
 src-missing = not found
+src-missing-hint = { $program } not found in the login shell PATH. Install it or set `[tools] { $key } = "…"` in the config.
 src-broken = error: { $message }
 src-checking = checking …
 src-up-to-date = everything up to date

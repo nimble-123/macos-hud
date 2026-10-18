@@ -991,6 +991,45 @@ mod tests {
         insta::assert_snapshot!(render_wide(&model).backend());
     }
 
+    fn missing_tools(language: Language) -> Terminal<TestBackend> {
+        use hud_application::AppEvent;
+        use hud_application::ports::updates::Availability;
+        use hud_application::usecases::updates::SourceReport;
+        use hud_domain::update::SourceId;
+        let mut model = Model::new(UiSettings {
+            language,
+            ..UiSettings::default()
+        });
+        model.tab = Tab::Updates;
+        let missing = |source| SourceReport {
+            source,
+            availability: Availability::Missing,
+            check: None,
+        };
+        update(
+            &mut model,
+            Msg::App(AppEvent::Updates(vec![
+                missing(SourceId::Homebrew),
+                missing(SourceId::Skills),
+            ])),
+        );
+        let mut terminal = Terminal::new(TestBackend::new(115, 14)).expect("BUG: test backend");
+        terminal
+            .draw(|frame| view(&model, frame))
+            .expect("BUG: test draw");
+        terminal
+    }
+
+    #[test]
+    fn a_missing_tool_says_how_to_fix_it_in_german() {
+        insta::assert_snapshot!(missing_tools(Language::De).backend());
+    }
+
+    #[test]
+    fn a_missing_tool_says_how_to_fix_it_in_english() {
+        insta::assert_snapshot!(missing_tools(Language::En).backend());
+    }
+
     #[test]
     fn german_overview_uses_german_texts() {
         insta::assert_snapshot!(render(&german()).backend());
