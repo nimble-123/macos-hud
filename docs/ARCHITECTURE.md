@@ -320,7 +320,7 @@ Befehle der TUI sind nach Agent gruppiert: `Command::Workspaces(WorkspaceCommand
 | `view` | `fn view(model: &Model, frame: &mut Frame)`, rein; je Tab ein Untermodul (`overview`, `workspaces`, `updates`, `ai`, `log`, `settings`) plus `ai_kpis` (Kennzahlen des KI-Tabs), `calendar` (Aktivitätskalender), `help` (Hilfe-Overlay); `areas` und `hit` für die Maus; `follow` hält in Listen die Auswahl sichtbar, `render_scrolled` und `max_scroll` begrenzen das freie Blättern von Übersicht und KI-Tab auf den Inhalt bei der aktuellen Terminalgröße; Spalten- und Balkenbreiten berechnet jede Ansicht aus der Breite ihrer Fläche (`bar_width`, `name_width`, `label_width`), `clip` kürzt mit `…` |
 | `mouse` | löst Klicks und Mausrad über `view::hit` auf und übersetzt sie in Tasten-Aktionen (Abschnitt 8.10) |
 | `log_tab` | Filter, Suche und Auswahl des Protokoll-Tabs; fordert das Protokoll neu an, solange der Tab offen ist |
-| `workspaces_tab` | sichtbare Zeilen des Workspaces-Tabs (`rows`: Workspace-Köpfe, Repos mit Einrückung, Sammelzeile der aktuellen), Ansicht „nur Abweichungen“/„alle“ und Auswahl als `RepoPath` |
+| `workspaces_tab` | sichtbare Zeilen des Workspaces-Tabs (`rows`: Workspace-Köpfe, Repos mit Einrückung, Sammelzeile der aktuellen), Ansicht „nur Abweichungen“/„alle“, ein- und ausgeklappte Gruppen je Ordner, Auswahl als `Selection` (Workspace oder Repo) und die Tasten des Tabs |
 | `settings_tab` | Zeilen des Einstellungen-Tabs, Pfadeingabe, Entfernen-Dialog; Änderungen nur als `SettingsCommand` |
 | `setup` | Einrichtungsdialog: `SetupModel`, `update_setup`, `view_setup` |
 | `settings` | `UiSettings::resolve` (Sprache, Erscheinungsbild, Symbolsatz aus Config und System), `Language::from_locale`, `ColorDepth::from_env` |

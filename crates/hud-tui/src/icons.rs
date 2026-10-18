@@ -60,6 +60,17 @@ pub fn status_glyph(icons: IconSet, status: Status) -> &'static str {
     }
 }
 
+/// Marker of a group that can be opened or closed.
+#[must_use]
+pub fn fold_glyph(icons: IconSet, open: bool) -> &'static str {
+    match (icons, open) {
+        (IconSet::Unicode | IconSet::Nerd, true) => "▾",
+        (IconSet::Unicode | IconSet::Nerd, false) => "▸",
+        (IconSet::Ascii, true) => "v",
+        (IconSet::Ascii, false) => ">",
+    }
+}
+
 /// Icon for a source; only the `nerd` set has them, the others show the name.
 #[must_use]
 pub fn source_glyph(icons: IconSet, source: Source) -> Option<&'static str> {

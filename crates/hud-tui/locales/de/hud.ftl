@@ -29,6 +29,10 @@ ws-repo-count = { $count ->
    *[other] { $count } Repos
 }
 ws-all-current = alles aktuell
+ws-nested = { $count ->
+    [one] 1 Unterrepo
+   *[other] { $count } Unterrepos
+}
 ws-more-up-to-date = { $count ->
     [one] 1 weiteres aktuell
    *[other] { $count } weitere aktuell
@@ -384,6 +388,7 @@ help-select = Auswahl bewegen, am Ende geht es oben weiter
 help-details = Details vergrößern oder verkleinern
 help-fast-forward = Fast-Forward für das ausgewählte Repo
 help-view = alle Repos oder nur Abweichungen zeigen
+help-fold = Gruppe einklappen bzw. ausklappen; ← springt zur übergeordneten Zeile
 help-sync = Fetch und Sync jetzt starten
 help-install = ausgewähltes Paket installieren (mit Rückfrage)
 help-install-all = alle verfügbaren Updates installieren (mit Rückfrage, ohne gepinnte)
