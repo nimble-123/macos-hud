@@ -102,7 +102,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 ## 5. TUI-Layout
 
 ```
-  Übersicht    Workspaces    Updates    KI    Protokoll    Einstellungen         Tabs, aktiver in focus, fett, unterstrichen
+  Übersicht    Workspaces    Updates    KI    Protokoll    Einstellungen   hud 0.11.0   Tabs, aktiver in focus, fett, unterstrichen; Version rechts in soft
   ─────────────────────────────────────────────────────────────────────          Trennlinie in rule
 
   CPU          26 %     ▁▁▂▂▃▃▄▄▅▁▁▂▂▃▃▄▄▅…(60 Werte = 2 min)                       Summen + Sparklines
@@ -123,6 +123,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
   r aktualisieren   tab wechseln   ? Hilfe   q beenden                             klickbare Fußzeile
 ```
 
+- Rechts in der Tab-Leiste steht die laufende Version („hud 0.11.0“) in `soft`; reicht die Breite nicht für Tabs und Version, entfällt die Version.
 - Kein äußerer Rahmen, links und rechts zwei Spalten Rand. Trennlinien in `rule` unter den Tabs und über der Fußzeile.
 - **Linksbündig**, eine Spalte für Text, Zahlen rechtsbündig in eigenen Spalten.
 - **Rahmen** nur für Dialoge und die Hilfe, in `focus`; Bereiche haben keine Rahmen.

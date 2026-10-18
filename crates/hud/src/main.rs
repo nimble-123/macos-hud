@@ -129,7 +129,8 @@ async fn main() -> anyhow::Result<std::process::ExitCode> {
         session.terminal(),
         Model::new(settings)
             .with_system(system)
-            .with_time_zone(jiff::tz::TimeZone::system()),
+            .with_time_zone(jiff::tz::TimeZone::system())
+            .with_version(env!("CARGO_PKG_VERSION")),
         &mut background.events,
         &background.commands,
     )
