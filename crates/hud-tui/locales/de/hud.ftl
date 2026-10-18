@@ -21,6 +21,11 @@ checking-updates = Update-Prüfung läuft…
 ws-none = Noch keine Workspaces eingerichtet.
 ws-unavailable = nicht verfügbar
 ws-auto-off = automatischer Fast-Forward aus
+ws-repo-count = { $count ->
+    [one] 1 Repo
+   *[other] { $count } Repos
+}
+ws-all-current = alles aktuell
 ws-empty = Keine Repositories gefunden.
 branch-detached = (detached)
 state-up-to-date = aktuell
