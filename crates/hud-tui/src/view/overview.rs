@@ -14,7 +14,7 @@ use ratatui::widgets::Paragraph;
 
 use crate::Model;
 use crate::i18n::{t, t_args, t_count};
-use crate::icons::{Status, status_glyph};
+use crate::icons::{Source, Status, source_glyph, status_glyph};
 use crate::settings::Language;
 use crate::theme::Activity;
 
@@ -62,11 +62,12 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
 fn system_lines<'a>(model: &Model) -> Vec<Line<'a>> {
     let language = model.settings.language;
     let theme = &model.theme;
-    let label = |key: &str| {
-        Span::styled(
-            fit(&t(language, key), LABEL_WIDTH),
-            Style::new().fg(theme.soft),
-        )
+    // With Nerd Font icons each value gets its symbol in front of the name.
+    let label = |key: &str, source: Source| {
+        let name = t(language, key);
+        let text = source_glyph(model.settings.icons, source)
+            .map_or_else(|| name.clone(), |glyph| format!("{glyph} {name}"));
+        Span::styled(fit(&text, LABEL_WIDTH), Style::new().fg(theme.soft))
     };
     let Some(latest) = model.load.back().copied() else {
         return vec![Line::styled(
@@ -91,12 +92,12 @@ fn system_lines<'a>(model: &Model) -> Vec<Line<'a>> {
         .collect();
     vec![
         Line::from(vec![
-            label("overview-cpu"),
+            label("overview-cpu", Source::Cpu),
             load(latest.cpu_percent),
             spark(cpu),
         ]),
         Line::from(vec![
-            label("overview-memory"),
+            label("overview-memory", Source::Memory),
             load(latest.memory_percent()),
             spark(memory),
             Span::styled(
@@ -109,7 +110,7 @@ fn system_lines<'a>(model: &Model) -> Vec<Line<'a>> {
             ),
         ]),
         Line::from(vec![
-            label("overview-processes"),
+            label("overview-processes", Source::Processes),
             Span::styled(latest.processes.to_string(), Style::new().fg(theme.ink)),
         ]),
     ]
@@ -359,6 +360,43 @@ mod tests {
     fn sparkline_keeps_only_the_last_two_minutes() {
         let values = vec![100; SPARK_SAMPLES + 10];
         assert_eq!(sparkline(&values), "█".repeat(SPARK_SAMPLES));
+    }
+
+    fn system_labels(icons: crate::settings::IconSet) -> Vec<String> {
+        use hud_application::AppEvent;
+        let mut model = Model::new(crate::UiSettings {
+            icons,
+            ..crate::UiSettings::default()
+        });
+        crate::update(
+            &mut model,
+            crate::Msg::App(AppEvent::System(SystemSample {
+                cpu_percent: 20,
+                memory_used: 1,
+                memory_total: 2,
+                processes: 3,
+            })),
+        );
+        system_lines(&model)
+            .iter()
+            .map(|line| line.spans[0].content.trim_end().to_owned())
+            .collect()
+    }
+
+    #[test]
+    fn nerd_icons_mark_cpu_memory_and_processes() {
+        assert_eq!(
+            system_labels(crate::settings::IconSet::Nerd),
+            vec!["\u{f4bc} CPU", "\u{f035b} Memory", "\u{f0ae} Processes"]
+        );
+    }
+
+    #[test]
+    fn other_sets_show_only_the_names() {
+        assert_eq!(
+            system_labels(crate::settings::IconSet::Unicode),
+            vec!["CPU", "Memory", "Processes"]
+        );
     }
 
     #[test]
