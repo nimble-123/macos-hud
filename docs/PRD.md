@@ -78,7 +78,7 @@ Entwickler:innen, die mehrere lokale Repositories und CLI-Werkzeuge nutzen und d
 
 ### 4.4 KI-Dashboard
 
-- **Claude Code** standardmäßig aktiv; **Codex** optional, in der Config aktivierbar (`[ai.codex] enabled = true`, wirkt nach Neustart)
+- **Claude Code** standardmäßig aktiv; **Codex** optional (im Einrichtungsdialog vorausgewählt, wenn es Logs gibt). Beide Quellen lassen sich im Einrichtungsdialog, im Einstellungen-Tab und in der Config ein- und ausschalten; das wirkt ohne Neustart, gespeicherte Daten einer abgeschalteten Quelle bleiben erhalten
 - Jede Quelle hat einen eigenen Abschnitt; nur „KI heute“ und der Kalender der Übersicht zählen alle Quellen zusammen
 - Zeiträume: heute, 7 Tage, 30 Tage, dieser Kalendermonat, letzter Kalendermonat
 - Sessions, Modelle und Token pro Zeitraum; Input-, Output-, Cache-Schreib-, Cache-Lese- und (Codex) Reasoning-Token getrennt, sofern die Quelle sie liefert
@@ -115,10 +115,10 @@ Entwickler:innen, die mehrere lokale Repositories und CLI-Werkzeuge nutzen und d
 ## 6. Konfiguration
 
 - TOML-Datei unter `~/.config/hud/config.toml` (respektiert `XDG_CONFIG_HOME`)
-- Fehlt die Datei oder enthält sie keinen Workspace, startet der Einrichtungsdialog in zwei Schritten: Workspaces (mit Vorschlägen aus dem Home-Verzeichnis), dann Symbolsatz; `Esc` bricht ab, ohne etwas zu schreiben
+- Fehlt die Datei oder enthält sie keinen Workspace, startet der Einrichtungsdialog in drei Schritten: Workspaces (mit Vorschlägen aus dem Home-Verzeichnis), KI-Quellen (Claude Code, Codex), dann Symbolsatz; `Esc` bricht ab, ohne etwas zu schreiben
 - Eine ungültige Config beendet hud vor der Übernahme des Terminals mit Fehlermeldung
 - Änderungen aus dem Einstellungen-Tab werden kommentarerhaltend zurückgeschrieben; die Datei wird vor jedem Schreiben neu gelesen, damit manuelle Änderungen nicht verloren gehen
-- Manuelle Änderungen wirken nach Neustart oder per Taste `r` im Einstellungen-Tab; Werkzeugpfade, aktivierte Quellen (Claude Code, Codex, Skills) und Telemetrie-Einstellungen erst nach Neustart
+- Manuelle Änderungen wirken nach Neustart oder per Taste `r` im Einstellungen-Tab; Werkzeugpfade, die Skills-Quelle und Telemetrie-Einstellungen erst nach Neustart
 - Kommandozeile: `--help`, `--version`, `--reset-config`, `--reset-data`, `--yes`; ein Reset listet die Dateien und fragt nach, ohne Terminal nur mit `--yes`
 
 ## 7. Datenschutz und Leitplanken

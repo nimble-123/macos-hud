@@ -77,13 +77,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "~/workspace/projects".into(),
             "~/Developer".into(),
         ],
+        true,
     );
     let press = |code| Msg::Key(KeyEvent::new(code, KeyModifiers::NONE));
     update_setup(&mut setup, &press(KeyCode::Down));
     update_setup(&mut setup, &press(KeyCode::Char(' ')));
     for (name, advance) in [
         ("00-setup-1-de-dark.svg", true),
-        ("00-setup-2-de-dark.svg", false),
+        ("00-setup-2-de-dark.svg", true),
+        ("00-setup-3-de-dark.svg", false),
     ] {
         let mut terminal = Terminal::new(TestBackend::new(cols, rows))?;
         terminal.draw(|frame| view_setup(&setup, frame))?;

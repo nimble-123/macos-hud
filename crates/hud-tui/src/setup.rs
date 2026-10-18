@@ -1,4 +1,4 @@
-//! First-run setup: choose workspaces and a symbol set.
+//! First-run setup: choose workspaces, AI sources and a symbol set.
 //!
 //! A separate Elm-style model, shown before the main screen when no
 //! workspace is configured. Pure like the main UI: the binary does the I/O.
@@ -26,6 +26,10 @@ pub struct SetupChoice {
     pub workspaces: Vec<String>,
     /// Symbol set.
     pub icons: IconSet,
+    /// Read Claude Code's logs.
+    pub claude: bool,
+    /// Read Codex's logs.
+    pub codex: bool,
 }
 
 /// How the setup ended.
@@ -40,6 +44,7 @@ pub enum SetupOutcome {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Step {
     Workspaces,
+    Ai,
     Icons,
 }
 
@@ -62,12 +67,18 @@ pub struct SetupModel {
     input: String,
     notice: Option<Notice>,
     icon_cursor: usize,
+    /// Claude Code and Codex switched on, in this order.
+    sources: [bool; 2],
+    /// Whether Codex has written logs on this machine.
+    codex_used: bool,
+    source_cursor: usize,
 }
 
 impl SetupModel {
     /// A setup screen offering `suggestions` (existing folders, `~/`-relative).
+    /// Codex starts switched on only if it has been used here.
     #[must_use]
-    pub fn new(settings: UiSettings, suggestions: Vec<String>) -> Self {
+    pub fn new(settings: UiSettings, suggestions: Vec<String>, codex_used: bool) -> Self {
         let cursor = 0;
         Self {
             theme: Theme::new(settings.appearance, settings.color_depth),
@@ -78,6 +89,9 @@ impl SetupModel {
             input: String::new(),
             notice: None,
             icon_cursor: 0,
+            sources: [true, codex_used],
+            codex_used,
+            source_cursor: 0,
         }
     }
 
@@ -104,6 +118,7 @@ pub fn update_setup(model: &mut SetupModel, msg: &Msg) -> Option<SetupOutcome> {
     }
     match model.step {
         Step::Workspaces => on_workspaces_key(model, key),
+        Step::Ai => on_ai_key(model, key),
         Step::Icons => on_icons_key(model, key),
     }
 }
@@ -133,7 +148,7 @@ fn on_workspaces_key(model: &mut SetupModel, key: KeyEvent) -> Option<SetupOutco
                 model.notice = Some(Notice::NeedWorkspace);
             } else {
                 model.notice = None;
-                model.step = Step::Icons;
+                model.step = Step::Ai;
             }
         }
         _ => {}
@@ -160,6 +175,23 @@ fn add_input(model: &mut SetupModel) {
     model.cursor = model.folders.len();
 }
 
+fn on_ai_key(model: &mut SetupModel, key: KeyEvent) -> Option<SetupOutcome> {
+    let count = model.sources.len();
+    match key.code {
+        KeyCode::Up => model.source_cursor = wrap_step(model.source_cursor, -1, count),
+        KeyCode::Down => model.source_cursor = wrap_step(model.source_cursor, 1, count),
+        KeyCode::Char(' ') => {
+            if let Some(on) = model.sources.get_mut(model.source_cursor) {
+                *on = !*on;
+            }
+        }
+        KeyCode::Backspace | KeyCode::Left => model.step = Step::Workspaces,
+        KeyCode::Enter => model.step = Step::Icons,
+        _ => {}
+    }
+    None
+}
+
 fn on_icons_key(model: &mut SetupModel, key: KeyEvent) -> Option<SetupOutcome> {
     match key.code {
         KeyCode::Up => model.icon_cursor = wrap_step(model.icon_cursor, -1, ICON_SETS.len()),
@@ -167,11 +199,13 @@ fn on_icons_key(model: &mut SetupModel, key: KeyEvent) -> Option<SetupOutcome> {
         KeyCode::Char(c @ '1'..='3') => {
             model.icon_cursor = usize::from(u8::try_from(c).unwrap_or(b'1') - b'1');
         }
-        KeyCode::Backspace | KeyCode::Left => model.step = Step::Workspaces,
+        KeyCode::Backspace | KeyCode::Left => model.step = Step::Ai,
         KeyCode::Enter => {
             return Some(SetupOutcome::Done(SetupChoice {
                 workspaces: model.selected(),
                 icons: ICON_SETS[model.icon_cursor],
+                claude: model.sources[0],
+                codex: model.sources[1],
             }));
         }
         _ => {}
@@ -204,10 +238,11 @@ pub fn view_setup(model: &SetupModel, frame: &mut Frame) {
     let body = body.inner(ratatui::layout::Margin::new(0, 1));
     match model.step {
         Step::Workspaces => render_workspaces(model, frame, body),
+        Step::Ai => render_ai(model, frame, body),
         Step::Icons => render_icons(model, frame, body),
     }
     let hints: &[(&str, &str)] = match model.step {
-        Step::Workspaces => &[
+        Step::Workspaces | Step::Ai => &[
             ("key-arrows", "hint-move"),
             ("key-space", "hint-toggle"),
             ("key-enter", "hint-next"),
@@ -281,6 +316,55 @@ fn render_workspaces(model: &SetupModel, frame: &mut Frame, area: Rect) {
             format!("{glyph} {}", t(language, message)),
             Style::new().fg(theme.status(Status::Caution)),
         ));
+    }
+    frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), area);
+}
+
+fn render_ai(model: &SetupModel, frame: &mut Frame, area: Rect) {
+    let language = model.settings.language;
+    let theme = &model.theme;
+    let mut lines = vec![
+        Line::styled(
+            t(language, "setup-step-ai"),
+            Style::new().fg(theme.ink).add_modifier(Modifier::BOLD),
+        ),
+        Line::styled(t(language, "setup-ai-help"), Style::new().fg(theme.soft)),
+        Line::raw(""),
+    ];
+    // Claude Code is the default source; for Codex the logs decide.
+    let rows = [
+        ("ai-claude", None),
+        (
+            "ai-codex",
+            Some(if model.codex_used {
+                "setup-ai-found"
+            } else {
+                "setup-ai-missing"
+            }),
+        ),
+    ];
+    for (index, (name, note)) in rows.into_iter().enumerate() {
+        let under_cursor = index == model.source_cursor;
+        let mark = if model.sources[index] { "[x]" } else { "[ ]" };
+        let style = if under_cursor {
+            Style::new().fg(theme.focus).add_modifier(Modifier::BOLD)
+        } else {
+            Style::new().fg(theme.ink)
+        };
+        let mut spans = vec![
+            Span::styled(
+                if under_cursor { "▌ " } else { "  " },
+                Style::new().fg(theme.focus),
+            ),
+            Span::styled(format!("{mark} {}", t(language, name)), style),
+        ];
+        if let Some(note) = note {
+            spans.push(Span::styled(
+                format!("   {}", t(language, note)),
+                Style::new().fg(theme.soft),
+            ));
+        }
+        lines.push(Line::from(spans));
     }
     frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), area);
 }
@@ -394,7 +478,15 @@ mod tests {
         SetupModel::new(
             UiSettings::default(),
             vec!["~/workspace".into(), "~/Developer".into()],
+            false,
         )
+    }
+
+    /// Selects the first suggestion and walks past the AI step.
+    fn on_icon_step(model: &mut SetupModel) {
+        update_setup(model, &key(KeyCode::Char(' ')));
+        update_setup(model, &key(KeyCode::Enter));
+        update_setup(model, &key(KeyCode::Enter));
     }
 
     #[test]
@@ -409,8 +501,7 @@ mod tests {
     #[test]
     fn icon_cursor_wraps_at_both_ends() {
         let mut model = model();
-        update_setup(&mut model, &key(KeyCode::Char(' ')));
-        update_setup(&mut model, &key(KeyCode::Enter));
+        on_icon_step(&mut model);
         update_setup(&mut model, &key(KeyCode::Up));
         assert_eq!(
             model.icon_cursor,
@@ -424,17 +515,53 @@ mod tests {
     #[test]
     fn selecting_a_suggestion_and_finishing_returns_the_choice() {
         let mut model = model();
-        update_setup(&mut model, &key(KeyCode::Char(' ')));
-        update_setup(&mut model, &key(KeyCode::Enter));
+        on_icon_step(&mut model);
         update_setup(&mut model, &key(KeyCode::Down));
         let outcome = update_setup(&mut model, &key(KeyCode::Enter));
         assert_eq!(
             outcome,
             Some(SetupOutcome::Done(SetupChoice {
                 workspaces: vec!["~/workspace".into()],
-                icons: IconSet::Nerd
+                icons: IconSet::Nerd,
+                claude: true,
+                codex: false,
             }))
         );
+    }
+
+    #[test]
+    fn codex_starts_on_only_where_it_was_used() {
+        let used = SetupModel::new(UiSettings::default(), Vec::new(), true);
+        assert_eq!(used.sources, [true, true]);
+        assert_eq!(model().sources, [true, false]);
+    }
+
+    #[test]
+    fn the_ai_step_switches_sources() {
+        let mut model = model();
+        update_setup(&mut model, &key(KeyCode::Char(' ')));
+        update_setup(&mut model, &key(KeyCode::Enter));
+        assert_eq!(model.step, Step::Ai);
+        update_setup(&mut model, &key(KeyCode::Char(' ')));
+        update_setup(&mut model, &key(KeyCode::Down));
+        update_setup(&mut model, &key(KeyCode::Char(' ')));
+        update_setup(&mut model, &key(KeyCode::Enter));
+        let Some(SetupOutcome::Done(choice)) = update_setup(&mut model, &key(KeyCode::Enter))
+        else {
+            panic!("expected done");
+        };
+        assert!(!choice.claude);
+        assert!(choice.codex);
+    }
+
+    #[test]
+    fn left_goes_back_one_step() {
+        let mut model = model();
+        on_icon_step(&mut model);
+        update_setup(&mut model, &key(KeyCode::Left));
+        assert_eq!(model.step, Step::Ai);
+        update_setup(&mut model, &key(KeyCode::Left));
+        assert_eq!(model.step, Step::Workspaces);
     }
 
     #[test]
@@ -486,8 +613,7 @@ mod tests {
     #[test]
     fn number_keys_pick_the_icon_set() {
         let mut model = model();
-        update_setup(&mut model, &key(KeyCode::Char(' ')));
-        update_setup(&mut model, &key(KeyCode::Enter));
+        on_icon_step(&mut model);
         update_setup(&mut model, &key(KeyCode::Char('3')));
         let Some(SetupOutcome::Done(choice)) = update_setup(&mut model, &key(KeyCode::Enter))
         else {
@@ -511,6 +637,7 @@ mod tests {
                 ..UiSettings::default()
             },
             vec!["~/workspace".into()],
+            false,
         );
         update_setup(&mut model, &key(KeyCode::Char(' ')));
         model
@@ -530,9 +657,22 @@ mod tests {
     }
 
     #[test]
+    fn ai_step_renders() {
+        for (language, suffix) in LANGUAGES {
+            let mut model = with_one_workspace(language);
+            update_setup(&mut model, &key(KeyCode::Enter));
+            insta::assert_snapshot!(
+                format!("ai_step_renders_{suffix}"),
+                rendered(&model).backend()
+            );
+        }
+    }
+
+    #[test]
     fn symbol_step_renders() {
         for (language, suffix) in LANGUAGES {
             let mut model = with_one_workspace(language);
+            update_setup(&mut model, &key(KeyCode::Enter));
             update_setup(&mut model, &key(KeyCode::Enter));
             insta::assert_snapshot!(
                 format!("symbol_step_renders_{suffix}"),

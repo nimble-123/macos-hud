@@ -117,7 +117,7 @@ Requirements: macOS, Rust via [rustup](https://rustup.rs) (the toolchain is pinn
 hud
 ```
 
-On first start hud asks for your workspace folders, then shows all three symbol sets and lets you pick the one that renders correctly. `Esc` cancels without writing anything. It writes `~/.config/hud/config.toml`, then scans. Add or remove workspaces later in **Settings**.
+On first start hud asks for your workspace folders, then which AI tools to read (Claude Code, and Codex if it has logs), then shows all three symbol sets and lets you pick the one that renders correctly. `Esc` cancels without writing anything. It writes `~/.config/hud/config.toml`, then scans. Add or remove workspaces later in **Settings**.
 
 To start over, delete the configuration, the database, or both. hud lists the files and asks before deleting; `--yes` skips the question.
 
@@ -180,7 +180,7 @@ enabled = true               # OTLP receiver on 127.0.0.1
 port = 4318
 ```
 
-The file lives in `$XDG_CONFIG_HOME/hud/` if that is set, else in `~/.config/hud/`. hud rereads it before it writes changes from **Settings**, and keeps your comments. Tool paths, the enabled sources (Claude Code, Codex, Skills) and the telemetry settings are read at start only; change them and restart hud. The full reference is in [the architecture document](docs/ARCHITECTURE.md#87-konfiguration).
+The file lives in `$XDG_CONFIG_HOME/hud/` if that is set, else in `~/.config/hud/`. hud rereads it before it writes changes from **Settings**, and keeps your comments. Tool paths, the Skills source and the telemetry settings are read at start only; change them and restart hud. Claude Code and Codex can be switched on and off in **Settings** while hud runs. The full reference is in [the architecture document](docs/ARCHITECTURE.md#87-konfiguration).
 
 ## Data and privacy
 

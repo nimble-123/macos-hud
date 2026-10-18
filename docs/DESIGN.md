@@ -83,7 +83,7 @@ hud kennt die Terminal-Schrift nicht und kann sie nicht zuverlässig erkennen. D
 | CPU / Speicher / Prozesse | — | `nf-oct-cpu` / `nf-md-memory` / `nf-fa-tasks` vor der Beschriftung in der Übersicht | — |
 
 - Quell-Icons (Git, Homebrew, npm, Skills, KI) erscheinen nur im Satz `nerd`; in `unicode` und `ascii` steht dort der Name der Quelle.
-- Der Einrichtungsdialog (Schritt 2) zeigt alle drei Sätze untereinander und fragt, in welcher Zeile alle Symbole korrekt erscheinen; die gewählte Zeile setzt `icons`.
+- Der Einrichtungsdialog (Schritt 3) zeigt alle drei Sätze untereinander und fragt, in welcher Zeile alle Symbole korrekt erscheinen; die gewählte Zeile setzt `icons`.
 - Ligaturen rendert das Terminal; hud gibt dafür nichts vor. Texte vermeiden Zeichenfolgen, deren Ligatur die Bedeutung verfälschen könnte (z. B. `->` als Pfeil, stattdessen `→`).
 - Die Glyphen-Namen folgen dem Nerd-Fonts-Cheat-Sheet; die Abbildung auf Codepoints liegt in `hud-tui`.
 
@@ -288,13 +288,16 @@ Automatische Installation
   Homebrew-Formeln              ○ aus
   Homebrew-Casks                ○ aus
   npm global (nie über Major-Versionen)  ○ aus
+KI-Quellen
+  Claude Code                   ● an
+  Codex                         ○ aus
 ```
 
-- Drei Abschnitte, je ein fetter Kopf in `ink`; Werte in einer eigenen Spalte.
+- Vier Abschnitte, je ein fetter Kopf in `ink`; Werte in einer eigenen Spalte.
 - `Enter`, Leertaste oder `→` ändern die Zeile: Auswahlen wechseln zum nächsten Wert, `←` zum vorherigen; Schalter kippen. Die Anzeige zeigt immer den gespeicherten Stand, nicht eine lokale Vorschau.
 - `a` oder `Enter` auf „Workspace hinzufügen“ öffnet eine Eingabezeile in `focus` mit Cursor `█`; Pfade beginnen mit `/` oder `~/`. Solange die Eingabe offen ist, gehen alle Tasten an sie.
 - `d` oder `Entf` öffnet einen zentrierten Dialog „Workspace entfernen?“ mit dem Hinweis, dass nur die Config geändert wird.
-- Sprache, Theme und Symbolsatz gelten sofort. Ein abgelehnter Schreibversuch erscheint unter den Einstellungen in `warning`, ein ungültiger Pfad in `caution`.
+- Sprache, Theme, Symbolsatz und KI-Quellen gelten sofort; eine abgeschaltete KI-Quelle verschwindet aus dem KI-Tab, ihre gespeicherten Daten bleiben. Ein abgelehnter Schreibversuch erscheint unter den Einstellungen in `warning`, ein ungültiger Pfad in `caution`.
 
 ### 5.7 Hilfe und Dialoge
 
@@ -330,7 +333,7 @@ Automatische Installation
 ```
   Willkommen bei hud
   ──────────────────────────────────────────────────
-  Schritt 1 von 2: Workspaces
+  Schritt 1 von 3: Workspaces
   Ordner, in denen hud nach Git-Repositories sucht. Leertaste wählt einen Vorschlag;
   eigene Pfade unten eintippen.
 
@@ -341,7 +344,8 @@ Automatische Installation
 ```
 
 - Schritt 1: Vorschläge aus dem Home-Verzeichnis als `[x]`/`[ ]`, eigene Pfade in der Eingabezeile; mindestens ein Workspace ist nötig.
-- Schritt 2 „Symbole“: drei Zeilen (Unicode, Nerd Font, ASCII) mit Statussymbolen und Quell-Icons; `↑↓` oder `1`–`3` wählt, `Enter` beendet, `←`/Backspace geht zurück.
+- Schritt 2 „KI-Quellen“: Claude Code und Codex als `[x]`/`[ ]`, Leertaste schaltet; Claude Code ist vorausgewählt, Codex nur, wenn es Logs gibt (sonst steht „noch keine Logs“ daneben). `Enter` weiter, `←`/Backspace zurück.
+- Schritt 3 „Symbole“: drei Zeilen (Unicode, Nerd Font, ASCII) mit Statussymbolen und Quell-Icons; `↑↓` oder `1`–`3` wählt, `Enter` beendet, `←`/Backspace geht zurück.
 - `Esc` oder `Ctrl-C` brechen ab, ohne etwas zu schreiben. Der Dialog wird nur per Tastatur bedient.
 
 ## 6. Bewegung

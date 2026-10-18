@@ -5,7 +5,7 @@ expression: rendered(&model).backend()
 "  Willkommen bei hud                                                                      "
 "  ──────────────────────────────────────────────────────────────────────────────────────  "
 "                                                                                          "
-"  Schritt 2 von 2: Symbole                                                                "
+"  Schritt 3 von 3: Symbole                                                                "
 "  In welcher Zeile werden alle Symbole angezeigt? Nerd-Symbole brauchen eine Nerd Font i  "
 "                                                                                          "
 "  ▌ 1  ● ◆ ▲ ✖ ○           Unicode (empfohlen)                                            "
