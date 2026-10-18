@@ -90,9 +90,11 @@ pub(crate) fn rows(settings: &Settings) -> Vec<Row> {
         }),
     );
     rows.extend(
-        [OverviewInsight::Unpushed].map(|insight| Row::OverviewInsight {
-            insight,
-            enabled: settings.overview.shows(insight),
+        [OverviewInsight::Unpushed, OverviewInsight::UpdateAttention].map(|insight| {
+            Row::OverviewInsight {
+                insight,
+                enabled: settings.overview.shows(insight),
+            }
         }),
     );
     rows

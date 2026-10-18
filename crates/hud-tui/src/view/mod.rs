@@ -1514,6 +1514,35 @@ mod tests {
     }
 
     #[test]
+    fn overview_names_major_updates_and_password_prompts() {
+        use hud_application::AppEvent;
+        use hud_application::usecases::updates::{JobId, JobState, JobUpdate};
+        use hud_domain::update::InstallTarget;
+        for (language, suffix) in LANGUAGES {
+            let mut model = updates_tab(language);
+            let firefox = model.updates[0]
+                .check
+                .as_ref()
+                .and_then(|check| check.as_ref().ok())
+                .and_then(|check| check.candidates.get(2).cloned())
+                .expect("BUG: fixture has firefox");
+            update(
+                &mut model,
+                Msg::App(AppEvent::Job(JobUpdate {
+                    id: JobId(3),
+                    target: InstallTarget::Package(firefox),
+                    state: JobState::NeedsInteraction,
+                })),
+            );
+            model.tab = Tab::Overview;
+            insta::assert_snapshot!(
+                format!("overview_names_update_attention_{suffix}"),
+                render_wide(&model).backend()
+            );
+        }
+    }
+
+    #[test]
     fn updates_tab_shows_candidates_jobs_and_errors() {
         for (language, suffix) in LANGUAGES {
             insta::assert_snapshot!(

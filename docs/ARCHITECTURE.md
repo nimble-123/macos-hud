@@ -614,6 +614,7 @@ port = 4318
 
 [overview]
 unpushed = true              # false: Repos mit ungepushten Commits zählen als übersprungen
+update_attention = true      # Major-Updates und Passwort-Bedarf neben der Zahl der Updates
 
 # Optional: feste Pfade statt Suche im Login-PATH
 # [tools]

@@ -1,0 +1,26 @@
+---
+source: crates/hud-tui/src/view/mod.rs
+expression: render_wide(&model).backend()
+---
+"  Overview    Workspaces    Updates    AI    Log    Settings                                                       "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"                                                                                                                   "
+"  Measuring system values …                                                                                        "
+"                                                                                                                   "
+"  ◆ 4 updates (Homebrew 2, npm (global) 2), 2 major, 1 needs a password                                            "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"  ⠋ 1 installation running   brew upgrade wget                                                                     "
+"  r refresh   tab switch   ? help   q quit                                                                         "

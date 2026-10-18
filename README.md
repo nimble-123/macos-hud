@@ -182,6 +182,7 @@ port = 4318
 
 [overview]
 unpushed = true              # false counts unpushed repos as skipped
+update_attention = true      # major updates and password prompts next to the update count
 ```
 
 The file lives in `$XDG_CONFIG_HOME/hud/` if that is set, else in `~/.config/hud/`. hud rereads it before it writes changes from **Settings**, and keeps your comments. Tool paths, the Skills source and the telemetry settings are read at start only; change them and restart hud. Claude Code, Codex and the additions to the overview can be switched on and off in **Settings** while hud runs. The full reference is in [the architecture document](docs/ARCHITECTURE.md#87-konfiguration).

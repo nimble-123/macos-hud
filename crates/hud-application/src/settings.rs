@@ -150,6 +150,8 @@ impl Default for TelemetrySettings {
 pub struct OverviewSettings {
     /// Repositories with commits their upstream lacks.
     pub unpushed: bool,
+    /// Major updates and packages that need a password, next to the update count.
+    pub update_attention: bool,
 }
 
 impl OverviewSettings {
@@ -158,13 +160,17 @@ impl OverviewSettings {
     pub fn shows(&self, insight: OverviewInsight) -> bool {
         match insight {
             OverviewInsight::Unpushed => self.unpushed,
+            OverviewInsight::UpdateAttention => self.update_attention,
         }
     }
 }
 
 impl Default for OverviewSettings {
     fn default() -> Self {
-        Self { unpushed: true }
+        Self {
+            unpushed: true,
+            update_attention: true,
+        }
     }
 }
 
@@ -173,6 +179,8 @@ impl Default for OverviewSettings {
 pub enum OverviewInsight {
     /// Repositories with commits their upstream lacks.
     Unpushed,
+    /// Major updates and packages that need a password.
+    UpdateAttention,
 }
 
 /// Explicit paths for external tools; `None` means look up in the login PATH.
@@ -390,6 +398,7 @@ mod tests {
         assert!(settings.claude.enabled);
         assert!(!settings.codex.enabled);
         assert!(settings.overview.unpushed);
+        assert!(settings.overview.update_attention);
     }
 
     #[test]
