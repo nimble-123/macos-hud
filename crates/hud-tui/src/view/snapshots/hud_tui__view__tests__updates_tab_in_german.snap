@@ -31,4 +31,4 @@ expression: render_big(&updates_tab(language)).backend()
 "                                                                                                                   "
 "  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
 "  ⠋ 1 Installation läuft   brew upgrade wget                                                                       "
-"  ↑↓ auswählen   u installieren   r prüfen   tab wechseln   ? Hilfe   q beenden                                    "
+"  ↑↓ auswählen   u installieren   a alle   r prüfen   tab wechseln   ? Hilfe   q beenden                           "

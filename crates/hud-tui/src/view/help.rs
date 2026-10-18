@@ -23,6 +23,7 @@ fn tab_keys(tab: Tab) -> &'static [(&'static str, &'static str)] {
         Tab::Updates => &[
             ("key-arrows", "help-select"),
             ("help-key-install", "help-install"),
+            ("key-a", "help-install-all"),
             ("key-r", "help-check"),
         ],
         Tab::Ai => &[

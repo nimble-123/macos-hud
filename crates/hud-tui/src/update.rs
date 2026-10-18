@@ -9,7 +9,7 @@ use hud_application::{
 use hud_domain::update::InstallTarget;
 use hud_domain::usage::Period;
 
-use crate::model::{OK_HIGHLIGHT, Quit, ScanProgress, TelemetryFlow, wrap_step};
+use crate::model::{Confirm, OK_HIGHLIGHT, Quit, ScanProgress, TelemetryFlow, wrap_step};
 use crate::{Model, Msg, Tab};
 
 /// Applies a message to the model and returns the commands to run.
@@ -112,15 +112,9 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
             move_update_selection(model, -1);
         }
         KeyCode::Char('u') | KeyCode::Enter if model.tab == Tab::Updates => {
-            let rows = model.update_rows();
-            let selectable = rows
-                .get(model.update_selected)
-                .filter(|target| match target {
-                    InstallTarget::Package(candidate) => !candidate.pinned,
-                    InstallTarget::AllSkills => true,
-                });
-            model.confirm = selectable.cloned();
+            ask_install_selected(model);
         }
+        KeyCode::Char('a') if model.tab == Tab::Updates => ask_install_all(model),
         KeyCode::Down | KeyCode::Char('j') if scrolls_freely(model) => scroll_by(model, 1),
         KeyCode::Up | KeyCode::Char('k') if scrolls_freely(model) => scroll_by(model, -1),
         KeyCode::PageDown if scrolls_freely(model) => {
@@ -163,6 +157,26 @@ fn fast_forward_selected(model: &mut Model) -> Vec<Command> {
         at: None,
     });
     vec![Command::Workspaces(WorkspaceCommand::FastForward(repo))]
+}
+
+/// Opens the dialog for the selected row, unless it is pinned.
+fn ask_install_selected(model: &mut Model) {
+    let rows = model.update_rows();
+    let selectable = rows
+        .get(model.update_selected)
+        .filter(|target| match target {
+            InstallTarget::Package(candidate) => !candidate.pinned,
+            InstallTarget::AllSkills => true,
+        });
+    model.confirm = selectable.cloned().map(Confirm::One);
+}
+
+/// Opens the dialog for every row that can be installed now, if any.
+fn ask_install_all(model: &mut Model) {
+    let targets = model.installable_rows();
+    if !targets.is_empty() {
+        model.confirm = Some(Confirm::All(targets));
+    }
 }
 
 /// Overview and AI tab show more than fits and have no selection to follow.
@@ -209,16 +223,23 @@ fn on_quit_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
 /// The dialog takes all keys: Enter installs, Esc closes, everything else is ignored.
 fn on_confirm_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
     match key.code {
-        KeyCode::Enter => model
-            .confirm
-            .take()
-            .map(|target| {
-                vec![Command::Updates(UpdateCommand::Install {
-                    target,
-                    confirmed: true,
-                })]
-            })
-            .unwrap_or_default(),
+        KeyCode::Enter => {
+            let targets = match model.confirm.take() {
+                Some(Confirm::One(target)) => vec![target],
+                Some(Confirm::All(targets)) => targets,
+                None => Vec::new(),
+            };
+            // One job per package: each passes the permit rules on its own.
+            targets
+                .into_iter()
+                .map(|target| {
+                    Command::Updates(UpdateCommand::Install {
+                        target,
+                        confirmed: true,
+                    })
+                })
+                .collect()
+        }
         KeyCode::Esc | KeyCode::Char('n') => {
             model.confirm = None;
             Vec::new()
@@ -810,7 +831,7 @@ mod tests {
     }
 
     use hud_application::ports::updates::{Availability, SourceCheck};
-    use hud_application::usecases::updates::SourceReport;
+    use hud_application::usecases::updates::{JobId, JobState, JobUpdate, SourceReport};
     use hud_domain::update::{PackageKind, PackageName, SourceId, UpdateCandidate, Version};
 
     #[test]
@@ -857,6 +878,47 @@ mod tests {
         };
         update(&mut model, Msg::App(AppEvent::Updates(vec![report])));
         model
+    }
+
+    fn install(name: &str) -> Command {
+        Command::Updates(UpdateCommand::Install {
+            target: InstallTarget::Package(npm_candidate(name, false)),
+            confirmed: true,
+        })
+    }
+
+    #[test]
+    fn a_confirms_once_and_installs_every_unpinned_package() {
+        let mut model = on_updates_tab(vec![
+            npm_candidate("a", false),
+            npm_candidate("b", true),
+            npm_candidate("c", false),
+        ]);
+        assert_eq!(update(&mut model, key(KeyCode::Char('a'))), Vec::new());
+        assert_eq!(
+            update(&mut model, key(KeyCode::Enter)),
+            vec![install("a"), install("c")]
+        );
+    }
+
+    #[test]
+    fn a_leaves_out_packages_that_are_already_installing() {
+        let mut model = on_updates_tab(vec![npm_candidate("a", false), npm_candidate("b", false)]);
+        let running = JobUpdate {
+            id: JobId(1),
+            target: InstallTarget::Package(npm_candidate("a", false)),
+            state: JobState::Running,
+        };
+        update(&mut model, Msg::App(AppEvent::Job(running)));
+        update(&mut model, key(KeyCode::Char('a')));
+        assert_eq!(update(&mut model, key(KeyCode::Enter)), vec![install("b")]);
+    }
+
+    #[test]
+    fn a_opens_no_dialog_when_nothing_can_be_installed() {
+        let mut model = on_updates_tab(vec![npm_candidate("a", true)]);
+        update(&mut model, key(KeyCode::Char('a')));
+        assert_eq!(model.confirm, None);
     }
 
     #[test]

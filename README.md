@@ -142,6 +142,7 @@ hud --reset-config --reset-data --yes
 | `←` `→` / `h` `l` / `1`–`5` | switch the period for the whole AI tab |
 | `t` | switch on telemetry in Claude Code (AI, asks first) |
 | `/` / `Esc` | search the log / drop the search |
+| `a` | update everything available at once, after one confirmation (Updates; pinned packages stay as they are) |
 | `a` / `d` | add / remove a workspace (Settings); `Space` and `←` `→` change values there too |
 | `r` | fetch and sync now; in Updates: check sources; in Log: reload; in Settings: reload the config file |
 | `?` | help for the current tab |

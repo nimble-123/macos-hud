@@ -103,10 +103,19 @@ job-failed = failed: { $message }
 job-timed-out = timed out
 key-u = u
 hint-install = install
+hint-install-all = all
 confirm-title = Install update?
 confirm-major = Major update: it may contain incompatible changes.
 confirm-install = install
 confirm-cancel = cancel
+confirm-all-title = Install all updates?
+confirm-all-packages = { $count ->
+    [one] 1 package
+   *[other] { $count } packages
+}
+confirm-all-skills = all skills
+confirm-all-major = Major updates: { $names }
+confirm-install-all = install all
 jobs-running = { $count ->
     [one] 1 installation running
    *[other] { $count } installations running
@@ -344,6 +353,7 @@ help-details = enlarge or shrink the details
 help-fast-forward = fast-forward the selected repo
 help-sync = start fetch and sync now
 help-install = install the selected package (asks first)
+help-install-all = install every available update (asks first, skips pinned)
 help-check = check update sources now
 help-scroll = scroll the tab when it does not fit
 help-period = switch the period for the whole tab

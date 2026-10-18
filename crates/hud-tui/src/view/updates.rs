@@ -12,11 +12,14 @@ use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 use crate::Model;
 use crate::i18n::{t, t_args, t_count};
 use crate::icons::{Source, Status, source_glyph, status_glyph};
+use crate::model::Confirm;
 
 /// The package name column grows with the window between these widths.
 const MIN_NAME_WIDTH: usize = 12;
 const MAX_NAME_WIDTH: usize = 44;
 const VERSION_WIDTH: usize = 26;
+/// Width of the install dialogs, borders included.
+const DIALOG_WIDTH: u16 = 72;
 
 pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
     let language = model.settings.language;
@@ -34,8 +37,10 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
     let (lines, map) = build(model, area.width);
     let offset = super::follow(area, selected_line(&map, model.update_selected));
     frame.render_widget(Paragraph::new(lines).scroll((offset, 0)), area);
-    if let Some(target) = &model.confirm {
-        render_confirm(model, target, frame, area);
+    match &model.confirm {
+        Some(Confirm::One(target)) => render_confirm(model, target, frame, area),
+        Some(Confirm::All(targets)) => render_confirm_all(model, targets, frame, area),
+        None => {}
     }
 }
 
@@ -343,7 +348,7 @@ pub(super) fn command_preview(target: &InstallTarget) -> String {
 fn render_confirm(model: &Model, target: &InstallTarget, frame: &mut Frame, area: Rect) {
     let language = model.settings.language;
     let theme = &model.theme;
-    let [dialog] = Layout::horizontal([Constraint::Length(72)])
+    let [dialog] = Layout::horizontal([Constraint::Length(DIALOG_WIDTH)])
         .flex(Flex::Center)
         .areas(area);
     let [dialog] = Layout::vertical([Constraint::Length(9)])
@@ -387,6 +392,104 @@ fn render_confirm(model: &Model, target: &InstallTarget, frame: &mut Frame, area
         .border_style(Style::new().fg(theme.focus))
         .title(Span::styled(
             format!(" {} ", t(language, "confirm-title")),
+            Style::new().fg(theme.focus).add_modifier(Modifier::BOLD),
+        ));
+    frame.render_widget(Clear, dialog);
+    frame.render_widget(
+        Paragraph::new(lines)
+            .block(block)
+            .wrap(Wrap { trim: false }),
+        dialog,
+    );
+}
+
+/// Dialog after `a`: how many packages per source, and which are major updates.
+fn render_confirm_all(model: &Model, targets: &[InstallTarget], frame: &mut Frame, area: Rect) {
+    let language = model.settings.language;
+    let theme = &model.theme;
+    let mut sources: Vec<(SourceId, u32, bool)> = Vec::new();
+    for target in targets {
+        let (source, all) = match target {
+            InstallTarget::Package(candidate) => (candidate.source, false),
+            InstallTarget::AllSkills => (SourceId::Skills, true),
+        };
+        match sources.iter_mut().find(|(id, ..)| *id == source) {
+            Some(entry) => {
+                entry.1 += 1;
+                entry.2 |= all;
+            }
+            None => sources.push((source, 1, all)),
+        }
+    }
+    let majors: Vec<String> = targets
+        .iter()
+        .filter_map(|target| match target {
+            InstallTarget::Package(candidate) if candidate.bump() == VersionBump::Major => {
+                Some(candidate.name.to_string())
+            }
+            InstallTarget::Package(_) | InstallTarget::AllSkills => None,
+        })
+        .collect();
+
+    let mut lines = vec![Line::raw("")];
+    for (source, count, all) in &sources {
+        let amount = if *all {
+            t(language, "confirm-all-skills")
+        } else {
+            t_count(language, "confirm-all-packages", "count", *count)
+        };
+        lines.push(Line::from(vec![
+            Span::styled(
+                format!("  {}", fit(&t(language, source_name(*source)), 16)),
+                Style::new().fg(theme.ink).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(amount, Style::new().fg(theme.muted)),
+        ]));
+    }
+    // The major warning may wrap; each extra row needs room in the dialog.
+    let mut wrapped = 0;
+    if !majors.is_empty() {
+        let glyph = status_glyph(model.settings.icons, Status::Caution);
+        let names = majors.join(", ");
+        let text = format!(
+            "  {glyph} {}",
+            t_args(language, "confirm-all-major", &[("names", &names)])
+        );
+        wrapped = text.chars().count().saturating_sub(1) / usize::from(DIALOG_WIDTH - 2);
+        lines.push(Line::raw(""));
+        lines.push(Line::styled(
+            text,
+            Style::new().fg(theme.status(Status::Caution)),
+        ));
+    }
+    lines.push(Line::raw(""));
+    lines.push(Line::from(vec![
+        Span::styled(
+            format!("  {} ", t(language, "key-enter")),
+            Style::new().fg(theme.focus).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            format!("{}   ", t(language, "confirm-install-all")),
+            Style::new().fg(theme.soft),
+        ),
+        Span::styled(
+            format!("{} ", t(language, "key-esc")),
+            Style::new().fg(theme.focus).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(t(language, "confirm-cancel"), Style::new().fg(theme.soft)),
+    ]));
+    let [dialog] = Layout::horizontal([Constraint::Length(DIALOG_WIDTH)])
+        .flex(Flex::Center)
+        .areas(area);
+    let height = u16::try_from(lines.len() + wrapped + 2).unwrap_or(u16::MAX);
+    let [dialog] = Layout::vertical([Constraint::Length(height)])
+        .flex(Flex::Center)
+        .areas(dialog);
+    let block = Block::new()
+        .borders(Borders::ALL)
+        .border_style(Style::new().fg(theme.focus))
+        .title(Span::styled(
+            format!(" {} ", t(language, "confirm-all-title")),
             Style::new().fg(theme.focus).add_modifier(Modifier::BOLD),
         ));
     frame.render_widget(Clear, dialog);
