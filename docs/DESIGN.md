@@ -145,6 +145,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 | `Enter` | Workspaces: Fast-Forward wie `f`; Updates: Bestätigungsdialog öffnen; Protokoll: Details vergrößern oder verkleinern; Einstellungen: Wert ändern; in Dialogen: bestätigen |
 | `f` | Workspaces: Fast-Forward für das ausgewählte Repo; Protokoll: Filter wechseln |
 | `u` | Updates: ausgewähltes Paket aktualisieren |
+| `v` | Workspaces: zwischen „nur Abweichungen“ (Standard) und allen Repos umschalten |
 | `←` `→`, `h` `l`, `1`–`5` | KI: Zeitraum wechseln (läuft am Ende um) |
 | `t` | KI: Telemetrie in Claude Code einschalten (mit Rückfrage) |
 | `/` / `Esc` | Protokoll: Suche öffnen / Suche verwerfen |
@@ -159,16 +160,18 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 ### 5.2 Workspaces-Tab
 
 ```
-/Users/nimble/workspace/projects   3 Repos   ◆ 1  ✖ 1
+/Users/nimble/workspace/projects   14 Repos   ◆ 1  ✖ 1
 ▌ ◆ hud                          main              ↓3       3 Commits zurück, Fast-Forward möglich
   ✖ takt                         feature/x         ↑1 ↓2    divergiert
-  ○ skills-hub                   main                       aktuell
+  ○ 12 weitere aktuell
 /Volumes/extern   ✖ nicht verfügbar
 ```
 
 - Je Workspace ein Kopf mit dem Pfad in `ink`, fett; dahinter die Zahl der Repos in `soft` und je abweichendem Status Symbol und Anzahl in der Statusfarbe (ohne Abweichung „alles aktuell“ in `soft`), danach gegebenenfalls „automatischer Fast-Forward aus“ in `soft`. Ein nicht verfügbarer Workspace zeigt nur „✖ nicht verfügbar“ in `warning`.
 - Je Repo: Auswahlmarker `▌` in `focus`, Statussymbol, Name relativ zum Workspace (ausgewählt in `focus`, fett; ein in einem anderen Repo liegendes Repo steht direkt darunter, je Ebene um zwei Spalten eingerückt, mit dem Pfad ab dem äußeren Repo), Branch (oder „(detached)“), `↑a ↓b` und Zustandstext in der Statusfarbe; aktuelle Repos mit Namen in `muted` und Details in `soft`.
 - Zurückliegende Repos zeigen „N Commits zurück, Fast-Forward möglich“ (◆), bei Opt-out „zurück, automatischer Fast-Forward aus (f)“ (▲); ein erledigter Fast-Forward „Fast-Forward: N Commits“ (●, 30 s).
+- **Nur Abweichungen** (Standard): Aktuelle Repos stehen je Workspace in einer Zeile „○ N weitere aktuell“ in `soft` (ohne Abweichung „○ alle N Repos aktuell“). Ein aktuelles Repo bleibt sichtbar, wenn es ein abweichendes Unterrepo enthält, ein frischer Fast-Forward (●) für 30 s. `v` schaltet auf alle Repos um und zurück; die Fußzeile nennt die jeweils andere Ansicht.
+- Die Auswahl hängt am Repo, nicht an der Zeile: Verschwinden Zeilen darüber, bleibt sie stehen; ist das gewählte Repo ausgeblendet, gilt das erste sichtbare.
 - Die Liste scrollt so, dass die Auswahl sichtbar bleibt; leere Workspaces zeigen während eines Scans „Suche Repositories …“.
 
 ### 5.3 Updates-Tab

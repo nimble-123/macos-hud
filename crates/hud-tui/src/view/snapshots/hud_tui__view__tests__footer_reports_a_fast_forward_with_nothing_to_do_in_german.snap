@@ -31,4 +31,4 @@ expression: render_big(&model).backend()
 "                                                                                                                   "
 "  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
 "  ● api: bereits aktuell, nichts zu tun                                                                            "
-"  ↑↓ auswählen   f Fast-Forward   r aktualisieren   tab wechseln   ? Hilfe   q beenden                             "
+"  ↑↓ auswählen   f Fast-Forward   v nur Abweichungen   r aktualisieren   tab wechseln   ? Hilfe   q beenden        "

@@ -359,6 +359,14 @@ fn footer_hints(model: &Model) -> Vec<(&'static str, &'static str)> {
         Tab::Workspaces => hints.extend([
             ("key-arrows", "hint-select"),
             ("key-f", "hint-fast-forward"),
+            (
+                "key-v",
+                if model.workspaces_tab.all {
+                    "hint-show-attention"
+                } else {
+                    "hint-show-all"
+                },
+            ),
         ]),
         Tab::Settings => hints.extend([
             ("key-arrows", "hint-select"),
@@ -1380,6 +1388,8 @@ mod tests {
         use hud_domain::git::{RepoPath, SkipReason};
         let mut model = in_language(language);
         model.tab = Tab::Workspaces;
+        // Every repository, so each state shows up in one list.
+        model.workspaces_tab.all = true;
         let report = |path: &str, state, status| RepoReport {
             repo: RepoPath::try_from(std::path::PathBuf::from(path)).expect("BUG: absolute"),
             status: Some(status),
@@ -1455,6 +1465,18 @@ mod tests {
             }),
         );
         model
+    }
+
+    #[test]
+    fn workspaces_tab_shows_only_what_needs_attention_by_default() {
+        for (language, suffix) in LANGUAGES {
+            let mut model = workspaces_tab(language);
+            model.workspaces_tab.all = false;
+            insta::assert_snapshot!(
+                format!("workspaces_tab_attention_{suffix}"),
+                render_big(&model).backend()
+            );
+        }
     }
 
     #[test]

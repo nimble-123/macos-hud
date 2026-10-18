@@ -50,6 +50,7 @@ Entwickler:innen, die mehrere lokale Repositories und CLI-Werkzeuge nutzen und d
 - hud findet Repositories bis zur eingestellten Suchtiefe unter dem Workspace, auch eigenständige Klone innerhalb eines anderen Repositorys; Submodule gehören zu ihrem Repository und erscheinen nicht einzeln
 - Nicht erreichbare Workspace-Ordner (z. B. ausgehängtes externes Volume) erscheinen als „nicht verfügbar“, ohne Fehler für andere Workspaces
 - Pro Repository: Statussymbol, Name, Branch, Ahead-/Behind-Zahlen (↑/↓) und Status bzw. Grund des Überspringens
+- Standardmäßig zeigt der Tab nur Repositories, die Aufmerksamkeit brauchen, und fasst die aktuellen je Workspace in einer Zeile zusammen; Taste `v` schaltet für die Sitzung auf alle um
 - Upstream-Stand wird per `git fetch` ermittelt: direkt nach dem Start, danach periodisch (Default alle 15 min) und per Taste `r`, ohne interaktive Passwortabfragen
 - **Automatischer Fast-Forward ist standardmäßig aktiv** und pro Workspace per Opt-out abschaltbar
 - Fast-Forward nur, wenn alle Regeln in Abbildung 2 erfüllt sind; sonst wird das Repo übersprungen und der Grund angezeigt

@@ -13,6 +13,9 @@ key-f = f
 key-r = r
 hint-select = select
 hint-fast-forward = fast-forward
+key-v = v
+hint-show-all = show all
+hint-show-attention = attention only
 hint-refresh = refresh
 hint-check = check
 hint-reload-log = reload
@@ -26,6 +29,14 @@ ws-repo-count = { $count ->
    *[other] { $count } repos
 }
 ws-all-current = all up to date
+ws-more-up-to-date = { $count ->
+    [one] 1 more up to date
+   *[other] { $count } more up to date
+}
+ws-every-up-to-date = { $count ->
+    [one] 1 repo up to date
+   *[other] all { $count } repos up to date
+}
 ws-empty = No repositories found.
 branch-detached = (detached)
 state-up-to-date = up to date
@@ -372,6 +383,7 @@ help-key-ctrl-c = Ctrl-C
 help-select = move the selection, wrapping at both ends
 help-details = enlarge or shrink the details
 help-fast-forward = fast-forward the selected repo
+help-view = show all repositories or only those that need attention
 help-sync = start fetch and sync now
 help-install = install the selected package (asks first)
 help-install-all = install every available update (asks first, skips pinned)

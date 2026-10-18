@@ -101,10 +101,13 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
             return vec![Command::Workspaces(WorkspaceCommand::SyncNow)];
         }
         KeyCode::Down | KeyCode::Char('j') if model.tab == Tab::Workspaces => {
-            move_selection(model, 1);
+            crate::workspaces_tab::move_selection(model, 1);
         }
         KeyCode::Up | KeyCode::Char('k') if model.tab == Tab::Workspaces => {
-            move_selection(model, -1);
+            crate::workspaces_tab::move_selection(model, -1);
+        }
+        KeyCode::Char('v') if model.tab == Tab::Workspaces => {
+            model.workspaces_tab.all = !model.workspaces_tab.all;
         }
         KeyCode::Down | KeyCode::Char('j') if model.tab == Tab::Updates => {
             move_update_selection(model, 1);
@@ -148,7 +151,7 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
 /// Requests a manual fast-forward of the selected repo; the footer reports
 /// at once that it runs and then what came of it.
 fn fast_forward_selected(model: &mut Model) -> Vec<Command> {
-    let Some(report) = model.selected_repo() else {
+    let Some(report) = crate::workspaces_tab::selected_repo(model) else {
         return Vec::new();
     };
     let repo = report.repo.clone();
@@ -285,11 +288,6 @@ fn move_update_selection(model: &mut Model, delta: isize) {
     model.update_selected = wrap_step(model.update_selected, delta, count);
 }
 
-fn move_selection(model: &mut Model, delta: isize) {
-    let count = model.repo_rows().count();
-    model.selected = wrap_step(model.selected, delta, count);
-}
-
 /// A complete workspace report replaces the old one and ends scan and sync.
 fn on_workspaces(
     model: &mut Model,
@@ -308,8 +306,6 @@ fn on_workspaces(
     model.syncing = false;
     model.scan = None;
     model.mark_fast_forwards(&finished);
-    let count = model.repo_rows().count();
-    model.selected = model.selected.min(count.saturating_sub(1));
 }
 
 fn on_app_event(model: &mut Model, event: AppEvent) {
@@ -647,6 +643,7 @@ mod tests {
 
     fn after_f_on(state: RepoState, now: Instant) -> Model {
         let mut model = on_workspaces_tab();
+        model.workspaces_tab.all = true;
         update(&mut model, Msg::Tick(now, jiff::Timestamp::now()));
         update(
             &mut model,
@@ -663,6 +660,7 @@ mod tests {
     #[test]
     fn f_shows_at_once_that_the_fast_forward_runs() {
         let mut model = on_workspaces_tab();
+        model.workspaces_tab.all = true;
         update(
             &mut model,
             Msg::App(workspaces(vec![report("/ws/a", RepoState::UpToDate)])),
@@ -736,18 +734,29 @@ mod tests {
                 report("/ws/b", RepoState::UpToDate),
             ])),
         );
+        let selected =
+            |model: &Model| crate::workspaces_tab::selected_repo(model).map(|r| r.repo.to_string());
+        update(&mut model, key(KeyCode::Char('v')));
         update(&mut model, key(KeyCode::Up));
-        assert_eq!(model.selected, 1, "up from the first row");
+        assert_eq!(
+            selected(&model).as_deref(),
+            Some("/ws/b"),
+            "up from the first row"
+        );
         update(&mut model, key(KeyCode::Down));
-        assert_eq!(model.selected, 0, "down from the last row");
+        assert_eq!(
+            selected(&model).as_deref(),
+            Some("/ws/a"),
+            "down from the last row"
+        );
     }
 
     #[test]
-    fn selection_in_an_empty_list_stays_at_zero() {
+    fn selection_in_an_empty_list_stays_empty() {
         let mut model = on_workspaces_tab();
         update(&mut model, key(KeyCode::Down));
         update(&mut model, key(KeyCode::Up));
-        assert_eq!(model.selected, 0);
+        assert_eq!(model.workspaces_tab.selected, None);
     }
 
     #[test]

@@ -13,4 +13,4 @@ expression: render(&model).backend()
 "                                                                                "
 "                                                                                "
 "  ────────────────────────────────────────────────────────────────────────────  "
-"  ↑↓ select   f fast-forward   r refresh   tab switch   ? help   q quit         "
+"  ↑↓ select   f fast-forward   v show all   r refresh   tab switch   ? help     "

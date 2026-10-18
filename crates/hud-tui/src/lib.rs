@@ -15,6 +15,7 @@ mod setup;
 mod theme;
 mod update;
 mod view;
+mod workspaces_tab;
 
 pub use model::{Model, Tab};
 pub use msg::Msg;

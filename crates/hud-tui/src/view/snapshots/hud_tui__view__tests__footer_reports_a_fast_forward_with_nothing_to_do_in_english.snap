@@ -31,4 +31,4 @@ expression: render_big(&model).backend()
 "                                                                                                                   "
 "  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
 "  ● api: already up to date, nothing to do                                                                         "
-"  ↑↓ select   f fast-forward   r refresh   tab switch   ? help   q quit                                            "
+"  ↑↓ select   f fast-forward   v attention only   r refresh   tab switch   ? help   q quit                         "

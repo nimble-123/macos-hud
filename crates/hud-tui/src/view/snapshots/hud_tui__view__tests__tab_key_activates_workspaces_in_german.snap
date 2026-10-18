@@ -13,4 +13,4 @@ expression: render(&model).backend()
 "                                                                                "
 "                                                                                "
 "  ────────────────────────────────────────────────────────────────────────────  "
-"  ↑↓ auswählen   f Fast-Forward   r aktualisieren   tab wechseln   ? Hilfe   q  "
+"  ↑↓ auswählen   f Fast-Forward   v alle zeigen   r aktualisieren   tab wechse  "

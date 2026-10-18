@@ -61,7 +61,12 @@ fn select_tab(model: &mut Model, tab: Tab) -> Vec<Command> {
 /// The first click selects a row, a click on the selected row acts like Enter.
 fn click_row(model: &mut Model, row: usize) -> Vec<Command> {
     let selected = match model.tab {
-        Tab::Workspaces => &mut model.selected,
+        Tab::Workspaces => {
+            if crate::workspaces_tab::click(model, row) {
+                return press(model, KeyCode::Enter);
+            }
+            return Vec::new();
+        }
         Tab::Updates => &mut model.update_selected,
         Tab::Settings => &mut model.settings_tab.selected,
         Tab::Log => &mut model.log_tab.selected,
@@ -85,6 +90,7 @@ fn key_code(id: &str) -> Option<KeyCode> {
         "key-a" => KeyCode::Char('a'),
         "key-d" => KeyCode::Char('d'),
         "key-t" => KeyCode::Char('t'),
+        "key-v" => KeyCode::Char('v'),
         "key-slash" => KeyCode::Char('/'),
         "key-enter" => KeyCode::Enter,
         "key-esc" => KeyCode::Esc,
