@@ -346,7 +346,9 @@ fn footer_hints(model: &Model) -> Vec<(&'static str, &'static str)> {
     if model.tab() == Tab::Settings && tab.input.is_some() {
         return vec![("key-enter", "hint-add"), ("key-esc", "hint-cancel")];
     }
-    if model.tab() == Tab::Log && model.log_tab.searching {
+    if (model.tab() == Tab::Log && model.log_tab.searching)
+        || (model.tab() == Tab::Workspaces && model.workspaces_tab.searching)
+    {
         return vec![("key-enter", "hint-finish"), ("key-esc", "hint-cancel")];
     }
     let mut hints = Vec::with_capacity(7);
@@ -1489,6 +1491,23 @@ mod tests {
                 .insert(std::path::PathBuf::from("/ws/app"), false);
             insta::assert_snapshot!(
                 format!("workspaces_closed_group_{suffix}"),
+                render_big(&model).backend()
+            );
+        }
+    }
+
+    #[test]
+    fn workspaces_search_shows_matches_with_their_parent() {
+        for (language, suffix) in LANGUAGES {
+            let mut model = workspaces_tab(language);
+            for c in "/port".chars() {
+                update(
+                    &mut model,
+                    Msg::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::NONE)),
+                );
+            }
+            insta::assert_snapshot!(
+                format!("workspaces_search_{suffix}"),
                 render_big(&model).backend()
             );
         }

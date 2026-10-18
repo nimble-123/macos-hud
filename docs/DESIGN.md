@@ -150,7 +150,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 | `←` `→`, `h` `l` | Workspaces: Workspace oder Repo mit Unterrepos einklappen bzw. ausklappen; `←` auf einer Zeile ohne offene Gruppe springt zum Eltern-Repo bzw. Workspace-Kopf |
 | `←` `→`, `h` `l`, `1`–`5` | KI: Zeitraum wechseln (läuft am Ende um) |
 | `t` | KI: Telemetrie in Claude Code einschalten (mit Rückfrage) |
-| `/` / `Esc` | Protokoll: Suche öffnen / Suche verwerfen |
+| `/` / `Esc` | Protokoll, Workspaces: Suche öffnen / Suche verwerfen |
 | `Enter`, Leertaste, `←` `→` | Einstellungen: Wert ändern bzw. Schalter kippen |
 | `a` | Updates: alle verfügbaren Updates installieren (mit Rückfrage); Einstellungen: Workspace hinzufügen |
 | `d`, `Entf` | Einstellungen: ausgewählten Workspace entfernen (mit Rückfrage) |
@@ -177,6 +177,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 - **Nur Abweichungen** (Standard): Aktuelle Repos stehen je Workspace in einer Zeile „○ N weitere aktuell“ in `soft` (ohne Abweichung „○ alle N Repos aktuell“). Ein aktuelles Repo bleibt sichtbar, wenn es ein abweichendes Unterrepo enthält, ein frischer Fast-Forward (●) für 30 s. `v` schaltet auf alle Repos um und zurück; die Fußzeile nennt die jeweils andere Ansicht.
 - **Einklappen**: Workspace-Köpfe und Repos mit Unterrepos tragen `▾` (offen) bzw. `▸` (eingeklappt); jeder Repo-Name hält dafür zwei Spalten frei. Ein eingeklapptes Repo zeigt statt der Unterrepos „N Unterrepos“ in `soft` und je abweichendem Status Symbol und Anzahl; den eigenen Zustand nur, wenn er abweicht, gekürzt, damit die Summe passt. In „nur Abweichungen“ starten Workspaces ohne Abweichung eingeklappt, in „alle“ ist alles offen; eigene Klapp-Entscheidungen gelten für die Sitzung.
 - **Sortierung**: nach Name (Standard) oder mit `s` nach Status: Fehler, divergiert, übersprungen, zurück, frischer Fast-Forward, aktuell; bei gleichem Rang nach Name. Sortiert wird unter Geschwistern, Unterrepos bleiben unter ihrem Repo. Die Wahl gilt für die Sitzung.
+- **Suche**: `/` öffnet über der Liste „Suche: Text█“ wie im Protokoll-Tab; solange die Eingabe offen ist, gehen alle Tasten an sie, die Fußzeile zeigt „Enter fertig   Esc abbrechen“. Gefiltert wird ohne Groß-/Kleinschreibung nach Name (Pfad relativ zum Workspace) und Branch. Sichtbar sind die Treffer mit ihren Eltern-Repos, alle Gruppen offen, ohne Sammelzeile; Workspaces ohne Treffer stehen eingeklappt da. `Enter` schließt die Eingabe und behält den Filter, `Esc` verwirft ihn.
 - Die Auswahl hängt am Workspace-Kopf oder Repo, nicht an der Zeile: Verschwinden Zeilen darüber, bleibt sie stehen; ist das gewählte Repo ausgeblendet, gilt das erste sichtbare.
 - Die Liste scrollt so, dass die Auswahl sichtbar bleibt; leere Workspaces zeigen während eines Scans „Suche Repositories …“.
 

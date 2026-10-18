@@ -390,6 +390,7 @@ help-details = enlarge or shrink the details
 help-fast-forward = fast-forward the selected repo
 help-view = show all repositories or only those that need attention
 help-sort = sort by status or by name
+help-search-repos = search repositories by name or branch
 help-fold = close or open a group; ← moves to the row above it
 help-sync = start fetch and sync now
 help-install = install the selected package (asks first)

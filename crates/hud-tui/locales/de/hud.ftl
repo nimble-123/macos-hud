@@ -390,6 +390,7 @@ help-details = Details vergrößern oder verkleinern
 help-fast-forward = Fast-Forward für das ausgewählte Repo
 help-view = alle Repos oder nur Abweichungen zeigen
 help-sort = nach Status oder nach Name sortieren
+help-search-repos = Repos nach Name oder Branch suchen
 help-fold = Gruppe einklappen bzw. ausklappen; ← springt zur übergeordneten Zeile
 help-sync = Fetch und Sync jetzt starten
 help-install = ausgewähltes Paket installieren (mit Rückfrage)
