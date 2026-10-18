@@ -900,7 +900,6 @@ dependencies = [
  "crossterm",
  "futures",
  "hud-application",
- "hud-domain",
  "hud-infrastructure",
  "hud-tui",
  "jiff",
