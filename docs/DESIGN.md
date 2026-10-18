@@ -180,7 +180,7 @@ Skills   1.7.2
   ◆ Alle Skills aktualisieren
 ```
 
-- Je Quelle ein Kopf mit Werkzeugversion; fehlt das Werkzeug, steht dort „✖ nicht gefunden“, ist es defekt, „✖ Fehler: …“. Scheitert die Prüfung, steht darunter eine Zeile „✖ Fehler: …“. Ohne Updates zeigt die Quelle „○ alles aktuell“. Zwischen den Quellen steht eine Leerzeile.
+- Je Quelle ein Kopf mit Werkzeugversion; fehlt das Werkzeug, steht dort „✖ nicht gefunden“ und darunter in `muted`, wo hud gesucht hat und welcher Schlüssel unter `[tools]` hilft (Skills: `npx`, gesucht neben `npm`); ist es defekt, „✖ Fehler: …“. Scheitert die Prüfung, steht darunter eine Zeile „✖ Fehler: …“. Ohne Updates zeigt die Quelle „○ alles aktuell“. Zwischen den Quellen steht eine Leerzeile.
 - Je Paket Statussymbol, Name, `aktuell → neu` und eine Notiz: Zustand der Installation, „Major-Update“ oder „gepinnt“. Gepinnte Pakete sind nicht installierbar.
 - Installationszustände: „wartet“, „läuft“, „installiert“ (●), „braucht ein Passwort, im Terminal ausführen“ (▲), „abgebrochen“ (▲), „nicht erlaubt“, „fehlgeschlagen: …“, „Zeitüberschreitung“ (✖). „installiert“ bleibt bis zur nächsten Prüfung stehen.
 - Skills meldet keine einzelnen Updates; der Tab zeigt die Zahl installierter Skills und eine Zeile „Alle Skills aktualisieren“.
@@ -355,7 +355,7 @@ Automatische Installation
 - UI zweisprachig **Deutsch/Englisch**, umschaltbar über `language = "auto" | "de" | "en"`. `auto` folgt der bevorzugten Systemsprache von macOS, Fallback Englisch.
 - Satzanfang groß, sonst Kleinschreibung, keine Großbuchstaben-Labels.
 - Aktionen heißen nach dem, was passiert: „Fast-Forward“, „Aktualisieren“. Die Bestätigung verwendet dasselbe Wort: „Fast-Forward: 3 Commits“.
-- Fehler nennen Ursache und nächsten Schritt, ohne Entschuldigung: „npm nicht gefunden. PATH der Login-Shell prüfen oder `[tools] npm` in der Config setzen.“
+- Fehler nennen Ursache und nächsten Schritt, ohne Entschuldigung: „npm nicht im PATH der Login-Shell gefunden. Installieren oder in der Config `[tools] npm = "…"` setzen.“
 - Geschätzte Werte tragen immer `≈`; in Zusammenfassungen zusätzlich das Wort „Schätzung“ oder „API-Äquivalent“, in Tabellenzellen nur `≈`.
 
 ## 8. Wortmarke und README

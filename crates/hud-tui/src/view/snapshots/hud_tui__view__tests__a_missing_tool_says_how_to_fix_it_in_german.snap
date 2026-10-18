@@ -1,0 +1,18 @@
+---
+source: crates/hud-tui/src/view/mod.rs
+expression: "missing_tools(Language::De).backend()"
+---
+"  Übersicht    Workspaces    Updates    KI    Protokoll    Einstellungen                                           "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"                                                                                                                   "
+"  Homebrew   ✖ nicht gefunden                                                                                      "
+"    brew nicht im PATH der Login-Shell gefunden. Installieren oder in der Config `[tools] brew = "…"` setzen.      "
+"                                                                                                                   "
+"  Skills   ✖ nicht gefunden                                                                                        "
+"    npx nicht im PATH der Login-Shell gefunden. Installieren oder in der Config `[tools] npm = "…"` setzen.        "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"  ↑↓ auswählen   u installieren   r aktualisieren   tab wechseln   ? Hilfe   q beenden                             "

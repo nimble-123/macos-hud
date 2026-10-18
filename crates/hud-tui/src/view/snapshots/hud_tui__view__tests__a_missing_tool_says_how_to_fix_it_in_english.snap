@@ -1,0 +1,18 @@
+---
+source: crates/hud-tui/src/view/mod.rs
+expression: "missing_tools(Language::En).backend()"
+---
+"  Overview    Workspaces    Updates    AI    Log    Settings                                                       "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"                                                                                                                   "
+"  Homebrew   ✖ not found                                                                                           "
+"    brew not found in the login shell PATH. Install it or set `[tools] brew = "…"` in the config.                  "
+"                                                                                                                   "
+"  Skills   ✖ not found                                                                                             "
+"    npx not found in the login shell PATH. Install it or set `[tools] npm = "…"` in the config.                    "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"  ↑↓ select   u install   r refresh   tab switch   ? help   q quit                                                 "

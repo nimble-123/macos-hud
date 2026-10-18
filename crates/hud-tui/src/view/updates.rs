@@ -61,6 +61,9 @@ fn build(model: &Model) -> (Vec<Line<'_>>, Vec<Option<usize>>) {
             push(Line::raw(""), None, &mut lines);
         }
         push(header(model, report), None, &mut lines);
+        if report.availability == Availability::Missing {
+            push(missing_hint(model, report.source), None, &mut lines);
+        }
         let Some(check) = &report.check else { continue };
         match check {
             Err(error) => push(error_line(model, error), None, &mut lines),
@@ -148,6 +151,27 @@ fn header<'a>(model: &Model, report: &SourceReport) -> Line<'a> {
         }
     }
     Line::from(spans)
+}
+
+/// Where hud looked and how to point it at the tool.
+fn missing_hint<'a>(model: &Model, source: SourceId) -> Line<'a> {
+    // Skills runs through npx, which hud expects next to npm.
+    let (program, key) = match source {
+        SourceId::Homebrew => ("brew", "brew"),
+        SourceId::Npm => ("npm", "npm"),
+        SourceId::Skills => ("npx", "npm"),
+    };
+    Line::styled(
+        format!(
+            "  {}",
+            t_args(
+                model.settings.language,
+                "src-missing-hint",
+                &[("program", program), ("key", key)]
+            )
+        ),
+        Style::new().fg(model.theme.muted),
+    )
 }
 
 fn error_line<'a>(model: &Model, error: &UpdateError) -> Line<'a> {
