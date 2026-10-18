@@ -133,11 +133,11 @@ fn with_setup(existing: Option<&str>, setup: &InitialSetup, home: &Path) -> Resu
     let mut document = document(existing)?;
     document["icons"] = toml_edit::value(icons_value(setup.icons));
     set(
-        &mut ai_table(&mut document, "claude")["enabled"],
+        &mut section(&mut document, "ai", "claude")["enabled"],
         setup.claude,
     );
     set(
-        &mut ai_table(&mut document, "codex")["enabled"],
+        &mut section(&mut document, "ai", "codex")["enabled"],
         setup.codex,
     );
     for path in &setup.workspaces {
@@ -194,33 +194,40 @@ fn with_change(
                 AutoInstallKind::BrewCasks => ("brew", "auto_install_casks"),
                 AutoInstallKind::Npm => ("npm", "auto_install"),
             };
-            set(&mut document["updates"][table][key], *enabled);
+            set(&mut section(&mut document, "updates", table)[key], *enabled);
         }
         SettingsChange::AiSource { provider, enabled } => {
             let table = match provider {
                 AiProvider::Claude => "claude",
                 AiProvider::Codex => "codex",
             };
-            set(&mut ai_table(&mut document, table)["enabled"], *enabled);
+            set(
+                &mut section(&mut document, "ai", table)["enabled"],
+                *enabled,
+            );
         }
     }
     Ok(render(existing, &document))
 }
 
-/// `[ai.<name>]`, created as a section of its own: indexing would create
-/// an inline table such as `ai = { codex = { enabled = true } }`.
-fn ai_table<'a>(document: &'a mut toml_edit::DocumentMut, name: &str) -> &'a mut toml_edit::Item {
-    let ai = document.entry("ai").or_insert_with(|| {
+/// `[<parent>.<name>]`, created as a section of its own: indexing would
+/// create an inline table such as `ai = { codex = { enabled = true } }`.
+fn section<'a>(
+    document: &'a mut toml_edit::DocumentMut,
+    parent: &str,
+    name: &str,
+) -> &'a mut toml_edit::Item {
+    let outer = document.entry(parent).or_insert_with(|| {
         let mut table = toml_edit::Table::new();
         table.set_implicit(true);
         toml_edit::Item::Table(table)
     });
-    if let Some(table) = ai.as_table_mut()
+    if let Some(table) = outer.as_table_mut()
         && !table.contains_key(name)
     {
         table.insert(name, toml_edit::Item::Table(toml_edit::Table::new()));
     }
-    &mut ai[name]
+    &mut outer[name]
 }
 
 /// Replaces a value but keeps its surrounding whitespace and inline comment.
@@ -783,6 +790,20 @@ npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
         let applied = store.apply_setup(&choice).await.expect("BUG");
         assert!(!applied.claude.enabled);
         assert!(applied.codex.enabled);
+    }
+
+    #[test]
+    fn an_opt_in_gets_a_section_of_its_own() {
+        let (text, settings) = change(&SettingsChange::AutoInstall {
+            kind: AutoInstallKind::Npm,
+            enabled: true,
+        });
+        assert!(settings.auto_install.npm);
+        assert!(
+            text.contains("[updates.npm]\nauto_install = true"),
+            "{text}"
+        );
+        assert!(!text.contains("updates = {"), "{text}");
     }
 
     #[test]
