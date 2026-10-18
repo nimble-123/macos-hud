@@ -25,8 +25,9 @@ pub fn update(model: &mut Model, msg: Msg) -> Vec<Command> {
                 return vec![crate::log_tab::load()];
             }
         }
-        Msg::Tick(now) => {
+        Msg::Tick(now, wall) => {
             model.now = Some(now);
+            model.wall = Some(wall);
             model.ticks = model.ticks.wrapping_add(1);
             model
                 .recent_ok
@@ -590,7 +591,10 @@ mod tests {
     #[test]
     fn tick_changes_neither_tab_nor_quit() {
         let mut model = Model::default();
-        update(&mut model, Msg::Tick(Instant::now()));
+        update(
+            &mut model,
+            Msg::Tick(Instant::now(), jiff::Timestamp::now()),
+        );
         assert_eq!(model.tab(), Tab::Overview);
         assert!(!model.should_quit());
     }
@@ -642,7 +646,7 @@ mod tests {
 
     fn after_f_on(state: RepoState, now: Instant) -> Model {
         let mut model = on_workspaces_tab();
-        update(&mut model, Msg::Tick(now));
+        update(&mut model, Msg::Tick(now, jiff::Timestamp::now()));
         update(
             &mut model,
             Msg::App(workspaces(vec![report("/ws/a", RepoState::UpToDate)])),
@@ -679,7 +683,10 @@ mod tests {
     fn the_fast_forward_result_disappears_after_a_few_seconds() {
         let start = Instant::now();
         let mut model = after_f_on(RepoState::UpToDate, start);
-        update(&mut model, Msg::Tick(start + Duration::from_secs(6)));
+        update(
+            &mut model,
+            Msg::Tick(start + Duration::from_secs(6), jiff::Timestamp::now()),
+        );
         assert_eq!(model.ff_notice, None);
     }
 
@@ -765,7 +772,7 @@ mod tests {
     fn fast_forward_highlight_expires_after_thirty_seconds() {
         let mut model = Model::default();
         let start = Instant::now();
-        update(&mut model, Msg::Tick(start));
+        update(&mut model, Msg::Tick(start, jiff::Timestamp::now()));
         update(
             &mut model,
             Msg::App(workspaces(vec![report(
@@ -775,7 +782,10 @@ mod tests {
         );
         let repo = RepoPath::try_from(PathBuf::from("/ws/a")).expect("BUG");
         assert!(model.is_recent_ok(&repo));
-        update(&mut model, Msg::Tick(start + Duration::from_secs(31)));
+        update(
+            &mut model,
+            Msg::Tick(start + Duration::from_secs(31), jiff::Timestamp::now()),
+        );
         assert!(!model.is_recent_ok(&repo));
     }
 

@@ -4,6 +4,7 @@ use hud_application::ports::system::SystemSample;
 use hud_application::settings::{Billing, OverviewInsight};
 use hud_application::usecases::updates::JobState;
 use hud_application::usecases::workspaces::RepoState;
+use hud_domain::action::Outcome;
 use hud_domain::git::SkipReason;
 use hud_domain::update::{InstallTarget, SourceId, VersionBump};
 use hud_domain::usage::Period;
@@ -22,6 +23,8 @@ const LABEL_WIDTH: usize = 12;
 /// One block per sample: 60 samples every 2 s are the last two minutes.
 pub(crate) const SPARK_SAMPLES: usize = 60;
 const BLOCKS: [char; 8] = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+/// How far back the overview counts problems from the log.
+const PROBLEM_WINDOW: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
 /// From here on a load value is shown in `caution`.
 const HIGH_LOAD: u8 = 90;
 
@@ -158,7 +161,38 @@ fn deviation_lines<'a>(model: &Model) -> Vec<Line<'a>> {
     if let Some(line) = updates_line(model) {
         lines.push(line);
     }
+    let problems = problems(model);
+    if problems > 0 && shows(model, OverviewInsight::Problems) {
+        let text = t_count(
+            model.settings.language,
+            "overview-problems",
+            "count",
+            problems,
+        );
+        lines.push(status_line(model, vec![(Status::Caution, text)]));
+    }
     lines
+}
+
+/// Logged actions that ended without success in the last 24 hours, as the
+/// log's problems filter shows them, but without those still running.
+fn problems(model: &Model) -> u32 {
+    let Some(wall) = model.wall else {
+        return 0;
+    };
+    let since = wall - PROBLEM_WINDOW;
+    let count = model
+        .actions
+        .iter()
+        .filter(|record| {
+            record
+                .outcome
+                .as_ref()
+                .is_some_and(|outcome| *outcome != Outcome::Succeeded)
+                && record.finished_at.unwrap_or(record.started_at) >= since
+        })
+        .count();
+    u32::try_from(count).unwrap_or(u32::MAX)
 }
 
 #[derive(Default)]

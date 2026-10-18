@@ -152,6 +152,8 @@ pub struct OverviewSettings {
     pub unpushed: bool,
     /// Major updates and packages that need a password, next to the update count.
     pub update_attention: bool,
+    /// Logged actions that did not succeed within the last 24 hours.
+    pub problems: bool,
 }
 
 impl OverviewSettings {
@@ -161,6 +163,7 @@ impl OverviewSettings {
         match insight {
             OverviewInsight::Unpushed => self.unpushed,
             OverviewInsight::UpdateAttention => self.update_attention,
+            OverviewInsight::Problems => self.problems,
         }
     }
 }
@@ -170,6 +173,7 @@ impl Default for OverviewSettings {
         Self {
             unpushed: true,
             update_attention: true,
+            problems: true,
         }
     }
 }
@@ -181,6 +185,8 @@ pub enum OverviewInsight {
     Unpushed,
     /// Major updates and packages that need a password.
     UpdateAttention,
+    /// Logged actions that did not succeed within the last 24 hours.
+    Problems,
 }
 
 /// Explicit paths for external tools; `None` means look up in the login PATH.
@@ -399,6 +405,7 @@ mod tests {
         assert!(!settings.codex.enabled);
         assert!(settings.overview.unpushed);
         assert!(settings.overview.update_attention);
+        assert!(settings.overview.problems);
     }
 
     #[test]

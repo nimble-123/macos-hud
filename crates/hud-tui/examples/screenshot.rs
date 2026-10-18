@@ -115,7 +115,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ..UiSettings::default()
         };
         let mut model = Model::new(settings);
-        update(&mut model, Msg::Tick(Instant::now()));
+        update(
+            &mut model,
+            Msg::Tick(Instant::now(), jiff::Timestamp::now()),
+        );
         update(
             &mut model,
             Msg::App(AppEvent::Settings(Box::new(sample_settings()))),
@@ -487,7 +490,10 @@ fn render_scanning(
         ..UiSettings::default()
     };
     let mut model = Model::new(settings);
-    update(&mut model, Msg::Tick(Instant::now()));
+    update(
+        &mut model,
+        Msg::Tick(Instant::now(), jiff::Timestamp::now()),
+    );
     update(
         &mut model,
         Msg::Key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE)),
@@ -651,7 +657,10 @@ fn render_confirm(
         ..UiSettings::default()
     };
     let mut model = Model::new(settings);
-    update(&mut model, Msg::Tick(Instant::now()));
+    update(
+        &mut model,
+        Msg::Tick(Instant::now(), jiff::Timestamp::now()),
+    );
     for event in sample_updates() {
         update(&mut model, Msg::App(event));
     }

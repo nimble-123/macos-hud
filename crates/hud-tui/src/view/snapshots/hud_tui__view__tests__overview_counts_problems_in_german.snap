@@ -1,0 +1,26 @@
+---
+source: crates/hud-tui/src/view/mod.rs
+expression: render_wide(&model).backend()
+---
+"  Übersicht    Workspaces    Updates    KI    Protokoll    Einstellungen                                           "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"                                                                                                                   "
+"  Systemwerte werden gemessen …                                                                                    "
+"                                                                                                                   "
+"  ▲ 2 Probleme in 24 h (Protokoll)                                                                                 "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"  r aktualisieren   tab wechseln   ? Hilfe   q beenden                                                             "

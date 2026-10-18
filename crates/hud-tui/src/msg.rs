@@ -16,8 +16,8 @@ pub enum Msg {
     /// every resize, so clicks resolve against the drawn layout.
     Resize(u16, u16),
     /// Render tick for time-based UI such as spinners; carries the current
-    /// time so that `update` stays free of clock access.
-    Tick(Instant),
+    /// time, monotonic and wall clock, so that `update` stays free of clock access.
+    Tick(Instant, jiff::Timestamp),
     /// Result of background work.
     App(AppEvent),
 }

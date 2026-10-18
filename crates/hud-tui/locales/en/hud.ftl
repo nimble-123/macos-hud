@@ -133,6 +133,7 @@ settings-auto-install = Automatic installation
 settings-overview = Overview
 insight-unpushed = Unpushed commits
 insight-update-attention = Major updates and password prompts
+insight-problems = Problems of the last 24 h
 settings-rejected = Not saved: { $reason }
 settings-remove-title = Remove workspace?
 settings-remove-body = Only from the config. Folders and repositories stay as they are.
@@ -288,6 +289,10 @@ overview-updates-major = { $count } major
 overview-updates-password = { $count ->
     [one] 1 needs a password
    *[other] { $count } need a password
+}
+overview-problems = { $count ->
+    [one] 1 problem in 24 h (log)
+   *[other] { $count } problems in 24 h (log)
 }
 overview-calm = All up to date.
 overview-calm-since = All up to date. Last check { $minutes } min ago.

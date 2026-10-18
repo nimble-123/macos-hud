@@ -512,7 +512,7 @@ async fn run(
                 None => continue,
             },
             Some(event) = app_events.recv() => Msg::App(event),
-            _ = render_tick.tick() => Msg::Tick(std::time::Instant::now()),
+            _ = render_tick.tick() => Msg::Tick(std::time::Instant::now(), jiff::Timestamp::now()),
         };
 
         for command in update(&mut model, msg) {

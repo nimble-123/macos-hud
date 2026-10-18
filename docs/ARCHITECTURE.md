@@ -314,7 +314,7 @@ Befehle der TUI sind nach Agent gruppiert: `Command::Workspaces(WorkspaceCommand
 | Modul | Inhalt |
 |---|---|
 | `model` | `Model`: aktiver Tab, Auswahl, Scroll-Offsets, Dialoge, zuletzt empfangene Daten, Terminalgröße |
-| `msg` | `Msg`: `Key`, `Mouse`, `Resize(Spalten, Zeilen)`, `Tick(Instant)`, `App(AppEvent)`; der Tick trägt die Zeit, damit `update` ohne Uhr auskommt |
+| `msg` | `Msg`: `Key`, `Mouse`, `Resize(Spalten, Zeilen)`, `Tick(Instant, Timestamp)`, `App(AppEvent)`; der Tick trägt die Zeit (monoton und Uhrzeit), damit `update` ohne Uhr auskommt |
 | `update` | `fn update(model: &mut Model, msg: Msg) -> Vec<Command>`, rein, ohne I/O |
 | `view` | `fn view(model: &Model, frame: &mut Frame)`, rein; je Tab ein Untermodul (`overview`, `workspaces`, `updates`, `ai`, `log`, `settings`) plus `ai_kpis` (Kennzahlen des KI-Tabs), `calendar` (Aktivitätskalender), `help` (Hilfe-Overlay); `areas` und `hit` für die Maus; `follow` hält in Listen die Auswahl sichtbar, `render_scrolled` und `max_scroll` begrenzen das freie Blättern von Übersicht und KI-Tab auf den Inhalt bei der aktuellen Terminalgröße; Spalten- und Balkenbreiten berechnet jede Ansicht aus der Breite ihrer Fläche (`bar_width`, `name_width`, `label_width`), `clip` kürzt mit `…` |
 | `mouse` | löst Klicks und Mausrad über `view::hit` auf und übersetzt sie in Tasten-Aktionen (Abschnitt 8.10) |
@@ -379,7 +379,7 @@ loop {
     let msg = tokio::select! {
         Some(ev) = input.next()      => match Msg::from_terminal(&ev?) { Some(m) => m, None => continue }, // crossterm EventStream, cancel-safe
         Some(ev) = app_events.recv() => Msg::App(ev),          // mpsc, cancel-safe
-        _ = render_tick.tick()       => Msg::Tick(Instant::now()), // 250 ms, MissedTickBehavior::Skip, cancel-safe
+        _ = render_tick.tick()       => Msg::Tick(Instant::now(), Timestamp::now()), // 250 ms, MissedTickBehavior::Skip, cancel-safe
     };
     for cmd in update(&mut model, msg) { commands.send(cmd).await?; }
     if model.should_quit() { break; }
@@ -615,6 +615,7 @@ port = 4318
 [overview]
 unpushed = true              # false: Repos mit ungepushten Commits zählen als übersprungen
 update_attention = true      # Major-Updates und Passwort-Bedarf neben der Zahl der Updates
+problems = true              # Probleme der letzten 24 h aus dem Protokoll
 
 # Optional: feste Pfade statt Suche im Login-PATH
 # [tools]

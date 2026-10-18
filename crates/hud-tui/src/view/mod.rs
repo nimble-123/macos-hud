@@ -1158,7 +1158,10 @@ mod tests {
         use hud_application::usecases::workspaces::WorkspaceReport;
         use hud_application::{AppEvent, ReportSource};
         let mut model = in_language(language);
-        update(&mut model, Msg::Tick(std::time::Instant::now()));
+        update(
+            &mut model,
+            Msg::Tick(std::time::Instant::now(), jiff::Timestamp::now()),
+        );
         for step in 0..40u8 {
             let sample = SystemSample {
                 cpu_percent: (step % 9) * 7 + 5,
@@ -1540,6 +1543,32 @@ mod tests {
                 render_wide(&model).backend()
             );
         }
+    }
+
+    fn log_tab_at(language: Language, wall: &str) -> Model {
+        let mut model = log_tab(language);
+        let wall = wall.parse::<jiff::Timestamp>().expect("BUG: timestamp");
+        update(&mut model, Msg::Tick(std::time::Instant::now(), wall));
+        model.tab = Tab::Overview;
+        model
+    }
+
+    #[test]
+    fn overview_counts_problems_of_the_last_day() {
+        for (language, suffix) in LANGUAGES {
+            let model = log_tab_at(language, "2026-10-18T09:00:00Z");
+            insta::assert_snapshot!(
+                format!("overview_counts_problems_{suffix}"),
+                render_wide(&model).backend()
+            );
+        }
+    }
+
+    #[test]
+    fn problems_older_than_a_day_leave_the_overview() {
+        let model = log_tab_at(Language::En, "2026-10-18T12:01:06Z");
+        let screen = render_wide(&model).backend().to_string();
+        assert!(!screen.contains("problem"), "{screen}");
     }
 
     #[test]
