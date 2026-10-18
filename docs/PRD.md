@@ -53,7 +53,7 @@ Entwickler:innen, die mehrere lokale Repositories und CLI-Werkzeuge nutzen und d
 - **Automatischer Fast-Forward ist standardmäßig aktiv** und pro Workspace per Opt-out abschaltbar
 - Fast-Forward nur, wenn alle Regeln in Abbildung 2 erfüllt sind; sonst wird das Repo übersprungen und der Grund angezeigt
 - Untracked Dateien blockieren den Fast-Forward nicht; Git bricht ab, falls der Upstream eine gleichnamige Datei bringt
-- Manueller Fast-Forward per Taste `f` oder `Enter` (oder zweiter Klick auf die gewählte Zeile bzw. Klick auf den Fußzeilen-Hinweis), auch bei Workspaces mit Opt-out; es gelten dieselben Regeln wie beim automatischen
+- Manueller Fast-Forward per Taste `f` oder `Enter` (oder zweiter Klick auf die gewählte Zeile bzw. Klick auf den Fußzeilen-Hinweis), auch bei Workspaces mit Opt-out; es gelten dieselben Regeln wie beim automatischen; die Fußzeile bestätigt die Eingabe sofort und nennt danach das Ergebnis, auch „bereits aktuell“ oder den Grund fürs Überspringen
 
 ![Regeln für den automatischen Fast-Forward](diagrams/sync-decision.svg)
 

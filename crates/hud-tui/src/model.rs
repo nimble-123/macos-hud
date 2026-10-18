@@ -69,6 +69,20 @@ use crate::theme::Theme;
 /// the quiet normal state (`docs/DESIGN.md` §6).
 pub(crate) const OK_HIGHLIGHT: Duration = Duration::from_secs(30);
 
+/// How long the footer shows the result of a manual fast-forward.
+pub(crate) const FF_NOTICE: Duration = Duration::from_secs(5);
+
+/// Feedback on the last manual fast-forward, so `f` never goes unnoticed,
+/// even when there was nothing to do.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct FfNotice {
+    pub(crate) repo: RepoPath,
+    /// `None` while the fast-forward runs.
+    pub(crate) result: Option<RepoState>,
+    /// When the result arrived; the notice disappears [`FF_NOTICE`] later.
+    pub(crate) at: Option<Instant>,
+}
+
 /// Moves a list cursor one row up (`-1`) or down (`1`), wrapping around at
 /// both ends. An empty list keeps the cursor at 0.
 pub(crate) fn wrap_step(index: usize, delta: isize, count: usize) -> usize {
@@ -93,6 +107,7 @@ pub struct Model {
     pub(crate) syncing: bool,
     /// A manual update check runs; cleared by the next update report.
     pub(crate) checking_updates: bool,
+    pub(crate) ff_notice: Option<FfNotice>,
     /// Index into [`Model::repo_rows`].
     pub(crate) selected: usize,
     /// Repositories fast-forwarded recently, with the time it happened.
@@ -198,6 +213,7 @@ impl Model {
             workspaces: Vec::new(),
             syncing: false,
             checking_updates: false,
+            ff_notice: None,
             selected: 0,
             recent_ok: HashMap::new(),
             scan: None,
@@ -291,6 +307,18 @@ impl Model {
     /// The selected repository, if any.
     pub(crate) fn selected_repo(&self) -> Option<&RepoReport> {
         self.repo_rows().nth(self.selected)
+    }
+
+    /// A repository's path relative to its workspace, as the list shows it.
+    pub(crate) fn repo_label(&self, repo: &RepoPath) -> String {
+        self.workspaces
+            .iter()
+            .find_map(|w| repo.as_path().strip_prefix(w.workspace.as_path()).ok())
+            .filter(|relative| !relative.as_os_str().is_empty())
+            .map_or_else(
+                || repo.to_string(),
+                |relative| relative.display().to_string(),
+            )
     }
 
     /// Whether a repository was fast-forwarded within [`OK_HIGHLIGHT`].
