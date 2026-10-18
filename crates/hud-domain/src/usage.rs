@@ -141,8 +141,6 @@ pub struct UsageRecord {
     pub subagent: bool,
     /// Part of the output spent on thinking.
     pub thinking: u64,
-    /// Context window the provider reported with the response, if any.
-    pub context_window: Option<u64>,
 }
 
 /// One tool call, counted once by its id however often a log repeats it.
@@ -166,25 +164,6 @@ impl TokenUsage {
             + self.output
             + self.reasoning.unwrap_or(0)
     }
-}
-
-/// Context window of a Claude `model` in tokens: 1 M from Claude 4.6 on,
-/// 200 k before; unknown models are assumed to be current. Codex reports the
-/// window with every response instead.
-#[must_use]
-pub fn context_window(model: &ModelId) -> u64 {
-    const WINDOWS: [(&str, u64); 9] = [
-        ("claude-opus-4", 200_000),
-        ("claude-opus-4-1", 200_000),
-        ("claude-opus-4-5", 200_000),
-        ("claude-opus-4-6", 1_000_000),
-        ("claude-opus-4-7", 1_000_000),
-        ("claude-opus-4-8", 1_000_000),
-        ("claude-sonnet-4", 200_000),
-        ("claude-sonnet-4-5", 200_000),
-        ("claude-haiku-4-5", 200_000),
-    ];
-    longest_match(WINDOWS.iter().copied(), model.as_str()).unwrap_or(1_000_000)
 }
 
 /// How far a value can be trusted.
@@ -760,7 +739,6 @@ mod tests {
             project: None,
             subagent: false,
             thinking: 0,
-            context_window: None,
         }
     }
 
@@ -800,15 +778,6 @@ mod tests {
         assert_eq!(pricing("claude-opus-4-1-20250805"), usd(15, 0));
         assert_eq!(pricing("claude-opus-4-5-20251101"), usd(5, 0));
         assert_eq!(pricing("claude-sonnet-4-5-20250929"), usd(3, 0));
-    }
-
-    #[test]
-    fn context_windows_follow_the_model_generation() {
-        let window = |id: &str| context_window(&ModelId::try_from(id.to_owned()).expect("BUG"));
-        assert_eq!(window("claude-opus-4-20250514"), 200_000);
-        assert_eq!(window("claude-opus-4-6"), 1_000_000);
-        assert_eq!(window("claude-haiku-4-5-20251001"), 200_000);
-        assert_eq!(window("claude-sonnet-5-5"), 1_000_000);
     }
 
     #[test]

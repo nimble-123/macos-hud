@@ -1,8 +1,6 @@
 //! Key figures on top of the AI tab: fixed horizons, no switching.
 
-use hud_application::usecases::usage::{
-    ContextUse, PeriodKpis, PeriodUsage, SourceUsage, UsageReport,
-};
+use hud_application::usecases::usage::{PeriodKpis, PeriodUsage, SourceUsage, UsageReport};
 use hud_domain::usage::{Accuracy, ModelId, PlanUsage, PlanWindow, Provider};
 use jiff::Timestamp;
 use ratatui::style::{Color, Modifier, Style};
@@ -26,7 +24,7 @@ fn bar_width(width: u16) -> usize {
 const BLOCKS: [char; 8] = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
 const INDENT: &str = "  ";
 
-/// All sections for the selected period; only context and plan usage are current.
+/// All sections for the selected period; only plan usage is current.
 pub(super) fn lines<'a>(
     model: &Model,
     source: &SourceUsage,
@@ -63,12 +61,6 @@ pub(super) fn lines<'a>(
         section(
             plan_heading(model, plan, report.at),
             plan_lines(model, plan, report.at, bar),
-        );
-    }
-    if let Some(context) = &source.context {
-        section(
-            heading(model, "kpi-context", Some("kpi-now")),
-            context_lines(model, context, bar),
         );
     }
     if !kpis.projects.is_empty() {
@@ -355,53 +347,6 @@ fn axis<'a>(model: &Model, usage: &PeriodUsage, chart: usize) -> Line<'a> {
             Style::new().fg(model.theme.muted),
         ),
     ])
-}
-
-fn context_lines<'a>(model: &Model, context: &ContextUse, bar_width: usize) -> Vec<Line<'a>> {
-    let language = model.settings.language;
-    let share =
-        u16::try_from((u128::from(context.prompt) * 1000) / u128::from(context.window.max(1)))
-            .unwrap_or(1000)
-            .min(1000);
-    let filled = usize::from(share) * bar_width / 1000;
-    let color = if share >= 800 {
-        model.theme.status(Status::Caution)
-    } else {
-        model.theme.status(Status::Advisory)
-    };
-    let bar = Line::from(vec![
-        Span::raw(INDENT),
-        Span::styled("█".repeat(filled), Style::new().fg(color)),
-        Span::styled(
-            "░".repeat(bar_width - filled),
-            Style::new().fg(model.theme.rule),
-        ),
-        Span::styled(
-            format!("   {}", percent(share)),
-            Style::new().fg(color).add_modifier(Modifier::BOLD),
-        ),
-        soft(
-            model,
-            format!(
-                "   {} / {}",
-                compact(context.prompt, language),
-                compact(context.window, language)
-            ),
-        ),
-    ]);
-    let mut meta = vec![
-        context
-            .model
-            .as_str()
-            .trim_start_matches("claude-")
-            .to_owned(),
-    ];
-    meta.extend(context.project.clone());
-    meta.push(ago(context.idle.as_secs(), language));
-    vec![
-        bar,
-        Line::from(vec![Span::raw(INDENT), soft(model, meta.join(", "))]),
-    ]
 }
 
 /// `Abo-Auslastung   Plan Plus, Stand vor 3 min`.

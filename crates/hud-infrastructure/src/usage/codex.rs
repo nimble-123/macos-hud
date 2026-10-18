@@ -264,7 +264,6 @@ struct Payload {
 struct Info {
     total_token_usage: Usage,
     last_token_usage: Usage,
-    model_context_window: Option<u64>,
 }
 
 #[derive(Deserialize)]
@@ -398,7 +397,6 @@ fn record(info: Info, at: Timestamp, context: &Context) -> Option<UsageRecord> {
         }),
         subagent: false,
         thinking: 0,
-        context_window: info.model_context_window,
     })
 }
 
@@ -489,7 +487,6 @@ mod tests {
         assert_eq!(first.model.as_str(), "gpt-6-luna");
         assert_eq!(first.session, "session-1");
         assert_eq!(first.project.as_deref(), Some("hud"));
-        assert_eq!(first.context_window, Some(258_400));
         assert_eq!(
             first.tokens,
             TokenUsage {

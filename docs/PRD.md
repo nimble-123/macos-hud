@@ -83,7 +83,7 @@ Entwickler:innen, die mehrere lokale Repositories und CLI-Werkzeuge nutzen und d
 - Jede Quelle hat einen eigenen Abschnitt; nur „KI heute“ und der Kalender der Übersicht zählen alle Quellen zusammen
 - Zeiträume: heute, 7 Tage, 30 Tage, dieser Kalendermonat, letzter Kalendermonat
 - Sessions, Modelle und Token pro Zeitraum; Input-, Output-, Cache-Schreib-, Cache-Lese- und (Codex) Reasoning-Token getrennt, sofern die Quelle sie liefert
-- Kennzahlen pro Zeitraum: Cache-Hit-Rate, Modellanteile, Subagenten-Anteil (Claude Code), Thinking- bzw. Reasoning-Anteil, Aktivität nach Stunde (heute) oder Tag, Sessions, Antworten und Tool-Calls, Projektanteile; dazu aktuell die Kontextauslastung der letzten Antwort
+- Kennzahlen pro Zeitraum: Cache-Hit-Rate, Modellanteile, Subagenten-Anteil (Claude Code), Thinking- bzw. Reasoning-Anteil, Aktivität nach Stunde (heute) oder Tag, Sessions, Antworten und Tool-Calls, Projektanteile
 - Kosten immer als **Schätzung** mit `≈` gekennzeichnet; bei Abo-Nutzung als „API-Äquivalent“
 - Preistabelle wird mit hud ausgeliefert, zeigt ihr Stand-Datum und ist in der Config überschreibbar
 - Codex: zusätzlich Auslastung des Abo-Limits (Prozent, Rücksetzzeitpunkt), soweit lokal verfügbar

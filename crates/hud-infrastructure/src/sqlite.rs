@@ -122,6 +122,8 @@ fn migrations() -> Migrations<'static> {
         M::up(PLAN_USAGE),
         // Merging used to turn a missing reasoning count into 0; Claude never reports one.
         M::up("UPDATE ai_usage SET reasoning = NULL WHERE provider = 'claude' AND reasoning = 0;"),
+        // The AI tab no longer shows the context window.
+        M::up("ALTER TABLE ai_usage DROP COLUMN context_window;"),
     ])
 }
 
@@ -439,11 +441,10 @@ impl UsageStore for SqliteStore {
                 let mut insert = transaction.prepare(
                     "INSERT INTO ai_usage (provider, message_key, session, model, at_ms, input, output,
                          cache_write_5m, cache_write_1h, cache_read, reasoning, speed, geo,
-                         project, subagent, thinking, context_window)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
+                         project, subagent, thinking)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
                      ON CONFLICT (provider, message_key) DO UPDATE SET
                          project = coalesce(excluded.project, project),
-                         context_window = coalesce(excluded.context_window, context_window),
                          subagent = max(subagent, excluded.subagent),
                          thinking = max(thinking, excluded.thinking),
                          input = max(input, excluded.input),
@@ -475,7 +476,6 @@ impl UsageStore for SqliteStore {
                         record.project,
                         record.subagent,
                         int(record.thinking),
-                        record.context_window.map(int),
                     ])?;
                 }
                 let mut call = transaction.prepare(
@@ -515,8 +515,7 @@ impl UsageStore for SqliteStore {
         self.call(move |db| {
             let mut query = db.prepare(
                 "SELECT provider, message_key, session, model, at_ms, input, output, cache_write_5m,
-                        cache_write_1h, cache_read, reasoning, speed, geo, project, subagent, thinking,
-                        context_window
+                        cache_write_1h, cache_read, reasoning, speed, geo, project, subagent, thinking
                  FROM ai_usage WHERE at_ms >= ?1 AND at_ms < ?2",
             )?;
             let rows =
@@ -553,10 +552,6 @@ impl UsageStore for SqliteStore {
                         project: row.get(13)?,
                         subagent: row.get(14)?,
                         thinking: get_u64(row, 15)?,
-                        context_window: row
-                            .get::<_, Option<i64>>(16)?
-                            .map(|v| u64::try_from(v).map_err(|e| conversion(16, e)))
-                            .transpose()?,
                     })
                 })?;
             rows.collect()
@@ -1123,7 +1118,6 @@ mod tests {
             project: Some("hud".into()),
             subagent: true,
             thinking: 30,
-            context_window: None,
         };
         let tool_call = |id: &str| hud_domain::usage::ToolCall {
             provider: Provider::Claude,

@@ -311,7 +311,6 @@ kpi-tool-calls = { $count ->
     [one] 1 tool call
    *[other] { $count } tool calls
 }
-kpi-context = Context
 kpi-projects = Projects
 kpi-just-now = just now
 kpi-minutes-ago = { $count } min ago
@@ -321,7 +320,6 @@ ai-token-kinds = Token kinds
 kpi-consumption = Consumption
 kpi-today-label = Today
 kpi-details = Details
-kpi-now = current
 kpi-totals = Total
 kpi-axis-midnight = 0:00
 kpi-axis-day-end = 24:00

@@ -328,7 +328,6 @@ fn parse_line(line: &[u8], context: &FileContext) -> Parsed {
             .output_tokens_details
             .and_then(|details| details.thinking_tokens)
             .unwrap_or(0),
-        context_window: None,
     };
     Parsed::Record(Box::new(record), calls)
 }
