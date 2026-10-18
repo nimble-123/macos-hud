@@ -134,7 +134,7 @@ crates/
 | `hud-application` | `hud-domain`, `tokio` (`rt-multi-thread`, `macros`, `sync`, `time`), `tokio-util`, `futures`, `jiff`, `tracing`, `thiserror` | Prozesse, Dateisystem, SQLite, Ratatui |
 | `hud-infrastructure` | `hud-application`, `hud-domain`, `tokio` (zusätzlich `process`, `fs`, `io-util`, `rt`, `net`), `tokio-util`, `futures`, `jiff`, `nix` (Signale), `rusqlite`, `rusqlite_migration`, `serde`, `serde_json`, `toml`, `toml_edit`, `sysinfo`, `hyper`, `hyper-util`, `http-body-util` (OTLP), `ruzstd`, `thiserror`, `tracing` | Ratatui, Crossterm |
 | `hud-tui` | `hud-application`, `hud-domain`, `ratatui`, `crossterm`, `fluent-templates`, `jiff`, `tracing` | `hud-infrastructure` |
-| `hud` | alle obigen, `anyhow`, `crossterm`, `ratatui`, `futures`, `jiff`, `tokio`, `tokio-util`, `tracing`, `tracing-subscriber`, `tracing-appender`, `terminal-colorsaurus`, `sys-locale` | — |
+| `hud` | `hud-application`, `hud-infrastructure`, `hud-tui` (nicht `hud-domain` direkt), `anyhow`, `crossterm`, `ratatui`, `futures`, `jiff`, `tokio`, `tokio-util`, `tracing`, `tracing-subscriber`, `tracing-appender`, `terminal-colorsaurus`, `sys-locale` | — |
 
 Abhängigkeitsversionen stehen zentral in `[workspace.dependencies]`; Crates erben mit `dep.workspace = true`.
 
