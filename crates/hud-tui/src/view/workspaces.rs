@@ -14,6 +14,7 @@ use crate::Model;
 use crate::i18n::{t, t_args, t_count};
 use crate::icons::{Source, Status, source_glyph, status_glyph};
 use crate::settings::Language;
+use crate::workspaces_tab::{self, Row};
 
 /// The repository name column grows with the window between these widths.
 const MIN_NAME_WIDTH: usize = 12;
@@ -37,14 +38,13 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
     );
 }
 
-/// Repository row under line `y` of the tab's area, as the frame shows it.
+/// Row of [`workspaces_tab::rows`] under line `y` of the tab's area, as the frame shows it.
 pub(super) fn row_at(model: &Model, area: Rect, y: u16) -> Option<usize> {
     let (_, rows, selected_line) = build(model, area.width);
     let line = usize::from(y + super::follow(area, selected_line));
     rows.get(line).copied().flatten()
 }
 
-/// Lines, the repository row of each line, and the line of the selection.
 /// Name column for an area `width` wide: what branch, counts and the
 /// longest state text leave.
 fn name_width(width: u16) -> usize {
@@ -53,73 +53,80 @@ fn name_width(width: u16) -> usize {
         .clamp(MIN_NAME_WIDTH, MAX_NAME_WIDTH)
 }
 
+/// Lines, the row of each line, and the line of the selection.
 fn build(model: &Model, width: u16) -> (Vec<Line<'_>>, Vec<Option<usize>>, usize) {
     let names = name_width(width);
     // Marker, glyph and spaces take four columns before the name.
     let rest = usize::from(width).saturating_sub(4 + names + BRANCH_WIDTH + COUNTS_WIDTH);
     let language = model.settings.language;
     let theme = &model.theme;
+    let rows = workspaces_tab::rows(model);
+    let selected = workspaces_tab::selected_index(model, &rows);
     let mut lines = Vec::new();
-    let mut rows = Vec::new();
-    let mut row = 0usize;
+    let mut map = Vec::new();
     let mut selected_line = 0usize;
-    for workspace in &model.workspaces {
-        if !lines.is_empty() {
-            lines.push(Line::raw(""));
-            rows.push(None);
-        }
-        lines.push(header(model, workspace));
-        rows.push(None);
-        match &workspace.repos {
-            None => {}
-            Some(repos) if repos.is_empty() => {
+    for (index, row) in rows.iter().enumerate() {
+        let line = match row {
+            Row::Workspace(workspace) => {
+                if !lines.is_empty() {
+                    lines.push(Line::raw(""));
+                    map.push(None);
+                }
+                header(model, workspace)
+            }
+            Row::Repo {
+                report,
+                base,
+                level,
+            } => {
+                if selected == Some(index) {
+                    selected_line = lines.len();
+                }
+                repo_line(
+                    model,
+                    report,
+                    &Place {
+                        base,
+                        level: *level,
+                    },
+                    selected == Some(index),
+                    names,
+                    rest,
+                )
+            }
+            Row::UpToDate { count, every } => {
+                let key = if *every {
+                    "ws-every-up-to-date"
+                } else {
+                    "ws-more-up-to-date"
+                };
+                let count = u32::try_from(*count).unwrap_or(u32::MAX);
+                Line::styled(
+                    format!(
+                        "  {} {}",
+                        status_glyph(model.settings.icons, Status::Neutral),
+                        t_count(language, key, "count", count)
+                    ),
+                    Style::new().fg(theme.soft),
+                )
+            }
+            Row::Empty => {
                 let message = if model.scan.is_some() {
                     "ws-scanning"
                 } else {
                     "ws-empty"
                 };
-                lines.push(Line::styled(
+                Line::styled(
                     format!("  {}", t(language, message)),
                     Style::new().fg(theme.soft),
-                ));
-                rows.push(None);
+                )
             }
-            Some(repos) => {
-                // Repos arrive sorted by path, so an outer repository always
-                // comes right before the ones nested inside it.
-                let mut outer: Vec<&Path> = Vec::new();
-                for report in repos {
-                    let path = report.repo.as_path();
-                    while outer.last().is_some_and(|parent| !path.starts_with(parent)) {
-                        outer.pop();
-                    }
-                    let place = Place {
-                        base: outer
-                            .last()
-                            .copied()
-                            .unwrap_or(workspace.workspace.as_path()),
-                        level: outer.len(),
-                    };
-                    outer.push(path);
-                    if row == model.selected {
-                        selected_line = lines.len();
-                    }
-                    lines.push(repo_line(
-                        model,
-                        report,
-                        &place,
-                        row == model.selected,
-                        names,
-                        rest,
-                    ));
-                    rows.push(Some(row));
-                    row += 1;
-                }
-            }
-        }
+        };
+        lines.push(line);
+        map.push(Some(index));
     }
 
-    (lines, rows, selected_line)
+    (lines, map, selected_line)
 }
 
 fn header<'a>(model: &Model, workspace: &'a WorkspaceReport) -> Line<'a> {
@@ -163,7 +170,7 @@ fn counts<'a>(model: &Model, repos: &[RepoReport]) -> Vec<Span<'a>> {
         .map(|status| {
             let count = repos
                 .iter()
-                .filter(|report| status_of(model, report) == status)
+                .filter(|report| workspaces_tab::status(model, report) == status)
                 .count();
             (status, count)
         })
@@ -206,7 +213,7 @@ fn repo_line<'a>(
 ) -> Line<'a> {
     let language = model.settings.language;
     let theme = &model.theme;
-    let status = status_of(model, report);
+    let status = workspaces_tab::status(model, report);
     let quiet = status == Status::Neutral;
 
     let indent = "  ".repeat(place.level);
@@ -322,16 +329,6 @@ pub(super) fn ff_notice(model: &Model) -> Vec<Span<'static>> {
         format!("{glyph} {text}"),
         Style::new().fg(model.theme.status(status)),
     )]
-}
-
-fn status_of(model: &Model, report: &RepoReport) -> Status {
-    match &report.state {
-        RepoState::FastForwarded(_) if model.is_recent_ok(&report.repo) => Status::Ok,
-        RepoState::UpToDate | RepoState::FastForwarded(_) => Status::Neutral,
-        RepoState::Behind(_) => Status::Advisory,
-        RepoState::Skipped(SkipReason::Diverged { .. }) | RepoState::Error(_) => Status::Warning,
-        RepoState::Skipped(_) => Status::Caution,
-    }
 }
 
 fn counts_text(ahead: u32, behind: u32) -> String {

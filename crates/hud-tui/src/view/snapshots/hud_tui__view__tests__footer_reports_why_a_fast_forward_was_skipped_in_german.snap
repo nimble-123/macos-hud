@@ -31,4 +31,4 @@ expression: render_big(&model).backend()
 "                                                                                                                   "
 "  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
 "  ▲ api: nicht aktualisiert, lokale Änderungen                                                                     "
-"  ↑↓ auswählen   f Fast-Forward   r aktualisieren   tab wechseln   ? Hilfe   q beenden                             "
+"  ↑↓ auswählen   f Fast-Forward   v nur Abweichungen   r aktualisieren   tab wechseln   ? Hilfe   q beenden        "

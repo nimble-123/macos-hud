@@ -64,6 +64,7 @@ use crate::log_tab::LogTab;
 use crate::settings::{System, UiSettings};
 use crate::settings_tab::SettingsTab;
 use crate::theme::Theme;
+use crate::workspaces_tab::WorkspacesTab;
 
 /// How long a finished fast-forward stays highlighted before it returns to
 /// the quiet normal state (`docs/DESIGN.md` §6).
@@ -119,8 +120,7 @@ pub struct Model {
     /// A manual update check runs; cleared by the next update report.
     pub(crate) checking_updates: bool,
     pub(crate) ff_notice: Option<FfNotice>,
-    /// Index into [`Model::repo_rows`].
-    pub(crate) selected: usize,
+    pub(crate) workspaces_tab: WorkspacesTab,
     /// Repositories fast-forwarded recently, with the time it happened.
     pub(crate) recent_ok: HashMap<RepoPath, Instant>,
     /// Progress of the running scan, if any.
@@ -228,7 +228,7 @@ impl Model {
             syncing: false,
             checking_updates: false,
             ff_notice: None,
-            selected: 0,
+            workspaces_tab: WorkspacesTab::default(),
             recent_ok: HashMap::new(),
             scan: None,
             ticks: 0,
@@ -329,11 +329,6 @@ impl Model {
             .iter()
             .filter_map(|w| w.repos.as_ref())
             .flatten()
-    }
-
-    /// The selected repository, if any.
-    pub(crate) fn selected_repo(&self) -> Option<&RepoReport> {
-        self.repo_rows().nth(self.selected)
     }
 
     /// A repository's path relative to its workspace, as the list shows it.
