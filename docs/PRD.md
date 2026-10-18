@@ -41,7 +41,7 @@ Entwickler:innen, die mehrere lokale Repositories und CLI-Werkzeuge nutzen und d
 - KI-Nutzung heute über alle aktiven Quellen (Token, geschätzte Kosten)
 - KI-Aktivität (Antworten pro Tag) und Git-Aktivität (eigene Commits laut `git config user.email` über alle Branches aller Repositories) als Kalender im Stil des GitHub-Contribution-Graphs, bis zu 53 Wochen; ohne Aktivität entfällt der Kalender
 - Zeigt nur Abweichungen; ist alles normal, erscheint ein einzelner neutraler Satz mit dem Zeitpunkt der letzten Prüfung („Alles aktuell. Letzte Prüfung vor N min.“)
-- Zusatzanzeigen lassen sich im Einstellungen-Tab und in der Config einzeln ausschalten, standardmäßig sind alle an: ungepushte Commits (sonst zählen diese Repos als übersprungen)
+- Zusatzanzeigen lassen sich im Einstellungen-Tab und in der Config einzeln ausschalten, standardmäßig sind alle an: ungepushte Commits (sonst zählen diese Repos als übersprungen); Major-Updates und Updates, deren Installation in dieser Sitzung ein Passwort verlangt hat, neben der Zahl der Updates
 - Laufende Installationen, Scans, Syncs und manuell gestartete Update-Prüfungen erscheinen auf allen Tabs in einer Fortschrittszeile der Fußzeile
 
 ### 4.2 Workspaces und Git

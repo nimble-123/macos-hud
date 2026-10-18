@@ -181,6 +181,7 @@ fn row_line<'a>(model: &Model, row: &Row, selected: bool, labels: usize) -> Line
                 language,
                 match insight {
                     OverviewInsight::Unpushed => "insight-unpushed",
+                    OverviewInsight::UpdateAttention => "insight-update-attention",
                 },
             ),
             switch(model, *enabled),

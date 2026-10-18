@@ -2,9 +2,10 @@
 
 use hud_application::ports::system::SystemSample;
 use hud_application::settings::{Billing, OverviewInsight};
+use hud_application::usecases::updates::JobState;
 use hud_application::usecases::workspaces::RepoState;
 use hud_domain::git::SkipReason;
-use hud_domain::update::SourceId;
+use hud_domain::update::{InstallTarget, SourceId, VersionBump};
 use hud_domain::usage::Period;
 use ratatui::Frame;
 use ratatui::layout::Rect;
@@ -223,11 +224,48 @@ fn updates_line<'a>(model: &Model) -> Option<Line<'a>> {
         })
         .collect::<Vec<_>>()
         .join(", ");
-    let text = format!(
+    let mut text = format!(
         "{} ({sources})",
         t_count(language, "overview-updates", "count", total)
     );
+    if shows(model, OverviewInsight::UpdateAttention) {
+        let (major, password) = attention(model);
+        for (key, count) in [
+            ("overview-updates-major", major),
+            ("overview-updates-password", password),
+        ] {
+            if count > 0 {
+                text.push_str(", ");
+                text.push_str(&t_count(language, key, "count", count));
+            }
+        }
+    }
     Some(status_line(model, vec![(Status::Advisory, text)]))
+}
+
+/// Unpinned updates across a major version, and those whose last
+/// installation in this session asked for a password, as the Updates tab marks them.
+fn attention(model: &Model) -> (u32, u32) {
+    let candidates = model
+        .updates
+        .iter()
+        .filter_map(|report| report.check.as_ref()?.as_ref().ok())
+        .flat_map(|check| &check.candidates)
+        .filter(|candidate| !candidate.pinned);
+    let (mut major, mut password) = (0, 0);
+    for candidate in candidates {
+        if candidate.bump() == VersionBump::Major {
+            major += 1;
+        }
+        let target = InstallTarget::Package(candidate.clone());
+        if model
+            .job_for(&target)
+            .is_some_and(|job| job.state == JobState::NeedsInteraction)
+        {
+            password += 1;
+        }
+    }
+    (major, password)
 }
 
 /// Before the settings are loaded every addition counts as switched on.

@@ -132,6 +132,7 @@ settings-ai-sources = AI sources
 settings-auto-install = Automatic installation
 settings-overview = Overview
 insight-unpushed = Unpushed commits
+insight-update-attention = Major updates and password prompts
 settings-rejected = Not saved: { $reason }
 settings-remove-title = Remove workspace?
 settings-remove-body = Only from the config. Folders and repositories stay as they are.
@@ -282,6 +283,11 @@ overview-workspaces-unavailable = { $count ->
 overview-updates = { $count ->
     [one] 1 update
    *[other] { $count } updates
+}
+overview-updates-major = { $count } major
+overview-updates-password = { $count ->
+    [one] 1 needs a password
+   *[other] { $count } need a password
 }
 overview-calm = All up to date.
 overview-calm-since = All up to date. Last check { $minutes } min ago.
