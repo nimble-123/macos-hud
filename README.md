@@ -135,7 +135,7 @@ hud --reset-config --reset-data --yes
 | --- | --- |
 | `Tab` / `Shift-Tab` | next / previous tab |
 | `↑` `↓` / `k` `j` | move selection (wraps around at both ends) |
-| `Enter` | Updates: open the install dialog; Settings: change the value; dialogs: confirm |
+| `Enter` | Workspaces: fast-forward like `f`; Updates: open the install dialog; Log: enlarge or shrink the details; Settings: change the value; dialogs: confirm |
 | `f` | fast-forward the selected repo; in Log: cycle the filter |
 | `u` | update the selected package |
 | `←` `→` / `h` `l` / `1`–`5` | switch the period for the whole AI tab |
@@ -147,7 +147,7 @@ hud --reset-config --reset-data --yes
 | `q` | quit; while an installation runs, choose to wait (`Enter`) or cancel (`a`); `Esc` or `n` goes back, a second `q` quits at once |
 | `Ctrl-C` | quit, even from an input |
 
-With the mouse, click a tab, a period, a row or any action in the footer. A second click on the selected row acts like `Enter` (Updates, Settings), and the wheel moves the selection. Dialogs only answer to keys; a click closes the help. The setup screen is keyboard only.
+With the mouse, click a tab, a period, a row or any action in the footer. A second click on the selected row acts like `Enter`, and the wheel moves the selection. Dialogs only answer to keys; a click closes the help. The setup screen is keyboard only.
 
 ## Configuration
 

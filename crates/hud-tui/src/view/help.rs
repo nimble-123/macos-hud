@@ -17,7 +17,7 @@ fn tab_keys(tab: Tab) -> &'static [(&'static str, &'static str)] {
         Tab::Overview => &[("key-r", "help-sync")],
         Tab::Workspaces => &[
             ("key-arrows", "help-select"),
-            ("key-f", "help-fast-forward"),
+            ("help-key-fast-forward", "help-fast-forward"),
             ("key-r", "help-sync"),
         ],
         Tab::Updates => &[
@@ -34,6 +34,7 @@ fn tab_keys(tab: Tab) -> &'static [(&'static str, &'static str)] {
             ("key-arrows", "help-select"),
             ("key-slash", "help-search"),
             ("key-f", "help-filter"),
+            ("key-enter", "help-details"),
             ("key-esc", "help-clear-search"),
             ("key-r", "help-reload-log"),
         ],

@@ -17,6 +17,8 @@ pub(crate) struct LogTab {
     /// Whether the search input takes the keys.
     pub(crate) searching: bool,
     pub(crate) filter: Filter,
+    /// The detail pane takes most of the height to show more output.
+    pub(crate) expanded: bool,
 }
 
 /// Which actions the list shows.
@@ -94,6 +96,7 @@ pub(crate) fn on_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Command>> {
         }
         KeyCode::Up | KeyCode::Char('k') => tab.selected = wrap_step(tab.selected, -1, count),
         KeyCode::Char('/') => tab.searching = true,
+        KeyCode::Enter => tab.expanded = !tab.expanded,
         KeyCode::Char('f') => {
             tab.filter = tab.filter.next();
             tab.selected = 0;
@@ -192,6 +195,17 @@ mod tests {
         ];
         update(&mut model, Msg::App(AppEvent::Actions(actions)));
         model
+    }
+
+    #[test]
+    fn enter_enlarges_and_shrinks_the_details() {
+        let mut model = model();
+        update(&mut model, key(KeyCode::Enter));
+        assert!(model.log_tab.expanded);
+        update(&mut model, key(KeyCode::Down));
+        assert!(model.log_tab.expanded, "moving keeps the details large");
+        update(&mut model, key(KeyCode::Enter));
+        assert!(!model.log_tab.expanded);
     }
 
     fn targets(model: &Model) -> Vec<&str> {

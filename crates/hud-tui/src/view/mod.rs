@@ -279,6 +279,7 @@ fn footer_hints(model: &Model) -> Vec<(&'static str, &'static str)> {
         ]),
         Tab::Log => hints.extend([
             ("key-arrows", "hint-select"),
+            ("key-enter", "hint-details"),
             ("key-slash", "hint-search"),
             ("key-f", "hint-filter"),
         ]),
@@ -876,6 +877,29 @@ mod tests {
     #[test]
     fn log_tab_in_english() {
         insta::assert_snapshot!(render_tall(&log_tab(Language::En)).backend());
+    }
+
+    fn expanded_log(language: Language) -> Model {
+        let mut model = log_tab(language);
+        update(
+            &mut model,
+            Msg::Key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)),
+        );
+        update(
+            &mut model,
+            Msg::Key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)),
+        );
+        model
+    }
+
+    #[test]
+    fn log_details_enlarged_in_german() {
+        insta::assert_snapshot!(render_tall(&expanded_log(Language::De)).backend());
+    }
+
+    #[test]
+    fn log_details_enlarged_in_english() {
+        insta::assert_snapshot!(render_tall(&expanded_log(Language::En)).backend());
     }
 
     #[test]
