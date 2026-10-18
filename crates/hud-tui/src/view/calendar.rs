@@ -12,6 +12,8 @@ use crate::theme::Activity;
 
 /// Weekday labels take this many columns.
 const LABEL_WIDTH: usize = 5;
+/// The labels repeat on the right, after the gap of the last week.
+const RIGHT_LABEL_WIDTH: usize = 3;
 /// Each week is a square and a gap.
 const CELL_WIDTH: usize = 2;
 
@@ -23,7 +25,7 @@ pub(super) fn lines<'a>(
     width: usize,
 ) -> Vec<Line<'a>> {
     let weeks_total = calendar.days.len().div_ceil(7);
-    let weeks = weeks_total.min(width.saturating_sub(LABEL_WIDTH) / CELL_WIDTH);
+    let weeks = weeks_total.min(width.saturating_sub(LABEL_WIDTH + RIGHT_LABEL_WIDTH) / CELL_WIDTH);
     let skip = weeks_total - weeks;
     let shown = &calendar.days[(skip * 7).min(calendar.days.len())..];
     if weeks == 0 || shown.iter().all(|&day| day == 0) {
@@ -69,6 +71,8 @@ pub(super) fn lines<'a>(
             fit(&label, LABEL_WIDTH),
             Style::new().fg(theme.soft),
         )];
+        // The newest weeks are on the right, far from the left labels.
+        let right = Span::styled(label, Style::new().fg(theme.soft));
         for week in 0..weeks {
             // Days after today in the current week stay empty.
             let cell = match shown.get(week * 7 + weekday) {
@@ -83,6 +87,7 @@ pub(super) fn lines<'a>(
             };
             spans.push(cell);
         }
+        spans.push(right);
         lines.push(Line::from(spans));
     }
     lines.push(summary(model, activity, shown));
@@ -249,6 +254,45 @@ mod tests {
         assert_eq!(levels.of(0), 0);
         assert_eq!(levels.of(1), 1);
         assert_eq!(levels.of(8), 4);
+    }
+
+    fn rendered(width: usize) -> Vec<String> {
+        let model = Model::default();
+        let calendar = ActivityCalendar {
+            first_day: hud_domain::activity::calendar_start(jiff::civil::date(2026, 10, 17)),
+            days: vec![1; 52 * 7 + 6],
+        };
+        lines(&model, Activity::Ai, &calendar, width)
+            .iter()
+            .map(|line| {
+                line.spans
+                    .iter()
+                    .map(|span| span.content.as_ref())
+                    .collect()
+            })
+            .collect()
+    }
+
+    #[test]
+    fn weekdays_are_labelled_on_both_sides() {
+        let rows = rendered(115);
+        // Heading, months, then Monday.
+        assert!(rows[2].starts_with("Mon"), "{:?}", rows[2]);
+        assert!(rows[2].ends_with("Mon"), "{:?}", rows[2]);
+        assert!(rows[3].trim().ends_with('■'), "Tuesday has no label");
+    }
+
+    #[test]
+    fn the_right_labels_never_push_past_the_width() {
+        for width in [40, 80, 115, 200] {
+            // The seven weekday rows follow heading and months.
+            let longest = rendered(width)[2..9]
+                .iter()
+                .map(|row| row.chars().count())
+                .max()
+                .unwrap_or(0);
+            assert!(longest <= width, "{longest} > {width}");
+        }
     }
 
     #[test]
