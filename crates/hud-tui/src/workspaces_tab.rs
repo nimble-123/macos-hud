@@ -23,6 +23,8 @@ pub(crate) struct WorkspacesTab {
     pub(crate) selected: Option<Selection>,
     /// Every repository instead of only those that need attention.
     pub(crate) all: bool,
+    /// Most urgent repositories first instead of by name.
+    pub(crate) by_status: bool,
     /// Groups the user opened (`true`) or closed (`false`), by folder; the
     /// others follow [`opens_by_default`].
     pub(crate) open: HashMap<PathBuf, bool>,
@@ -128,6 +130,7 @@ pub(crate) fn on_key(model: &mut Model, key: KeyEvent) -> Option<Vec<Command>> {
         KeyCode::Down | KeyCode::Char('j') => move_selection(model, 1),
         KeyCode::Up | KeyCode::Char('k') => move_selection(model, -1),
         KeyCode::Char('v') => model.workspaces_tab.all = !model.workspaces_tab.all,
+        KeyCode::Char('s') => model.workspaces_tab.by_status = !model.workspaces_tab.by_status,
         KeyCode::Left | KeyCode::Char('h') => close_or_leave(model),
         KeyCode::Right | KeyCode::Char('l') => open(model),
         // Enter does what the row offers: a heading opens or closes, a repo
@@ -193,12 +196,12 @@ pub(crate) fn rows(model: &Model) -> Vec<Row<'_>> {
             rows.push(Row::Empty);
             continue;
         }
+        let ordered = ordered(model, repos);
         let mut hidden = 0;
         let mut closed: Option<&Path> = None;
-        // Repos arrive sorted by path, so an outer repository always comes
-        // right before the ones nested inside it.
+        // Every repository comes right before the ones nested inside it.
         let mut outer: Vec<&Path> = Vec::new();
-        for (index, report) in repos.iter().enumerate() {
+        for (index, report) in ordered.iter().copied().enumerate() {
             let path = report.repo.as_path();
             while outer.last().is_some_and(|parent| !path.starts_with(parent)) {
                 outer.pop();
@@ -217,8 +220,9 @@ pub(crate) fn rows(model: &Model) -> Vec<Row<'_>> {
                 hidden += 1;
                 continue;
             }
-            let nested: Vec<&RepoReport> = repos[index + 1..]
+            let nested: Vec<&RepoReport> = ordered[index + 1..]
                 .iter()
+                .copied()
                 .take_while(|inner| inner.repo.as_path().starts_with(path))
                 .collect();
             let group = (!nested.is_empty()).then(|| {
@@ -248,6 +252,54 @@ pub(crate) fn rows(model: &Model) -> Vec<Row<'_>> {
         }
     }
     rows
+}
+
+/// `repos` (sorted by path) in display order: by name, or most urgent first
+/// among siblings when sorting by status; nested repositories always follow
+/// the one they are in.
+fn ordered<'r>(model: &Model, repos: &'r [RepoReport]) -> Vec<&'r RepoReport> {
+    let all: Vec<&RepoReport> = repos.iter().collect();
+    if !model.workspaces_tab.by_status {
+        return all;
+    }
+    let mut ordered = Vec::with_capacity(all.len());
+    sort_siblings(model, &all, &mut ordered);
+    ordered
+}
+
+/// Splits `repos` into siblings with what is nested in each, sorts the
+/// siblings by urgency and does the same inside each of them.
+fn sort_siblings<'r>(model: &Model, repos: &[&'r RepoReport], out: &mut Vec<&'r RepoReport>) {
+    let mut siblings: Vec<&[&RepoReport]> = Vec::new();
+    let mut start = 0;
+    while start < repos.len() {
+        let path = repos[start].repo.as_path();
+        let len = 1 + repos[start + 1..]
+            .iter()
+            .take_while(|inner| inner.repo.as_path().starts_with(path))
+            .count();
+        siblings.push(&repos[start..start + len]);
+        start += len;
+    }
+    // Stable, so equally urgent siblings keep their order by name.
+    siblings.sort_by_key(|family| urgency(model, family[0]));
+    for family in siblings {
+        out.push(family[0]);
+        sort_siblings(model, &family[1..], out);
+    }
+}
+
+/// Rank when sorting by status: errors, diverged, other skips, behind, fresh
+/// fast-forwards, up to date.
+fn urgency(model: &Model, report: &RepoReport) -> u8 {
+    match &report.state {
+        RepoState::Error(_) => 0,
+        RepoState::Skipped(SkipReason::Diverged { .. }) => 1,
+        RepoState::Skipped(_) => 2,
+        RepoState::Behind(_) => 3,
+        RepoState::FastForwarded(_) if model.is_recent_ok(&report.repo) => 4,
+        RepoState::FastForwarded(_) | RepoState::UpToDate => 5,
+    }
 }
 
 /// Index of the selected row in `rows`: the selected entry, else the first
@@ -592,5 +644,29 @@ mod tests {
         let mut model = group_model();
         model.workspaces_tab.selected = Some(Selection::Repo(repo("/ws/b")));
         assert!(!toggle_workspace(&mut model));
+    }
+
+    #[test]
+    fn sorting_by_status_puts_the_most_urgent_first_and_keeps_nesting() {
+        let mut model = model(vec![
+            report("/ws/a", RepoState::Behind(1)),
+            report("/ws/a/one", RepoState::UpToDate),
+            report("/ws/a/two", RepoState::Error("x".into())),
+            report("/ws/b", RepoState::Error("x".into())),
+            report("/ws/c", RepoState::Skipped(SkipReason::TrackedChanges)),
+        ]);
+        model.workspaces_tab.all = true;
+        model.workspaces_tab.by_status = true;
+        assert_eq!(
+            shown(&model),
+            [
+                "/ws open: true",
+                "/ws/b",
+                "/ws/c",
+                "/ws/a open: true",
+                "/ws/a/two",
+                "/ws/a/one"
+            ]
+        );
     }
 }
