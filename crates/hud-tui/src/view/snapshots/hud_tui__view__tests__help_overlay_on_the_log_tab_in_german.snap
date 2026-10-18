@@ -23,4 +23,4 @@ expression: render_wide(&model).backend()
 "              └──────────────────────────────────────────────────────────────────────────────────────┘             "
 "                                                                                                                   "
 "  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
-"  ↑↓ auswählen   / suchen   f filtern   r aktualisieren   tab wechseln   ? Hilfe   q beenden                       "
+"  ↑↓ auswählen   / suchen   f filtern   r neu laden   tab wechseln   ? Hilfe   q beenden                           "

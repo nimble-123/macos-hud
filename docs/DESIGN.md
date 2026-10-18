@@ -354,6 +354,8 @@ Automatische Installation
 
 - UI zweisprachig **Deutsch/Englisch**, umschaltbar über `language = "auto" | "de" | "en"`. `auto` folgt der bevorzugten Systemsprache von macOS, Fallback Englisch.
 - Satzanfang groß, sonst Kleinschreibung, keine Großbuchstaben-Labels.
+- Beschriftungen in der Label-Spalte (z. B. „Token“, „Cache-Hit“ / „Cache hit“, „Subagenten“ / „Subagents“) und Überschriften beginnen groß. Wörter innerhalb einer Zeile folgen der Grammatik der Sprache (englisch klein, deutsche Substantive groß), z. B. „Thinking 37 % vom Output“ / „thinking 37 % of output“.
+- Fußzeilen-Hinweise sind Taste plus Wort in Fließtext-Schreibung: englisch klein, deutsch Verben klein und Substantive groß („r prüfen“, „? Hilfe“). Der Hinweis zu `r` nennt, was die Taste im Tab tut: aktualisieren (Übersicht, Workspaces, KI), prüfen (Updates), neu laden (Protokoll), Config neu laden (Einstellungen).
 - Aktionen heißen nach dem, was passiert: „Fast-Forward“, „Aktualisieren“. Die Bestätigung verwendet dasselbe Wort: „Fast-Forward: 3 Commits“.
 - Fehler nennen Ursache und nächsten Schritt, ohne Entschuldigung: „npm nicht im PATH der Login-Shell gefunden. Installieren oder in der Config `[tools] npm = "…"` setzen.“
 - Geschätzte Werte tragen immer `≈`; in Zusammenfassungen zusätzlich das Wort „Schätzung“ oder „API-Äquivalent“, in Tabellenzellen nur `≈`.
