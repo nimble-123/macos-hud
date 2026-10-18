@@ -1,28 +1,34 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["fonttools>=4.50"]
+# dependencies = ["fonttools>=4.50", "resvg-py>=0.5"]
 # ///
-"""Generate the README assets in docs/assets: logo and wordmark.
+"""Generate the README assets in docs/assets: logo, wordmark and social preview.
 
-The overview showcase is rendered from the real view by scripts/gen-showcase.sh.
+The overview showcase is rendered from the real view by scripts/gen-showcase.sh;
+the social preview (1280 x 640, uploaded under Settings > General) crops it, so
+render the showcase first.
 
 Text is converted to outlines so GitHub renders it without web fonts. The fonts
-(Chakra Petch, SIL OFL) are downloaded once into a cache dir.
+(Chakra Petch and IBM Plex Mono, SIL OFL) are downloaded once into a cache dir.
 
 Usage:
     uv run scripts/gen-readme-assets.py
 """
+import base64
 import urllib.request
 from pathlib import Path
 from fontTools.ttLib import TTFont
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
+import resvg_py
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "assets"
 CACHE = Path.home() / "Library" / "Caches" / "hud-readme-fonts"
 FONT_URLS = {
     "ChakraPetch-SemiBold.ttf": "https://github.com/google/fonts/raw/main/ofl/chakrapetch/ChakraPetch-SemiBold.ttf",
+    "ChakraPetch-Regular.ttf": "https://github.com/google/fonts/raw/main/ofl/chakrapetch/ChakraPetch-Regular.ttf",
+    "IBMPlexMono-Regular.ttf": "https://github.com/google/fonts/raw/main/ofl/ibmplexmono/IBMPlexMono-Regular.ttf",
 }
 
 
@@ -37,6 +43,8 @@ def font(name):
 OUT.mkdir(parents=True, exist_ok=True)
 
 CHAKRA = font("ChakraPetch-SemiBold.ttf")
+CHAKRA_REGULAR = font("ChakraPetch-Regular.ttf")
+PLEX = font("IBMPlexMono-Regular.ttf")
 
 
 def text_path(font, text, x, y, size):
@@ -94,7 +102,62 @@ def wordmark(theme):
             f'<rect x="{pad}" y="68" width="{w:.1f}" height="4" rx="2" fill="{p["focus"]}"/></svg>\n')
 
 
+# ---------------------------------------------------------------- social preview
+def social_preview():
+    """Brand and claim on the left, the real overview bleeding off the right edge.
+
+    Text stays inside GitHub's 40 px safe border; only the screenshot crosses it.
+    """
+    p = PALETTES["dark"]
+    W, H, x0 = 1280, 640, 72
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
+             f'viewBox="0 0 {W} {H}" width="{W}" height="{H}">',
+             f'<rect width="{W}" height="{H}" fill="{p["bg"]}"/>']
+
+    # Overview screenshot in a window frame, cropped by the canvas edges.
+    shot = base64.b64encode((OUT / "showcase-dark.png").read_bytes()).decode()
+    sx, sy, sw = 640, 96, 980
+    sh = sw * 1332 / 1848
+    parts.append(f'<clipPath id="win"><rect x="{sx}" y="{sy}" width="{sw}" height="{sh:.0f}" rx="12"/></clipPath>'
+                 f'<image x="{sx}" y="{sy}" width="{sw}" height="{sh:.0f}" clip-path="url(#win)" '
+                 f'xlink:href="data:image/png;base64,{shot}"/>'
+                 f'<rect x="{sx + 0.75}" y="{sy + 0.75}" width="{sw}" height="{sh:.0f}" rx="12" fill="none" '
+                 f'stroke="{p["border"]}" stroke-width="1.5"/>')
+
+    # Logo and wordmark on one line.
+    parts.append(logo().replace('<svg xmlns="http://www.w3.org/2000/svg" ', f'<svg x="{x0}" y="96" ', 1)
+                 .replace('width="112" height="112"', 'width="88" height="88"', 1))
+    d, w = text_path(CHAKRA, "hud", x0 + 112, 168, 88)
+    parts.append(f'<path d="{d}" fill="{p["ink"]}"/>'
+                 f'<rect x="{x0 + 112}" y="180" width="{w:.1f}" height="5" rx="2.5" fill="{p["focus"]}"/>')
+
+    def lines(font, rows, y, size, leading, fill, width):
+        nonlocal parts
+        for i, row in enumerate(rows):
+            d, w = text_path(font, row, x0, y + i * leading, size)
+            if w > width:
+                raise SystemExit(f"{row!r} is {w:.0f} px wide, more than {width}")
+            parts.append(f'<path d="{d}" fill="{fill}"/>')
+
+    column = sx - x0 - 40
+    lines(CHAKRA, ["A heads-up display", "for your developer machine"], 288, 38, 50, p["ink"], column)
+    lines(CHAKRA_REGULAR, ["System load, Git workspaces, package updates", "and AI usage in one terminal view."],
+          410, 24, 36, p["muted"], column)
+
+    # Install command in a quiet box.
+    d_prompt, wp = text_path(PLEX, "$ ", x0 + 20, 551, 20)
+    d_cmd, wc = text_path(PLEX, "brew install nimble-123/tap/hud", x0 + 20 + wp, 551, 20)
+    parts.append(f'<rect x="{x0 + 0.75}" y="516.75" width="{wp + wc + 40:.0f}" height="50" rx="6" fill="{p["chrome"]}" '
+                 f'stroke="{p["border"]}" stroke-width="1.5"/>'
+                 f'<path d="{d_prompt}" fill="{p["focus"]}"/><path d="{d_cmd}" fill="{p["ink"]}"/>')
+    parts.append("</svg>")
+    svg = "".join(parts)
+    png = resvg_py.svg_to_bytes(svg_string=svg, skip_system_fonts=True)
+    (OUT / "social-preview.png").write_bytes(bytes(png))
+
+
 (OUT / "logo.svg").write_text(logo())
 (OUT / "wordmark.svg").write_text(wordmark("light"))
 (OUT / "wordmark-dark.svg").write_text(wordmark("dark"))
+social_preview()
 print("written", sorted(x.name for x in OUT.iterdir()))

@@ -373,7 +373,8 @@ KI-Quellen
 - Wortmarke: `hud` in Kleinbuchstaben, Chakra Petch 600, mit einer magentafarbenen Kurslinie als Unterstrich. Dateien: `docs/assets/wordmark.svg` (hell) und `docs/assets/wordmark-dark.svg` (dunkel).
 - Logo: Flight-Path-Vector-Symbol (Kreis mit Flügeln) in `focus` auf `panel` dunkel, mit Horizontlinie in `soft`. Datei: `docs/assets/logo.svg`.
 - README (Englisch): zentrierter Kopf mit Logo, Wortmarke, Claim, Badges und Navigation → Showcase der Übersicht hell/dunkel (`docs/assets/showcase-{light,dark}.png`) → Why hud → Features → Statussymbole → Safety → Install → First run → Keys → Configuration → Data and privacy → Architecture → Documentation → Contributing → License.
-- Logo und Wortmarke enthalten Text als Pfade (Chakra Petch), damit GitHub sie ohne Webfonts korrekt darstellt. Erzeugt werden sie mit `uv run scripts/gen-readme-assets.py`.
+- Social Preview des Repos: `docs/assets/social-preview.png`, 1280 × 640, auf `panel` dunkel. Links stehen Logo und Wortmarke, der Claim „A heads-up display for your developer machine“ (Chakra Petch 600, `ink`), die Kurzbeschreibung (Chakra Petch 400, `muted`) und `$ brew install nimble-123/tap/hud` (IBM Plex Mono, `$` in `focus`) in einem Kasten in `chrome`. Rechts läuft ein Ausschnitt der dunklen Übersicht im Fensterrahmen über die Bildkante hinaus. Text bleibt innerhalb des sicheren Rands von 40 px. Hochgeladen wird das Bild unter Settings → General → Social preview.
+- Logo, Wortmarke und Social Preview enthalten Text als Pfade (Chakra Petch, IBM Plex Mono), damit GitHub sie ohne Webfonts korrekt darstellt. Erzeugt werden sie mit `uv run scripts/gen-readme-assets.py`, die Social Preview aus dem vorher gerenderten Showcase.
 - Der Showcase ist ein Rendering der echten `view` mit Beispieldaten (115 × 38 Zellen, Hack Nerd Font Mono, PNG). Erzeugt wird er mit `scripts/gen-showcase.sh`.
 
 ## 9. Diagramme
