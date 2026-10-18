@@ -19,7 +19,9 @@ use crate::model::TelemetryFlow;
 use crate::settings::Language;
 
 const LABEL_WIDTH: usize = 20;
-const MODEL_WIDTH: usize = 28;
+/// The model name column grows with the window between these widths.
+const MIN_MODEL_WIDTH: usize = 16;
+const MAX_MODEL_WIDTH: usize = 40;
 const NUMBER_WIDTH: usize = 13;
 
 /// Period bar (two lines, fixed) and the scrolling area below it.
@@ -31,7 +33,13 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
     // The period applies to the whole tab, so it stays on top while the rest scrolls.
     let [bar, rest] = split(area);
     frame.render_widget(Paragraph::new(period_bar(model)), bar);
-    super::render_scrolled(model, frame, rest, lines(model), model.ai_scroll);
+    super::render_scrolled(
+        model,
+        frame,
+        rest,
+        lines(model, rest.width),
+        model.ai_scroll,
+    );
     if model.telemetry_flow == TelemetryFlow::Confirming
         && let Some(status) = &model.telemetry
     {
@@ -39,8 +47,8 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
     }
 }
 
-/// Everything below the period bar: one block per source.
-pub(super) fn lines<'a>(model: &Model) -> Vec<Line<'a>> {
+/// Everything below the period bar for an area `width` wide: one block per source.
+pub(super) fn lines<'a>(model: &Model, width: u16) -> Vec<Line<'a>> {
     let language = model.settings.language;
     let theme = &model.theme;
     let mut lines = Vec::new();
@@ -66,7 +74,7 @@ pub(super) fn lines<'a>(model: &Model) -> Vec<Line<'a>> {
             continue;
         }
         if let Some(usage) = source.period(model.ai_period) {
-            lines.extend(super::ai_kpis::lines(model, source, usage, report));
+            lines.extend(super::ai_kpis::lines(model, source, usage, report, width));
         }
         if state.unreadable > 0 {
             lines.push(Line::raw(""));
@@ -250,10 +258,20 @@ fn duration(ms: u64) -> String {
     }
 }
 
+/// A number column of the model table.
+struct Column<'m> {
+    header: String,
+    width: usize,
+    value: Box<dyn Fn(&ModelUsage) -> String + 'm>,
+}
+
+/// Models with their numbers; narrow windows drop the less important
+/// columns first, wide ones give the model name more room.
 pub(super) fn model_table<'a>(
     model: &Model,
     usage: &PeriodUsage,
     provider: Provider,
+    width: u16,
 ) -> Vec<Line<'a>> {
     let language = model.settings.language;
     let theme = &model.theme;
@@ -273,40 +291,85 @@ pub(super) fn model_table<'a>(
         Provider::Claude => ("ai-cache-write", |t| t.cache_write_5m + t.cache_write_1h),
         Provider::Codex => ("ai-reasoning", |t| t.reasoning.unwrap_or(0)),
     };
-    let header = format!(
-        "  {}{}{}{}{}{}{}",
-        fit(&t(language, "ai-model"), MODEL_WIDTH),
-        right(&t(language, "ai-responses"), NUMBER_WIDTH),
-        right(&t(language, "ai-input"), NUMBER_WIDTH),
-        right(&t(language, "ai-output"), NUMBER_WIDTH),
-        right(&t(language, fourth), NUMBER_WIDTH),
-        right(&t(language, "ai-cache-read"), NUMBER_WIDTH),
-        right(&t(language, "ai-cost"), NUMBER_WIDTH + 2),
-    );
+    let column = |key: &str, width: usize, value: Box<dyn Fn(&ModelUsage) -> String>| Column {
+        header: t(language, key),
+        width,
+        value,
+    };
+    let mut columns = vec![
+        column(
+            "ai-responses",
+            NUMBER_WIDTH,
+            Box::new(move |row| count(row.responses, language)),
+        ),
+        column(
+            "ai-input",
+            NUMBER_WIDTH,
+            Box::new(move |row| compact(row.tokens.input, language)),
+        ),
+        column(
+            "ai-output",
+            NUMBER_WIDTH,
+            Box::new(move |row| compact(row.tokens.output, language)),
+        ),
+        column(
+            fourth,
+            NUMBER_WIDTH,
+            Box::new(move |row| compact(fourth_value(&row.tokens), language)),
+        ),
+        column(
+            "ai-cache-read",
+            NUMBER_WIDTH,
+            Box::new(move |row| compact(row.tokens.cache_read, language)),
+        ),
+        column(
+            "ai-cost",
+            NUMBER_WIDTH + 2,
+            Box::new(move |row| match row.cost {
+                Some(cost) => format!("≈ {}", money(cost, language)),
+                None => "—".to_owned(),
+            }),
+        ),
+    ];
+    let available = usize::from(width).saturating_sub(2);
+    let numbers = |columns: &[Column<'_>]| columns.iter().map(|c| c.width).sum::<usize>();
+    // Output and cost always stay; the others go in this order.
+    for header in [
+        t(language, fourth),
+        t(language, "ai-responses"),
+        t(language, "ai-input"),
+        t(language, "ai-cache-read"),
+    ] {
+        if MIN_MODEL_WIDTH + numbers(&columns) <= available {
+            break;
+        }
+        columns.retain(|column| column.header != header);
+    }
+    let name_width = available
+        .saturating_sub(numbers(&columns))
+        .clamp(MIN_MODEL_WIDTH, MAX_MODEL_WIDTH);
+    let mut header = format!("  {}", fit(&t(language, "ai-model"), name_width));
+    for column in &columns {
+        header.push_str(&right(&column.header, column.width));
+    }
     let mut lines = vec![Line::styled(header, Style::new().fg(theme.soft))];
     for row in rows {
-        let tokens = row.tokens;
-        let cost = match row.cost {
-            Some(cost) => format!("≈ {}", money(cost, language)),
-            None => "—".to_owned(),
-        };
+        let (numbers, cost) = columns.split_at(columns.len() - 1);
+        let figures: String = numbers
+            .iter()
+            .map(|column| right(&(column.value)(row), column.width))
+            .collect();
+        let cost = &cost[0];
         lines.push(Line::from(vec![
             Span::styled(
-                format!("  {}", fit(row.model.as_str(), MODEL_WIDTH)),
+                format!("  {}", fit(row.model.as_str(), name_width)),
                 Style::new().fg(theme.ink),
             ),
+            Span::styled(figures, Style::new().fg(theme.muted)),
             Span::styled(
-                format!(
-                    "{}{}{}{}{}",
-                    right(&count(row.responses, language), NUMBER_WIDTH),
-                    right(&compact(tokens.input, language), NUMBER_WIDTH),
-                    right(&compact(tokens.output, language), NUMBER_WIDTH),
-                    right(&compact(fourth_value(&tokens), language), NUMBER_WIDTH),
-                    right(&compact(tokens.cache_read, language), NUMBER_WIDTH),
-                ),
-                Style::new().fg(theme.muted),
+                right(&(cost.value)(row), cost.width),
+                Style::new().fg(theme.ink),
             ),
-            Span::styled(right(&cost, NUMBER_WIDTH + 2), Style::new().fg(theme.ink)),
         ]));
     }
     lines

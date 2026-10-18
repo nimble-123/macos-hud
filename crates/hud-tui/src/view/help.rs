@@ -85,7 +85,7 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
     ));
 
     let height = u16::try_from(lines.len() + 2).unwrap_or(u16::MAX);
-    let [dialog] = Layout::horizontal([Constraint::Length(88)])
+    let [dialog] = Layout::horizontal([Constraint::Length(88.min(area.width))])
         .flex(Flex::Center)
         .areas(area);
     let [dialog] = Layout::vertical([Constraint::Length(height)])

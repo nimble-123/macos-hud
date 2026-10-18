@@ -17,7 +17,16 @@ use crate::icons::{Status, status_glyph};
 use crate::settings::{Appearance, Language};
 use crate::settings_tab::{Notice, Row, rows};
 
-const LABEL_WIDTH: usize = 40;
+/// The label column shrinks in narrow windows down to this width.
+const MIN_LABEL_WIDTH: usize = 20;
+const MAX_LABEL_WIDTH: usize = 40;
+
+/// Label column for an area `width` wide; the values need about 30 columns.
+fn label_width(width: u16) -> usize {
+    usize::from(width)
+        .saturating_sub(34)
+        .clamp(MIN_LABEL_WIDTH, MAX_LABEL_WIDTH)
+}
 
 pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
     let language = model.settings.language;
@@ -33,7 +42,7 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         return;
     };
     let tab = &model.settings_tab;
-    let (lines, map) = build(model, preferences);
+    let (lines, map) = build(model, preferences, area.width);
     let offset = super::follow(area, selected_line(&map, tab.selected));
     frame.render_widget(Paragraph::new(lines).scroll((offset, 0)), area);
     if let Some(path) = &tab.remove {
@@ -44,7 +53,7 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
 /// Settings row under line `y` of the tab's area.
 pub(super) fn row_at(model: &Model, area: Rect, y: u16) -> Option<usize> {
     let preferences = model.preferences.as_ref()?;
-    let map = build(model, preferences).1;
+    let map = build(model, preferences, area.width).1;
     let offset = super::follow(area, selected_line(&map, model.settings_tab.selected));
     map.get(usize::from(y + offset)).copied().flatten()
 }
@@ -57,7 +66,12 @@ fn selected_line(map: &[Option<usize>], selected: usize) -> usize {
 }
 
 /// Lines and, per line, the settings row it shows.
-fn build<'a>(model: &Model, preferences: &Settings) -> (Vec<Line<'a>>, Vec<Option<usize>>) {
+fn build<'a>(
+    model: &Model,
+    preferences: &Settings,
+    width: u16,
+) -> (Vec<Line<'a>>, Vec<Option<usize>>) {
+    let labels = label_width(width);
     let tab = &model.settings_tab;
     let mut lines = Vec::new();
     let mut map = Vec::new();
@@ -75,7 +89,7 @@ fn build<'a>(model: &Model, preferences: &Settings) -> (Vec<Line<'a>>, Vec<Optio
                 map.push(None);
             }
             let column = (current == "settings-workspaces").then_some("settings-auto-ff");
-            lines.push(heading(model, current, column));
+            lines.push(heading(model, current, column, labels));
             map.push(None);
             section = Some(current);
         }
@@ -84,7 +98,7 @@ fn build<'a>(model: &Model, preferences: &Settings) -> (Vec<Line<'a>>, Vec<Optio
         {
             lines.push(input_line(model, input));
         } else {
-            lines.push(row_line(model, row, index == tab.selected));
+            lines.push(row_line(model, row, index == tab.selected, labels));
         }
         map.push(Some(index));
     }
@@ -95,11 +109,11 @@ fn build<'a>(model: &Model, preferences: &Settings) -> (Vec<Line<'a>>, Vec<Optio
     (lines, map)
 }
 
-fn heading<'a>(model: &Model, title: &str, column: Option<&str>) -> Line<'a> {
+fn heading<'a>(model: &Model, title: &str, column: Option<&str>, labels: usize) -> Line<'a> {
     let language = model.settings.language;
     let theme = &model.theme;
     let mut spans = vec![Span::styled(
-        fit(&t(language, title), LABEL_WIDTH + 2),
+        fit(&t(language, title), labels + 2),
         Style::new().fg(theme.ink).add_modifier(Modifier::BOLD),
     )];
     if let Some(column) = column {
@@ -111,7 +125,7 @@ fn heading<'a>(model: &Model, title: &str, column: Option<&str>) -> Line<'a> {
     Line::from(spans)
 }
 
-fn row_line<'a>(model: &Model, row: &Row, selected: bool) -> Line<'a> {
+fn row_line<'a>(model: &Model, row: &Row, selected: bool, labels: usize) -> Line<'a> {
     let language = model.settings.language;
     let theme = &model.theme;
     let label_style = if selected {
@@ -167,7 +181,7 @@ fn row_line<'a>(model: &Model, row: &Row, selected: bool) -> Line<'a> {
             if selected { "▌ " } else { "  " },
             Style::new().fg(theme.focus),
         ),
-        Span::styled(fit(&label, LABEL_WIDTH), label_style),
+        Span::styled(fit(&label, labels), label_style),
     ];
     spans.extend(value);
     Line::from(spans)

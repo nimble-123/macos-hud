@@ -31,7 +31,7 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
 
 /// Everything the overview shows, top to bottom, for an area `width` wide.
 pub(super) fn lines<'a>(model: &Model, width: u16) -> Vec<Line<'a>> {
-    let mut lines = system_lines(model);
+    let mut lines = system_lines(model, width);
     lines.push(Line::raw(""));
     let deviations = deviation_lines(model);
     if deviations.is_empty() {
@@ -64,7 +64,11 @@ pub(super) fn lines<'a>(model: &Model, width: u16) -> Vec<Line<'a>> {
     lines
 }
 
-fn system_lines<'a>(model: &Model) -> Vec<Line<'a>> {
+fn system_lines<'a>(model: &Model, width: u16) -> Vec<Line<'a>> {
+    // Label, value and the memory figures take about 42 columns.
+    let cells = usize::from(width)
+        .saturating_sub(42)
+        .clamp(10, SPARK_SAMPLES);
     let language = model.settings.language;
     let theme = &model.theme;
     // With Nerd Font icons each value gets its symbol in front of the name.
@@ -88,7 +92,8 @@ fn system_lines<'a>(model: &Model) -> Vec<Line<'a>> {
         };
         Span::styled(format!("{percent:>3} %   "), Style::new().fg(color))
     };
-    let spark = |values: Vec<u8>| Span::styled(sparkline(&values), Style::new().fg(theme.muted));
+    let spark =
+        |values: Vec<u8>| Span::styled(sparkline(&values, cells), Style::new().fg(theme.muted));
     let cpu: Vec<u8> = model.load.iter().map(|s| s.cpu_percent).collect();
     let memory: Vec<u8> = model
         .load
@@ -318,10 +323,12 @@ fn ai_today<'a>(model: &Model) -> Option<Line<'a>> {
     ]))
 }
 
-/// Right-aligned so the newest value is always at the same place.
-pub(crate) fn sparkline(values: &[u8]) -> String {
-    let recent = &values[values.len().saturating_sub(SPARK_SAMPLES)..];
-    let mut line = " ".repeat(SPARK_SAMPLES - recent.len());
+/// Right-aligned so the newest value is always at the same place; a narrow
+/// window shows only the most recent `cells` samples.
+pub(crate) fn sparkline(values: &[u8], cells: usize) -> String {
+    let cells = cells.min(SPARK_SAMPLES);
+    let recent = &values[values.len().saturating_sub(cells)..];
+    let mut line = " ".repeat(cells - recent.len());
     for &value in recent {
         let index = usize::from(value.min(100)) * (BLOCKS.len() - 1) / 100;
         line.push(BLOCKS[index]);
@@ -356,7 +363,7 @@ mod tests {
 
     #[test]
     fn sparkline_is_right_aligned_and_scaled() {
-        let line = sparkline(&[0, 50, 100]);
+        let line = sparkline(&[0, 50, 100], SPARK_SAMPLES);
         assert_eq!(line.chars().count(), SPARK_SAMPLES);
         assert!(line.ends_with("▁▄█"), "{line:?}");
     }
@@ -364,7 +371,7 @@ mod tests {
     #[test]
     fn sparkline_keeps_only_the_last_two_minutes() {
         let values = vec![100; SPARK_SAMPLES + 10];
-        assert_eq!(sparkline(&values), "█".repeat(SPARK_SAMPLES));
+        assert_eq!(sparkline(&values, SPARK_SAMPLES), "█".repeat(SPARK_SAMPLES));
     }
 
     fn system_labels(icons: crate::settings::IconSet) -> Vec<String> {
@@ -382,7 +389,7 @@ mod tests {
                 processes: 3,
             })),
         );
-        system_lines(&model)
+        system_lines(&model, 115)
             .iter()
             .map(|line| line.spans[0].content.trim_end().to_owned())
             .collect()

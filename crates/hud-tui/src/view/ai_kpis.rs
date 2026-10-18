@@ -15,8 +15,14 @@ use crate::icons::Status;
 use crate::settings::Language;
 
 const LABEL_WIDTH: usize = 20;
-/// Width of bars and the activity chart.
-const BAR_WIDTH: usize = 60;
+/// Columns a plan bar leaves for its label and the text after it.
+const BAR_MARGIN: usize = 54;
+
+/// Width of all bars and the activity chart: what the window leaves after
+/// label and trailing text, so the longest line still fits, within 10 to 80.
+fn bar_width(width: u16) -> usize {
+    usize::from(width).saturating_sub(BAR_MARGIN).clamp(10, 80)
+}
 const BLOCKS: [char; 8] = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
 const INDENT: &str = "  ";
 
@@ -26,8 +32,10 @@ pub(super) fn lines<'a>(
     source: &SourceUsage,
     usage: &PeriodUsage,
     report: &UsageReport,
+    width: u16,
 ) -> Vec<Line<'a>> {
     let provider = source.state.provider;
+    let bar = bar_width(width);
     let kpis = &usage.kpis;
     let mut lines = Vec::new();
     let mut section = |heading: Line<'a>, body: Vec<Line<'a>>| {
@@ -37,27 +45,30 @@ pub(super) fn lines<'a>(
     };
     section(
         heading(model, "kpi-consumption", None),
-        consumption(model, usage, provider),
+        consumption(model, usage, provider, width),
     );
-    let mut models = bar_and_legend(model, kpis);
+    let mut models = bar_and_legend(model, kpis, bar, usize::from(width));
     models.push(Line::raw(""));
-    models.extend(super::ai::model_table(model, usage, provider));
+    models.extend(super::ai::model_table(model, usage, provider, width));
     section(heading(model, "kpi-models", None), models);
     section(
         heading(model, "kpi-effort", None),
         vec![effort(model, kpis, provider)],
     );
-    section(heading(model, "kpi-activity", None), activity(model, usage));
+    section(
+        heading(model, "kpi-activity", None),
+        activity(model, usage, bar),
+    );
     if let Some(plan) = &source.plan {
         section(
             plan_heading(model, plan, report.at),
-            plan_lines(model, plan, report.at),
+            plan_lines(model, plan, report.at, bar),
         );
     }
     if let Some(context) = &source.context {
         section(
             heading(model, "kpi-context", Some("kpi-now")),
-            context_lines(model, context),
+            context_lines(model, context, bar),
         );
     }
     if !kpis.projects.is_empty() {
@@ -122,11 +133,16 @@ fn marker(accuracy: Accuracy) -> &'static str {
     }
 }
 
-fn consumption<'a>(model: &Model, usage: &PeriodUsage, provider: Provider) -> Vec<Line<'a>> {
+fn consumption<'a>(
+    model: &Model,
+    usage: &PeriodUsage,
+    provider: Provider,
+    width: u16,
+) -> Vec<Line<'a>> {
     let language = model.settings.language;
     let tokens = usage.tokens.value;
     let reasoning = tokens.reasoning.map(|value| ("ai-reasoning", value));
-    let mut token_line = vec![
+    let token_line = vec![
         label(model, "ai-tokens"),
         strong(
             model,
@@ -137,6 +153,7 @@ fn consumption<'a>(model: &Model, usage: &PeriodUsage, provider: Provider) -> Ve
             ),
         ),
     ];
+    let mut kinds = Vec::new();
     for (key, value) in [
         ("ai-input", tokens.input),
         ("ai-output", tokens.output),
@@ -151,11 +168,10 @@ fn consumption<'a>(model: &Model, usage: &PeriodUsage, provider: Provider) -> Ve
     .filter(|(key, _)| !(provider == Provider::Codex && *key == "ai-cache-write"))
     .chain(reasoning)
     {
-        token_line.push(soft(model, format!("   {} ", t(language, key))));
-        token_line.push(Span::styled(
-            compact(value, language),
-            Style::new().fg(model.theme.ink),
-        ));
+        kinds.push([
+            soft(model, format!("{} ", t(language, key))),
+            Span::styled(compact(value, language), Style::new().fg(model.theme.ink)),
+        ]);
     }
     let cost_marker = match usage.cost.accuracy {
         Accuracy::Partial => "~ ",
@@ -182,11 +198,31 @@ fn consumption<'a>(model: &Model, usage: &PeriodUsage, provider: Provider) -> Ve
         )),
         None => hit_line.push(soft(model, "—".to_owned())),
     }
-    vec![
-        Line::from(token_line),
-        Line::from(cost_line),
-        Line::from(hit_line),
-    ]
+    let mut lines = wrapped(token_line, kinds, usize::from(width));
+    lines.push(Line::from(cost_line));
+    lines.push(Line::from(hit_line));
+    lines
+}
+
+/// `first`, then the `parts` three columns apart; a part that would pass
+/// `width` starts a new line under the values.
+fn wrapped<'a>(first: Vec<Span<'a>>, parts: Vec<[Span<'a>; 2]>, width: usize) -> Vec<Line<'a>> {
+    let length = |spans: &[Span<'_>]| spans.iter().map(Span::width).sum::<usize>();
+    let indent = INDENT.len() + LABEL_WIDTH;
+    let mut lines = Vec::new();
+    let mut current = first;
+    for part in parts {
+        let gap = if length(&current) > indent { "   " } else { "" };
+        if length(&current) + gap.len() + length(&part) > width && length(&current) > indent {
+            lines.push(Line::from(std::mem::take(&mut current)));
+            current.push(Span::raw(" ".repeat(indent)));
+        } else {
+            current.push(Span::raw(gap));
+        }
+        current.extend(part);
+    }
+    lines.push(Line::from(current));
+    lines
 }
 
 /// Colours for the stacked bar: three distinct ones, then muted.
@@ -200,14 +236,19 @@ fn palette(model: &Model, index: usize) -> Color {
     }
 }
 
-fn bar_and_legend<'a>(model: &Model, kpis: &PeriodKpis) -> Vec<Line<'a>> {
+fn bar_and_legend<'a>(
+    model: &Model,
+    kpis: &PeriodKpis,
+    bar_width: usize,
+    width: usize,
+) -> Vec<Line<'a>> {
     if kpis.models.is_empty() {
         return Vec::new();
     }
     let mut bar = vec![Span::raw(INDENT)];
     let mut used = 0;
     for (index, (_, share)) in kpis.models.iter().enumerate() {
-        let width = ((usize::from(*share) * BAR_WIDTH + 500) / 1000).min(BAR_WIDTH - used);
+        let width = ((usize::from(*share) * bar_width + 500) / 1000).min(bar_width - used);
         used += width;
         bar.push(Span::styled(
             "█".repeat(width),
@@ -215,18 +256,25 @@ fn bar_and_legend<'a>(model: &Model, kpis: &PeriodKpis) -> Vec<Line<'a>> {
         ));
     }
     bar.push(Span::styled(
-        "░".repeat(BAR_WIDTH - used),
+        "░".repeat(bar_width - used),
         Style::new().fg(model.theme.rule),
     ));
+    // At most four models, and only as many as fit next to each other.
     let mut legend = vec![Span::raw(INDENT)];
+    let mut used = INDENT.len();
     for (index, (id, share)) in kpis.models.iter().take(4).enumerate() {
         let gap = if index == 0 { "" } else { "      " };
-        legend.push(Span::styled(
-            format!("{gap}■ "),
-            Style::new().fg(palette(model, index)),
-        ));
-        legend.push(soft(model, format!("{} ", family(id))));
-        legend.push(strong(model, percent(*share)));
+        let entry = [
+            Span::styled(format!("{gap}■ "), Style::new().fg(palette(model, index))),
+            soft(model, format!("{} ", family(id))),
+            strong(model, percent(*share)),
+        ];
+        let entry_width: usize = entry.iter().map(Span::width).sum();
+        if index > 0 && used + entry_width > width {
+            break;
+        }
+        used += entry_width;
+        legend.extend(entry);
     }
     vec![Line::from(bar), Line::from(legend)]
 }
@@ -252,13 +300,13 @@ fn effort<'a>(model: &Model, kpis: &PeriodKpis, provider: Provider) -> Line<'a> 
     ])
 }
 
-fn activity<'a>(model: &Model, usage: &PeriodUsage) -> Vec<Line<'a>> {
+fn activity<'a>(model: &Model, usage: &PeriodUsage, width: usize) -> Vec<Line<'a>> {
     let language = model.settings.language;
     let kpis = &usage.kpis;
     let chart = Line::from(vec![
         Span::raw(INDENT),
         Span::styled(
-            spark(&kpis.activity),
+            spark(&kpis.activity, width),
             Style::new().fg(model.theme.status(Status::Advisory)),
         ),
     ]);
@@ -273,14 +321,14 @@ fn activity<'a>(model: &Model, usage: &PeriodUsage) -> Vec<Line<'a>> {
         soft(model, ", ".to_owned()),
         strong(model, counted(language, "kpi-tool-calls", kpis.tool_calls)),
     ]);
-    vec![chart, axis(model, usage), totals]
+    vec![chart, axis(model, usage, width), totals]
 }
 
 /// Start and end of the chart under its left and right edge.
-fn axis<'a>(model: &Model, usage: &PeriodUsage) -> Line<'a> {
+fn axis<'a>(model: &Model, usage: &PeriodUsage, chart: usize) -> Line<'a> {
     let language = model.settings.language;
     let buckets = usage.kpis.activity.len();
-    let width = (BAR_WIDTH / buckets.max(1)).max(1) * buckets;
+    let width = (chart / buckets.max(1)).max(1) * buckets;
     let (left, right) = match usage.period {
         hud_domain::usage::Period::Today => (
             t(language, "kpi-axis-midnight"),
@@ -309,13 +357,13 @@ fn axis<'a>(model: &Model, usage: &PeriodUsage) -> Line<'a> {
     ])
 }
 
-fn context_lines<'a>(model: &Model, context: &ContextUse) -> Vec<Line<'a>> {
+fn context_lines<'a>(model: &Model, context: &ContextUse, bar_width: usize) -> Vec<Line<'a>> {
     let language = model.settings.language;
     let share =
         u16::try_from((u128::from(context.prompt) * 1000) / u128::from(context.window.max(1)))
             .unwrap_or(1000)
             .min(1000);
-    let filled = usize::from(share) * BAR_WIDTH / 1000;
+    let filled = usize::from(share) * bar_width / 1000;
     let color = if share >= 800 {
         model.theme.status(Status::Caution)
     } else {
@@ -325,7 +373,7 @@ fn context_lines<'a>(model: &Model, context: &ContextUse) -> Vec<Line<'a>> {
         Span::raw(INDENT),
         Span::styled("█".repeat(filled), Style::new().fg(color)),
         Span::styled(
-            "░".repeat(BAR_WIDTH - filled),
+            "░".repeat(bar_width - filled),
             Style::new().fg(model.theme.rule),
         ),
         Span::styled(
@@ -380,7 +428,12 @@ fn plan_heading<'a>(model: &Model, plan: &PlanUsage, now: Timestamp) -> Line<'a>
 }
 
 /// One bar per rate-limit window; a window past its reset only says so.
-fn plan_lines<'a>(model: &Model, plan: &PlanUsage, now: Timestamp) -> Vec<Line<'a>> {
+fn plan_lines<'a>(
+    model: &Model,
+    plan: &PlanUsage,
+    now: Timestamp,
+    bar_width: usize,
+) -> Vec<Line<'a>> {
     let language = model.settings.language;
     [
         (plan.primary, "plan-window-primary"),
@@ -401,7 +454,7 @@ fn plan_lines<'a>(model: &Model, plan: &PlanUsage, now: Timestamp) -> Vec<Line<'
             ]);
         }
         let used = window.used_permille.min(1000);
-        let filled = usize::from(used) * BAR_WIDTH / 1000;
+        let filled = usize::from(used) * bar_width / 1000;
         let color = if used >= 900 {
             model.theme.status(Status::Caution)
         } else {
@@ -411,7 +464,7 @@ fn plan_lines<'a>(model: &Model, plan: &PlanUsage, now: Timestamp) -> Vec<Line<'
             name,
             Span::styled("█".repeat(filled), Style::new().fg(color)),
             Span::styled(
-                "░".repeat(BAR_WIDTH - filled),
+                "░".repeat(bar_width - filled),
                 Style::new().fg(model.theme.rule),
             ),
             Span::styled(
@@ -535,9 +588,9 @@ fn ago(seconds: u64, language: Language) -> String {
 }
 
 /// One bar per bucket, as wide as the chart allows, scaled to the busiest bucket.
-fn spark(values: &[u64]) -> String {
+fn spark(values: &[u64], width: usize) -> String {
     let max = values.iter().copied().max().unwrap_or(0).max(1);
-    let cells = (BAR_WIDTH / values.len().max(1)).max(1);
+    let cells = (width / values.len().max(1)).max(1);
     values
         .iter()
         .flat_map(|&value| {
@@ -607,7 +660,7 @@ mod tests {
 
     #[test]
     fn spark_scales_to_the_busiest_day_and_keeps_empty_days_blank() {
-        assert_eq!(spark(&[0, 1, 8]).chars().count(), 60);
-        assert!(spark(&[0, 1, 8]).ends_with('█'));
+        assert_eq!(spark(&[0, 1, 8], 60).chars().count(), 60);
+        assert!(spark(&[0, 1, 8], 60).ends_with('█'));
     }
 }
