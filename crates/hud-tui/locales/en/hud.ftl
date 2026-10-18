@@ -134,6 +134,7 @@ settings-overview = Overview
 insight-unpushed = Unpushed commits
 insight-update-attention = Major updates and password prompts
 insight-problems = Problems of the last 24 h
+insight-plan-limits = Plan limits from 80 %
 settings-rejected = Not saved: { $reason }
 settings-remove-title = Remove workspace?
 settings-remove-body = Only from the config. Folders and repositories stay as they are.
@@ -294,6 +295,7 @@ overview-problems = { $count ->
     [one] 1 problem in 24 h (log)
    *[other] { $count } problems in 24 h (log)
 }
+overview-plan-limit = { $source } limit { $window }: { $percent }, resets { $time }
 overview-calm = All up to date.
 overview-calm-since = All up to date. Last check { $minutes } min ago.
 overview-checking = First check running …

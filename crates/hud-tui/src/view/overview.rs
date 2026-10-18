@@ -7,12 +7,13 @@ use hud_application::usecases::workspaces::RepoState;
 use hud_domain::action::Outcome;
 use hud_domain::git::SkipReason;
 use hud_domain::update::{InstallTarget, SourceId, VersionBump};
-use hud_domain::usage::Period;
+use hud_domain::usage::{Period, Provider};
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 
+use super::ai_kpis;
 use crate::Model;
 use crate::i18n::{t, t_args, t_count};
 use crate::icons::{Source, Status, source_glyph, status_glyph};
@@ -25,6 +26,8 @@ pub(crate) const SPARK_SAMPLES: usize = 60;
 const BLOCKS: [char; 8] = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
 /// How far back the overview counts problems from the log.
 const PROBLEM_WINDOW: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
+/// From this share of a subscription window on, in per mille, the overview shows it.
+const PLAN_ATTENTION: u16 = 800;
 /// From here on a load value is shown in `caution`.
 const HIGH_LOAD: u8 = 90;
 
@@ -170,6 +173,62 @@ fn deviation_lines<'a>(model: &Model) -> Vec<Line<'a>> {
             problems,
         );
         lines.push(status_line(model, vec![(Status::Caution, text)]));
+    }
+    if shows(model, OverviewInsight::PlanLimits) {
+        lines.extend(plan_lines(model));
+    }
+    lines
+}
+
+/// One line per subscription window that still runs and is at least
+/// [`PLAN_ATTENTION`] used; `caution` from 90 % on, as in the AI tab.
+fn plan_lines<'a>(model: &Model) -> Vec<Line<'a>> {
+    let language = model.settings.language;
+    let Some(report) = model.usage.as_ref() else {
+        return Vec::new();
+    };
+    let now = model.wall.unwrap_or(report.at);
+    let mut lines = Vec::new();
+    for source in &report.sources {
+        let Some(plan) = &source.plan else {
+            continue;
+        };
+        let name = t(
+            language,
+            match source.state.provider {
+                Provider::Claude => "ai-claude",
+                Provider::Codex => "ai-codex",
+            },
+        );
+        let windows = [
+            (plan.primary, "plan-window-primary"),
+            (plan.secondary, "plan-window-secondary"),
+        ];
+        for (window, fallback) in windows {
+            let Some(window) = window.filter(|w| w.is_current(now)) else {
+                continue;
+            };
+            let used = window.used_permille.min(1000);
+            if used < PLAN_ATTENTION {
+                continue;
+            }
+            let text = t_args(
+                language,
+                "overview-plan-limit",
+                &[
+                    ("source", &name),
+                    ("window", &ai_kpis::window_name(language, &window, fallback)),
+                    ("percent", &ai_kpis::percent(used)),
+                    ("time", &ai_kpis::clock(model, window.resets_at, now)),
+                ],
+            );
+            let status = if used >= 900 {
+                Status::Caution
+            } else {
+                Status::Advisory
+            };
+            lines.push(status_line(model, vec![(status, text)]));
+        }
     }
     lines
 }
@@ -371,8 +430,8 @@ fn ai_today<'a>(model: &Model) -> Option<Line<'a>> {
         .map_or(Billing::Subscription, |p| {
             let api = report.sources.iter().all(|source| {
                 let billing = match source.state.provider {
-                    hud_domain::usage::Provider::Claude => p.claude.billing,
-                    hud_domain::usage::Provider::Codex => p.codex.billing,
+                    Provider::Claude => p.claude.billing,
+                    Provider::Codex => p.codex.billing,
                 };
                 billing == Billing::Api
             });

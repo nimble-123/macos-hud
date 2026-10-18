@@ -211,6 +211,7 @@ fn with_change(
                 OverviewInsight::Unpushed => "unpushed",
                 OverviewInsight::UpdateAttention => "update_attention",
                 OverviewInsight::Problems => "problems",
+                OverviewInsight::PlanLimits => "plan_limits",
             };
             set(&mut table(&mut document, "overview")[key], *enabled);
         }
@@ -533,10 +534,15 @@ struct Price {
 
 #[derive(Debug, Deserialize)]
 #[serde(default, deny_unknown_fields)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "mirrors the switches of [overview]"
+)]
 struct Overview {
     unpushed: bool,
     update_attention: bool,
     problems: bool,
+    plan_limits: bool,
 }
 
 impl Default for Overview {
@@ -546,6 +552,7 @@ impl Default for Overview {
             unpushed: defaults.unpushed,
             update_attention: defaults.update_attention,
             problems: defaults.problems,
+            plan_limits: defaults.plan_limits,
         }
     }
 }
@@ -623,6 +630,7 @@ impl File {
                 unpushed: self.overview.unpushed,
                 update_attention: self.overview.update_attention,
                 problems: self.overview.problems,
+                plan_limits: self.overview.plan_limits,
             },
             prices,
             tools: ToolPaths {
@@ -752,6 +760,7 @@ cache_read = 0.3
 unpushed = false
 update_attention = false
 problems = false
+plan_limits = false
 
 [tools]
 npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
@@ -774,6 +783,7 @@ npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
         assert!(!settings.overview.unpushed);
         assert!(!settings.overview.update_attention);
         assert!(!settings.overview.problems);
+        assert!(!settings.overview.plan_limits);
         assert_eq!(settings.prices["claude-opus-5-5"].cache_write_5m, 3_750_000);
         assert_eq!(settings.prices["claude-opus-5-5"].cache_write_1h, 6_000_000);
         assert_eq!(

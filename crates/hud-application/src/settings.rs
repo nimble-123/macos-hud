@@ -147,6 +147,10 @@ impl Default for TelemetrySettings {
 
 /// Additions to the overview, each on by default.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "independent switches, one per line of the overview"
+)]
 pub struct OverviewSettings {
     /// Repositories with commits their upstream lacks.
     pub unpushed: bool,
@@ -154,6 +158,8 @@ pub struct OverviewSettings {
     pub update_attention: bool,
     /// Logged actions that did not succeed within the last 24 hours.
     pub problems: bool,
+    /// Subscription windows at 80 % or more.
+    pub plan_limits: bool,
 }
 
 impl OverviewSettings {
@@ -164,6 +170,7 @@ impl OverviewSettings {
             OverviewInsight::Unpushed => self.unpushed,
             OverviewInsight::UpdateAttention => self.update_attention,
             OverviewInsight::Problems => self.problems,
+            OverviewInsight::PlanLimits => self.plan_limits,
         }
     }
 }
@@ -174,6 +181,7 @@ impl Default for OverviewSettings {
             unpushed: true,
             update_attention: true,
             problems: true,
+            plan_limits: true,
         }
     }
 }
@@ -187,6 +195,8 @@ pub enum OverviewInsight {
     UpdateAttention,
     /// Logged actions that did not succeed within the last 24 hours.
     Problems,
+    /// Subscription windows at 80 % or more.
+    PlanLimits,
 }
 
 /// Explicit paths for external tools; `None` means look up in the login PATH.
@@ -406,6 +416,7 @@ mod tests {
         assert!(settings.overview.unpushed);
         assert!(settings.overview.update_attention);
         assert!(settings.overview.problems);
+        assert!(settings.overview.plan_limits);
     }
 
     #[test]

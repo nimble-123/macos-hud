@@ -1278,6 +1278,35 @@ mod tests {
     }
 
     #[test]
+    fn overview_shows_plan_windows_from_eighty_percent() {
+        use hud_application::AppEvent;
+        use hud_application::usecases::workspaces::RepoState;
+        for (language, suffix) in LANGUAGES {
+            let mut model = loaded_overview(language, vec![repo("/ws/a", RepoState::UpToDate)]);
+            let mut report = sample_usage();
+            let plan = report
+                .sources
+                .iter_mut()
+                .find_map(|source| source.plan.as_mut())
+                .expect("BUG: Codex has a plan");
+            for (window, used) in [(&mut plan.primary, 860), (&mut plan.secondary, 950)] {
+                if let Some(window) = window {
+                    window.used_permille = used;
+                }
+            }
+            update(&mut model, Msg::App(AppEvent::Usage(Box::new(report))));
+            update(
+                &mut model,
+                Msg::Tick(std::time::Instant::now(), sample_now()),
+            );
+            insta::assert_snapshot!(
+                format!("overview_shows_plan_limits_{suffix}"),
+                render_wide(&model).backend()
+            );
+        }
+    }
+
+    #[test]
     fn overview_is_calm_when_nothing_deviates() {
         use hud_application::usecases::workspaces::RepoState;
         for (language, suffix) in LANGUAGES {

@@ -94,6 +94,7 @@ pub(crate) fn rows(settings: &Settings) -> Vec<Row> {
             OverviewInsight::Unpushed,
             OverviewInsight::UpdateAttention,
             OverviewInsight::Problems,
+            OverviewInsight::PlanLimits,
         ]
         .map(|insight| Row::OverviewInsight {
             insight,

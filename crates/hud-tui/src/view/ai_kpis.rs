@@ -426,7 +426,7 @@ fn plan_lines<'a>(
 }
 
 /// `5 Stunden`, `7 Tage`; without a length the window's role.
-fn window_name(language: Language, window: &PlanWindow, fallback: &str) -> String {
+pub(super) fn window_name(language: Language, window: &PlanWindow, fallback: &str) -> String {
     match window.minutes {
         Some(minutes) if minutes > 0 && minutes % 1440 == 0 => {
             t_count(language, "plan-window-days", "count", minutes / 1440)
@@ -440,7 +440,7 @@ fn window_name(language: Language, window: &PlanWindow, fallback: &str) -> Strin
 }
 
 /// Local time; with the date when it is not the day of `now`.
-fn clock(model: &Model, at: Timestamp, now: Timestamp) -> String {
+pub(super) fn clock(model: &Model, at: Timestamp, now: Timestamp) -> String {
     let local = at.to_zoned(model.time_zone.clone());
     let today = now.to_zoned(model.time_zone.clone()).date();
     if local.date() == today {
@@ -514,7 +514,7 @@ fn counted(language: Language, key: &str, value: u64) -> String {
 }
 
 /// `31 %`, or `<1 %` for anything above zero but below one percent.
-fn percent(permille: u16) -> String {
+pub(super) fn percent(permille: u16) -> String {
     match permille {
         0 => "0 %".to_owned(),
         1..5 => "<1 %".to_owned(),
