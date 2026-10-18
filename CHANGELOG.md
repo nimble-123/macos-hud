@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/nimble-123/macos-hud/compare/v0.8.1...v0.9.0) (2026-10-18)
+
+
+### Neue Funktionen
+
+* **git:** find repositories nested inside other repositories ([#137](https://github.com/nimble-123/macos-hud/issues/137)) ([18e0584](https://github.com/nimble-123/macos-hud/commit/18e0584647e6bb3a8c9bd2faa8b76048d8f33cce))
+
 ## [0.8.1](https://github.com/nimble-123/macos-hud/compare/v0.8.0...v0.8.1) (2026-10-18)
 
 
