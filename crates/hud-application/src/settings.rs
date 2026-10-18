@@ -160,6 +160,8 @@ pub struct OverviewSettings {
     pub problems: bool,
     /// Subscription windows at 80 % or more.
     pub plan_limits: bool,
+    /// Volumes of the system and the workspaces that run out of space.
+    pub disk: bool,
 }
 
 impl OverviewSettings {
@@ -171,6 +173,7 @@ impl OverviewSettings {
             OverviewInsight::UpdateAttention => self.update_attention,
             OverviewInsight::Problems => self.problems,
             OverviewInsight::PlanLimits => self.plan_limits,
+            OverviewInsight::Disk => self.disk,
         }
     }
 }
@@ -182,6 +185,7 @@ impl Default for OverviewSettings {
             update_attention: true,
             problems: true,
             plan_limits: true,
+            disk: true,
         }
     }
 }
@@ -197,6 +201,8 @@ pub enum OverviewInsight {
     Problems,
     /// Subscription windows at 80 % or more.
     PlanLimits,
+    /// Volumes of the system and the workspaces that run out of space.
+    Disk,
 }
 
 /// Explicit paths for external tools; `None` means look up in the login PATH.
@@ -417,6 +423,7 @@ mod tests {
         assert!(settings.overview.update_attention);
         assert!(settings.overview.problems);
         assert!(settings.overview.plan_limits);
+        assert!(settings.overview.disk);
     }
 
     #[test]

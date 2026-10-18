@@ -159,6 +159,8 @@ pub struct Model {
     pub(crate) git_activity: Option<hud_domain::activity::ActivityCalendar>,
     /// Recent load readings, oldest first, at most the last two minutes.
     pub(crate) load: std::collections::VecDeque<hud_application::ports::system::SystemSample>,
+    /// Mounted volumes with their free space, from the last reading.
+    pub(crate) volumes: Vec<hud_application::ports::system::Volume>,
     /// When the last sync with fetch ended.
     pub(crate) last_sync: Option<Instant>,
     /// Period shown in the AI tab.
@@ -249,6 +251,7 @@ impl Model {
             ai_scroll: 0,
             telemetry: None,
             load: std::collections::VecDeque::new(),
+            volumes: Vec::new(),
             git_activity: None,
             help: false,
             area: ratatui::layout::Rect::default(),

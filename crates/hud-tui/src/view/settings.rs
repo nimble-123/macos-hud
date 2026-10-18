@@ -184,6 +184,7 @@ fn row_line<'a>(model: &Model, row: &Row, selected: bool, labels: usize) -> Line
                     OverviewInsight::UpdateAttention => "insight-update-attention",
                     OverviewInsight::Problems => "insight-problems",
                     OverviewInsight::PlanLimits => "insight-plan-limits",
+                    OverviewInsight::Disk => "insight-disk",
                 },
             ),
             switch(model, *enabled),

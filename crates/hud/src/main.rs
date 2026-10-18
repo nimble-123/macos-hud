@@ -59,6 +59,8 @@ const SHUTDOWN_GRACE: Duration = TERMINATE_GRACE.saturating_add(Duration::from_s
 const RENDER_TICK: Duration = Duration::from_millis(250);
 /// How often CPU, memory and processes are sampled (DESIGN.md §6).
 const SYSTEM_INTERVAL: Duration = Duration::from_secs(2);
+/// Free disk space changes slowly.
+const VOLUME_INTERVAL: Duration = Duration::from_mins(1);
 /// How often the AI logs are read again.
 const USAGE_INTERVAL: Duration = Duration::from_secs(60);
 
@@ -294,7 +296,7 @@ fn start_background(
         tokio::spawn(log.run(log_rx, events_tx.clone(), cancel.clone())),
         tokio::spawn(usage.run(events_tx.clone(), cancel.clone())),
         tokio::spawn(
-            SystemAgent::new(SysinfoProbe::default(), SYSTEM_INTERVAL)
+            SystemAgent::new(SysinfoProbe::default(), SYSTEM_INTERVAL, VOLUME_INTERVAL)
                 .run(events_tx.clone(), cancel.clone()),
         ),
         tokio::spawn(workspaces.run(workspace_rx, events_tx, cancel.clone())),

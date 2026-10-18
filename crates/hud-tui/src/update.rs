@@ -378,6 +378,7 @@ fn on_app_event(model: &mut Model, event: AppEvent) {
             }
             model.load.push_back(sample);
         }
+        AppEvent::Volumes(volumes) => model.volumes = volumes,
         AppEvent::JobsFinished => {
             if model.quit == Quit::Waiting {
                 model.quit = Quit::Now;

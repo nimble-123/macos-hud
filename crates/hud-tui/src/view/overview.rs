@@ -1,6 +1,8 @@
 //! Overview: machine load with sparklines, then only what deviates (Dark Cockpit).
 
-use hud_application::ports::system::SystemSample;
+use std::path::Path;
+
+use hud_application::ports::system::{SystemSample, Volume};
 use hud_application::settings::{Billing, OverviewInsight};
 use hud_application::usecases::updates::JobState;
 use hud_application::usecases::workspaces::RepoState;
@@ -26,6 +28,8 @@ pub(crate) const SPARK_SAMPLES: usize = 60;
 const BLOCKS: [char; 8] = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
 /// How far back the overview counts problems from the log.
 const PROBLEM_WINDOW: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
+/// Below this share of free space, in percent, a volume is shown.
+const LOW_SPACE: u8 = 10;
 /// From this share of a subscription window on, in per mille, the overview shows it.
 const PLAN_ATTENTION: u16 = 800;
 /// From here on a load value is shown in `caution`.
@@ -176,6 +180,46 @@ fn deviation_lines<'a>(model: &Model) -> Vec<Line<'a>> {
     }
     if shows(model, OverviewInsight::PlanLimits) {
         lines.extend(plan_lines(model));
+    }
+    if shows(model, OverviewInsight::Disk) {
+        lines.extend(volume_lines(model));
+    }
+    lines
+}
+
+/// One line per volume that holds the system or a workspace and has less
+/// than [`LOW_SPACE`] percent free.
+fn volume_lines<'a>(model: &Model) -> Vec<Line<'a>> {
+    let language = model.settings.language;
+    let paths = std::iter::once(Path::new("/")).chain(
+        model
+            .workspaces
+            .iter()
+            .map(|report| report.workspace.as_path()),
+    );
+    let mut seen: Vec<&Path> = Vec::new();
+    let mut lines = Vec::new();
+    for path in paths {
+        let Some(volume) = Volume::holding(&model.volumes, path) else {
+            continue;
+        };
+        if seen.contains(&volume.mount.as_path()) {
+            continue;
+        }
+        seen.push(&volume.mount);
+        let low =
+            u128::from(volume.available) * 100 < u128::from(volume.total) * u128::from(LOW_SPACE);
+        if low {
+            let text = t_args(
+                language,
+                "overview-disk-low",
+                &[
+                    ("name", &volume.name),
+                    ("free", &gigabytes(volume.available, language)),
+                ],
+            );
+            lines.push(status_line(model, vec![(Status::Caution, text)]));
+        }
     }
     lines
 }

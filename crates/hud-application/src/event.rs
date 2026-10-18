@@ -73,6 +73,8 @@ pub enum AppEvent {
     GitActivity(hud_domain::activity::ActivityCalendar),
     /// A fresh reading of CPU, memory and processes.
     System(crate::ports::system::SystemSample),
+    /// Every mounted volume with its free space.
+    Volumes(Vec<crate::ports::system::Volume>),
 }
 
 /// Request from the presentation layer to run a use case, grouped by the

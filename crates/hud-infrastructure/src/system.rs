@@ -2,10 +2,10 @@
 
 use std::sync::{Arc, Mutex};
 
-use hud_application::ports::system::{SystemProbe, SystemSample};
-use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, System};
+use hud_application::ports::system::{SystemProbe, SystemSample, Volume};
+use sysinfo::{Disks, ProcessRefreshKind, ProcessesToUpdate, System};
 
-/// Reads CPU, memory and process count. CPU load needs the previous reading,
+/// Reads CPU, memory, process count and mounted volumes. CPU load needs the previous reading,
 /// so the same `System` is reused between samples.
 #[derive(Debug, Clone)]
 pub struct SysinfoProbe {
@@ -56,6 +56,31 @@ impl SystemProbe for SysinfoProbe {
             processes: 0,
         })
     }
+
+    async fn volumes(&self) -> Vec<Volume> {
+        // The list is read fresh: volumes come and go between readings.
+        tokio::task::spawn_blocking(|| {
+            Disks::new_with_refreshed_list()
+                .list()
+                .iter()
+                .map(|disk| {
+                    let name = disk.name().to_string_lossy();
+                    Volume {
+                        name: if name.is_empty() {
+                            disk.mount_point().display().to_string()
+                        } else {
+                            name.into_owned()
+                        },
+                        mount: disk.mount_point().to_path_buf(),
+                        available: disk.available_space(),
+                        total: disk.total_space(),
+                    }
+                })
+                .collect()
+        })
+        .await
+        .unwrap_or_default()
+    }
 }
 
 #[cfg(test)]
@@ -68,5 +93,13 @@ mod tests {
         assert!(sample.memory_total > 0);
         assert!(sample.memory_used <= sample.memory_total);
         assert!(sample.processes > 0);
+    }
+
+    #[tokio::test]
+    async fn the_root_volume_is_listed() {
+        let volumes = SysinfoProbe::default().volumes().await;
+        let root = Volume::holding(&volumes, std::path::Path::new("/")).expect("BUG: root mounted");
+        assert!(root.total > 0);
+        assert!(root.available <= root.total);
     }
 }

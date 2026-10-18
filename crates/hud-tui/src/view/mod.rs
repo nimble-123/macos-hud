@@ -1307,6 +1307,33 @@ mod tests {
     }
 
     #[test]
+    fn overview_warns_about_low_space_where_system_and_workspaces_live() {
+        use hud_application::AppEvent;
+        use hud_application::ports::system::Volume;
+        use hud_application::usecases::workspaces::RepoState;
+        const GB: u64 = 1024 * 1024 * 1024;
+        let volume = |name: &str, mount: &str, available: u64, total: u64| Volume {
+            name: name.to_owned(),
+            mount: std::path::PathBuf::from(mount),
+            available: available * GB,
+            total: total * GB,
+        };
+        for (language, suffix) in LANGUAGES {
+            let mut model = loaded_overview(language, vec![repo("/ws/a", RepoState::UpToDate)]);
+            let volumes = vec![
+                volume("Macintosh HD", "/", 8, 460),
+                // Low as well, but neither the system nor a workspace lives there.
+                volume("Backup", "/Volumes/Backup", 1, 1000),
+            ];
+            update(&mut model, Msg::App(AppEvent::Volumes(volumes)));
+            insta::assert_snapshot!(
+                format!("overview_warns_about_low_space_{suffix}"),
+                render_wide(&model).backend()
+            );
+        }
+    }
+
+    #[test]
     fn overview_is_calm_when_nothing_deviates() {
         use hud_application::usecases::workspaces::RepoState;
         for (language, suffix) in LANGUAGES {

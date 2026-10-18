@@ -1,0 +1,26 @@
+---
+source: crates/hud-tui/src/view/mod.rs
+expression: render_wide(&model).backend()
+---
+"  Übersicht    Workspaces    Updates    KI    Protokoll    Einstellungen                                           "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"                                                                                                                   "
+"  CPU          26 %                       ▁▁▂▂▃▃▄▄▅▁▁▂▂▃▃▄▄▅▁▁▂▂▃▃▄▄▅▁▁▂▂▃▃▄▄▅▁▁▂▂                                 "
+"  Speicher     67 %                       ▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅   10,7 GB / 16,0 GB             "
+"  Prozesse    512                                                                                                  "
+"                                                                                                                   "
+"  ▲ Macintosh HD: nur 8,0 GB frei                                                                                  "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"                                                                                                                   "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"  r aktualisieren   tab wechseln   ? Hilfe   q beenden                                                             "
