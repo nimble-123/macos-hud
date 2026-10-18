@@ -28,22 +28,15 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
 
     let (lines, _, selected_line) = build(model);
     frame.render_widget(
-        Paragraph::new(lines).scroll((scroll(area, selected_line), 0)),
+        Paragraph::new(lines).scroll((super::follow(area, selected_line), 0)),
         area,
     );
-}
-
-/// Keep the selection visible: scroll so the selected line stays on screen.
-fn scroll(area: Rect, selected_line: usize) -> u16 {
-    let height = usize::from(area.height).max(1);
-    let scroll = selected_line.saturating_sub(height.saturating_sub(2));
-    u16::try_from(scroll).unwrap_or(u16::MAX)
 }
 
 /// Repository row under line `y` of the tab's area, as the frame shows it.
 pub(super) fn row_at(model: &Model, area: Rect, y: u16) -> Option<usize> {
     let (_, rows, selected_line) = build(model);
-    let line = usize::from(y + scroll(area, selected_line));
+    let line = usize::from(y + super::follow(area, selected_line));
     rows.get(line).copied().flatten()
 }
 

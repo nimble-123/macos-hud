@@ -22,18 +22,34 @@ const LABEL_WIDTH: usize = 20;
 const MODEL_WIDTH: usize = 28;
 const NUMBER_WIDTH: usize = 13;
 
+/// Period bar (two lines, fixed) and the scrolling area below it.
+pub(super) fn split(area: Rect) -> [Rect; 2] {
+    Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).areas(area)
+}
+
 pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
+    // The period applies to the whole tab, so it stays on top while the rest scrolls.
+    let [bar, rest] = split(area);
+    frame.render_widget(Paragraph::new(period_bar(model)), bar);
+    super::render_scrolled(model, frame, rest, lines(model), model.ai_scroll);
+    if model.telemetry_flow == TelemetryFlow::Confirming
+        && let Some(status) = &model.telemetry
+    {
+        render_telemetry_dialog(model, status, frame, area);
+    }
+}
+
+/// Everything below the period bar: one block per source.
+pub(super) fn lines<'a>(model: &Model) -> Vec<Line<'a>> {
     let language = model.settings.language;
     let theme = &model.theme;
-    // The period applies to the whole tab, so it comes first.
-    let mut lines = vec![period_bar(model), Line::raw("")];
+    let mut lines = Vec::new();
     let Some(report) = &model.usage else {
         lines.push(Line::styled(
             t(language, "ai-loading"),
             Style::new().fg(theme.soft),
         ));
-        frame.render_widget(Paragraph::new(lines), area);
-        return;
+        return lines;
     };
     for (index, source) in report.sources.iter().enumerate() {
         let state = &source.state;
@@ -67,12 +83,7 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
             Style::new().fg(theme.soft),
         ));
     }
-    frame.render_widget(Paragraph::new(lines), area);
-    if model.telemetry_flow == TelemetryFlow::Confirming
-        && let Some(status) = &model.telemetry
-    {
-        render_telemetry_dialog(model, status, frame, area);
-    }
+    lines
 }
 
 fn period_key(period: Period) -> &'static str {

@@ -135,6 +135,10 @@ pub struct Model {
     pub(crate) last_sync: Option<Instant>,
     /// Period shown in the AI tab.
     pub(crate) ai_period: hud_domain::usage::Period,
+    /// First line shown in the overview; the view clamps it to the content.
+    pub(crate) overview_scroll: u16,
+    /// First line shown below the period bar of the AI tab.
+    pub(crate) ai_scroll: u16,
     /// AI usage per period, once the logs were read.
     pub(crate) usage: Option<Box<hud_application::usecases::usage::UsageReport>>,
     /// Zone for showing times; UTC unless the binary sets the system zone.
@@ -210,6 +214,8 @@ impl Model {
             log_tab: LogTab::default(),
             usage: None,
             ai_period: hud_domain::usage::Period::default(),
+            overview_scroll: 0,
+            ai_scroll: 0,
             telemetry: None,
             load: std::collections::VecDeque::new(),
             git_activity: None,

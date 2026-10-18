@@ -1,0 +1,26 @@
+---
+source: crates/hud-tui/src/view/mod.rs
+expression: render_wide(&model).backend()
+---
+"  Übersicht    Workspaces    Updates    KI    Protokoll    Einstellungen                                           "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"                                                                                                                   "
+"  Heute   7 Tage   30 Tage   Dieser Monat   Letzter Monat                                                          "
+"                                                                                                                   "
+"                      ▃▃▆▆██▂▂  ▅▅▇▇▇▇▄▄                                                                          │"
+"    0 Uhr                                     24 Uhr                                                              │"
+"    Gesamt              3 Sessions, 212 Antworten, 96 Tool-Calls                                                  │"
+"                                                                                                                  │"
+"  Abo-Auslastung   Plan Plus, Stand vor 3 min                                                                     │"
+"    5 Stunden           ███████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   13 %   neu ab 14:14        │"
+"    7 Tage              █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   3 %   neu ab 21.10. 12:00  │"
+"                                                                                                                  │"
+"  Kontext   aktuell                                                                                               │"
+"    ██████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   25 %   64,0 k / 258,4 k                        │"
+"    gpt-6-luna, macos-hud, vor 20 min                                                                             │"
+"                                                                                                                  ┃"
+"  Projekte                                                                                                        ┃"
+"    macos-hud 100 %                                                                                               ┃"
+"                                                                                                                   "
+"  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
+"  ←→ Zeitraum   ↑↓ blättern   r aktualisieren   tab wechseln   ? Hilfe   q beenden                                 "

@@ -109,6 +109,16 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
                 });
             model.confirm = selectable.cloned();
         }
+        KeyCode::Down | KeyCode::Char('j') if scrolls_freely(model) => scroll_by(model, 1),
+        KeyCode::Up | KeyCode::Char('k') if scrolls_freely(model) => scroll_by(model, -1),
+        KeyCode::PageDown if scrolls_freely(model) => {
+            scroll_by(model, i32::from(crate::view::page(model)));
+        }
+        KeyCode::PageUp if scrolls_freely(model) => {
+            scroll_by(model, -i32::from(crate::view::page(model)));
+        }
+        KeyCode::Home if scrolls_freely(model) => scroll_by(model, i32::MIN / 2),
+        KeyCode::End if scrolls_freely(model) => scroll_by(model, i32::MAX / 2),
         KeyCode::Right | KeyCode::Char('l') if model.tab == Tab::Ai => step_period(model, 1),
         KeyCode::Left | KeyCode::Char('h') if model.tab == Tab::Ai => step_period(model, -1),
         KeyCode::Char('t') if model.tab == Tab::Ai && telemetry_can_be_enabled(model) => {
@@ -130,6 +140,23 @@ fn on_key(model: &mut Model, key: KeyEvent) -> Vec<Command> {
         _ => {}
     }
     Vec::new()
+}
+
+/// Overview and AI tab show more than fits and have no selection to follow.
+fn scrolls_freely(model: &Model) -> bool {
+    matches!(model.tab, Tab::Overview | Tab::Ai)
+}
+
+/// Moves the visible part by `lines`, never past the content.
+fn scroll_by(model: &mut Model, lines: i32) {
+    let max = crate::view::max_scroll(model);
+    let offset = match model.tab {
+        Tab::Overview => &mut model.overview_scroll,
+        Tab::Ai => &mut model.ai_scroll,
+        Tab::Workspaces | Tab::Updates | Tab::Log | Tab::Settings => return,
+    };
+    let next = (i32::from((*offset).min(max)) + lines).clamp(0, i32::from(max));
+    *offset = u16::try_from(next).unwrap_or(0);
 }
 
 /// Quits at once unless installations run; then the dialog asks first. A
@@ -712,6 +739,23 @@ mod tests {
     use hud_application::ports::updates::{Availability, SourceCheck};
     use hud_application::usecases::updates::SourceReport;
     use hud_domain::update::{PackageKind, PackageName, SourceId, UpdateCandidate, Version};
+
+    #[test]
+    fn the_selected_update_stays_visible_and_clickable() {
+        let candidates = (0..30)
+            .map(|i| npm_candidate(&format!("pkg-{i}"), false))
+            .collect();
+        let mut model = on_updates_tab(candidates);
+        update(&mut model, Msg::Resize(115, 16));
+        update(&mut model, key(KeyCode::Up));
+        assert_eq!(model.update_selected, 29, "wrapped to the last row");
+        let shown = (0..16).any(|y| {
+            (0..115).any(|x| {
+                crate::view::hit(&model, model.area, x, y) == Some(crate::view::Hit::Row(29))
+            })
+        });
+        assert!(shown, "the last row is on screen and resolves to itself");
+    }
 
     fn npm_candidate(name: &str, pinned: bool) -> UpdateCandidate {
         UpdateCandidate {

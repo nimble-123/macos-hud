@@ -32,21 +32,27 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         return;
     };
     let tab = &model.settings_tab;
-    let (lines, _) = build(model, preferences);
-    frame.render_widget(Paragraph::new(lines), area);
+    let (lines, map) = build(model, preferences);
+    let offset = super::follow(area, selected_line(&map, tab.selected));
+    frame.render_widget(Paragraph::new(lines).scroll((offset, 0)), area);
     if let Some(path) = &tab.remove {
         render_remove(model, path, frame, area);
     }
 }
 
 /// Settings row under line `y` of the tab's area.
-pub(super) fn row_at(model: &Model, y: u16) -> Option<usize> {
+pub(super) fn row_at(model: &Model, area: Rect, y: u16) -> Option<usize> {
     let preferences = model.preferences.as_ref()?;
-    build(model, preferences)
-        .1
-        .get(usize::from(y))
-        .copied()
-        .flatten()
+    let map = build(model, preferences).1;
+    let offset = super::follow(area, selected_line(&map, model.settings_tab.selected));
+    map.get(usize::from(y + offset)).copied().flatten()
+}
+
+/// Line that shows row `selected`; the view keeps it on screen.
+fn selected_line(map: &[Option<usize>], selected: usize) -> usize {
+    map.iter()
+        .position(|row| *row == Some(selected))
+        .unwrap_or(0)
 }
 
 /// Lines and, per line, the settings row it shows.

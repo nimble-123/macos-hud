@@ -134,7 +134,8 @@ hud --reset-config --reset-data --yes
 | Key | Action |
 | --- | --- |
 | `Tab` / `Shift-Tab` | next / previous tab |
-| `↑` `↓` / `k` `j` | move selection (wraps around at both ends) |
+| `↑` `↓` / `k` `j` | move selection (wraps around at both ends); in Overview and AI: scroll |
+| `PgUp` `PgDn` / `Home` `End` | Overview and AI: scroll by page, to the top or to the end |
 | `Enter` | Workspaces: fast-forward like `f`; Updates: open the install dialog; Log: enlarge or shrink the details; Settings: change the value; dialogs: confirm |
 | `f` | fast-forward the selected repo; in Log: cycle the filter |
 | `u` | update the selected package |
