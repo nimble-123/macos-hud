@@ -212,6 +212,7 @@ fn with_change(
                 OverviewInsight::UpdateAttention => "update_attention",
                 OverviewInsight::Problems => "problems",
                 OverviewInsight::PlanLimits => "plan_limits",
+                OverviewInsight::Disk => "disk",
             };
             set(&mut table(&mut document, "overview")[key], *enabled);
         }
@@ -543,6 +544,7 @@ struct Overview {
     update_attention: bool,
     problems: bool,
     plan_limits: bool,
+    disk: bool,
 }
 
 impl Default for Overview {
@@ -553,6 +555,7 @@ impl Default for Overview {
             update_attention: defaults.update_attention,
             problems: defaults.problems,
             plan_limits: defaults.plan_limits,
+            disk: defaults.disk,
         }
     }
 }
@@ -631,6 +634,7 @@ impl File {
                 update_attention: self.overview.update_attention,
                 problems: self.overview.problems,
                 plan_limits: self.overview.plan_limits,
+                disk: self.overview.disk,
             },
             prices,
             tools: ToolPaths {
@@ -761,6 +765,7 @@ unpushed = false
 update_attention = false
 problems = false
 plan_limits = false
+disk = false
 
 [tools]
 npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
@@ -784,6 +789,7 @@ npm = "~/.nvm/versions/node/v24.12.0/bin/npm"
         assert!(!settings.overview.update_attention);
         assert!(!settings.overview.problems);
         assert!(!settings.overview.plan_limits);
+        assert!(!settings.overview.disk);
         assert_eq!(settings.prices["claude-opus-5-5"].cache_write_5m, 3_750_000);
         assert_eq!(settings.prices["claude-opus-5-5"].cache_write_1h, 6_000_000);
         assert_eq!(

@@ -35,7 +35,7 @@ semver = "1.0.28"
 serde_json = { version = "1.0.154", features = ["preserve_order"] }
 serde = { version = "1.0.229", features = ["derive"] }
 sys-locale = "0.3.2"
-sysinfo = { version = "0.39.6", default-features = false, features = ["system"] }
+sysinfo = { version = "0.39.6", default-features = false, features = ["disk", "system"] }
 terminal-colorsaurus = "1.0.3"
 tempfile = "3.27.0"
 thiserror = "2.0.21"

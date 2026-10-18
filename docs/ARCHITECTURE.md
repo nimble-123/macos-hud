@@ -150,7 +150,7 @@ Abhängigkeitsversionen stehen zentral in `[workspace.dependencies]`; Crates erb
 | `UsageSource` | inkrementeller Ingest von KI-Nutzung | `ClaudeLogs`, `CodexLogs` | **dynamisch** |
 | `UsageStore` | Nutzung, Lesefortschritt, Antwortzeiten, Tool-Calls und Abo-Auslastung speichern und abfragen | `SqliteStore` | statisch |
 | `TelemetryStore` | Telemetrie-Datenpunkte speichern und summieren | `SqliteStore` | statisch |
-| `SystemProbe` | CPU-Last, Speicher, Prozessanzahl | `SysinfoProbe` (`sysinfo`, in `spawn_blocking`) | statisch |
+| `SystemProbe` | CPU-Last, Speicher, Prozessanzahl; eingehängte Volumes mit freiem Platz | `SysinfoProbe` (`sysinfo`, Features `system` und `disk`, in `spawn_blocking`) | statisch |
 | `ActionLog` | Aktionen protokollieren und lesen | `SqliteStore` | statisch |
 | `ScanCache` | letzte Scan-Ergebnisse für schnellen Start | `SqliteStore` | statisch |
 | `InstallHistory` | letztes Installationsergebnis je Quelle und Paket | `SqliteStore` | statisch |
@@ -282,7 +282,7 @@ pub enum Outcome { Succeeded, Failed(String), Skipped(String), Cancelled, TimedO
 | `WorkspaceAgent` | beim Start Cache (`LoadCachedRepos`), dann lokaler Scan, dann Git-Kalender, danach sofort `SyncRepositories` mit Fetch und wieder im Fetch-Intervall (`git.fetch_interval_min`, Standard 15 min, gemessen ab Ende des letzten Syncs) sowie auf `WorkspaceCommand::SyncNow`; `WorkspaceCommand::FastForward` startet `FastForwardRepo`. Beobachtet die Einstellungen und scannt nach jeder Änderung sofort lokal; ein neues Fetch-Intervall startet den Timer neu. Berechnet nach dem lokalen Scan, jedem Sync und jeder Änderung der Workspaces den Git-Kalender (`AppEvent::GitActivity`): `GitPort::own_commits` je Repo (höchstens 8 gleichzeitig), Commits über ihre ID dedupliziert, gezählt je lokalem Tag. Sendet `Workspaces`, `SyncStarted`, `ScanStarted`, `RepoScanned`, `RepoUpdated`. |
 | `UpdatesAgent` | prüft alle Update-Quellen beim Start, im Prüf-Intervall (`updates.check_interval_min`, Standard 360 min; eine Änderung startet den Timer sofort neu) und auf `UpdateCommand::CheckNow`; jede Quelle unter der Sperre ihrer `SourceId`, zuerst `availability()`, nur bei `Available` dann `check()`. Installiert nach jeder Prüfung, was `install_decision(…, InstallRequest::Auto, …)` mit den Opt-ins erlaubt; führt `UpdateCommand::Install` als Job aus (`JobState`: Queued, Running, Succeeded, NeedsInteraction, Denied, Failed, TimedOut, Cancelled). Prüfungen und Jobs laufen als Tasks in einem `JoinSet`. Schreibt jedes Paketergebnis in die `InstallHistory`; manuell abgelehnte Installationen melden `Denied`, automatisch abgelehnte bleiben stumm. `UpdateCommand::Drain` siehe Abschnitt 6.6. Sendet `Updates`, `SourceUpdated`, `Job`, `JobsFinished`. |
 | `UsageAgent` | liest beim Start, alle 60 s und nach jeder Änderung der Einstellungen alle `UsageSource`s nacheinander inkrementell in den `UsageStore` und fasst die Nutzung je Quelle zusammen (`SourceUsage`, Abschnitt 6.5); sendet `AppEvent::Usage(UsageReport)` |
-| `SystemAgent` | misst alle 2 s über `SystemProbe` und sendet `AppEvent::System`; die TUI behält die letzten 60 Werte (2 min) für die Sparklines |
+| `SystemAgent` | misst alle 2 s über `SystemProbe` und sendet `AppEvent::System`; die TUI behält die letzten 60 Werte (2 min) für die Sparklines. Jede Minute liest er die Volumes und sendet `AppEvent::Volumes`; die Übersicht ordnet `/` und jeden Workspace dem tiefsten Mountpunkt darüber zu (`Volume::holding`) |
 | `SettingsAgent` | wendet `SettingsCommand::Change(SettingsChange)` über `SettingsStore::update` an (Sprache, Theme, Symbolsatz, Workspace hinzufügen/entfernen, Fast-Forward-Opt-out, Installations-Opt-ins) und liest auf `SettingsCommand::Reload` die Datei neu; veröffentlicht das Ergebnis über einen `watch`-Kanal und sendet `AppEvent::Settings` bzw. bei Fehlern `SettingsRejected` (die bisherigen Einstellungen bleiben dann gültig); sendet beim Start die aktuellen Einstellungen |
 | `LogAgent` | liest auf `LogCommand::Load` die letzten 500 Einträge aus dem `ActionLog` und sendet `AppEvent::Actions`; die TUI fordert sie beim Öffnen des Protokoll-Tabs an und, solange er offen ist, nach jedem beendeten Job, manuellen Fast-Forward und Sync |
 | `TelemetryAgent` | speichert die Datenpunkte, die der `OtlpReceiver` über einen Kanal liefert, im `TelemetryStore` |
@@ -308,6 +308,7 @@ Befehle der TUI sind nach Agent gruppiert: `Command::Workspaces(WorkspaceCommand
 | `Usage(report)` | `UsageAgent` | KI-Nutzung je Quelle und Zeitraum |
 | `Telemetry(status)` | `TelemetrySetupAgent` | Zustand von OTLP-Empfänger und Claude-Code-Einstellungen |
 | `System(sample)` | `SystemAgent` | CPU, Speicher, Prozessanzahl |
+| `Volumes(list)` | `SystemAgent` | eingehängte Volumes mit freiem und gesamtem Platz |
 
 ### 5.5 Ebene 2: Präsentation (`hud-tui`)
 
@@ -617,6 +618,7 @@ unpushed = true              # false: Repos mit ungepushten Commits zählen als 
 update_attention = true      # Major-Updates und Passwort-Bedarf neben der Zahl der Updates
 problems = true              # Probleme der letzten 24 h aus dem Protokoll
 plan_limits = true           # Abo-Limit-Fenster (Codex) ab 80 %
+disk = true                  # Volumes von System und Workspaces unter 10 % frei
 
 # Optional: feste Pfade statt Suche im Login-PATH
 # [tools]

@@ -135,6 +135,7 @@ insight-unpushed = Ungepushte Commits
 insight-update-attention = Major-Updates und Passwort-Bedarf
 insight-problems = Probleme der letzten 24 h
 insight-plan-limits = Abo-Limits ab 80 %
+insight-disk = Wenig Speicherplatz
 settings-rejected = Nicht gespeichert: { $reason }
 settings-remove-title = Workspace entfernen?
 settings-remove-body = Nur aus der Config. Ordner und Repositories bleiben unverändert.
@@ -296,6 +297,7 @@ overview-problems = { $count ->
    *[other] { $count } Probleme in 24 h (Protokoll)
 }
 overview-plan-limit = { $source }-Limit { $window }: { $percent }, neu ab { $time }
+overview-disk-low = { $name }: nur { $free } frei
 overview-calm = Alles aktuell.
 overview-calm-since = Alles aktuell. Letzte Prüfung vor { $minutes } min.
 overview-checking = Erste Prüfung läuft …
