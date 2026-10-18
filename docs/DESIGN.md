@@ -146,6 +146,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 | `f` | Workspaces: Fast-Forward für das ausgewählte Repo; Protokoll: Filter wechseln |
 | `u` | Updates: ausgewähltes Paket aktualisieren |
 | `v` | Workspaces: zwischen „nur Abweichungen“ (Standard) und allen Repos umschalten |
+| `s` | Workspaces: zwischen Sortierung nach Name (Standard) und nach Status umschalten |
 | `←` `→`, `h` `l` | Workspaces: Workspace oder Repo mit Unterrepos einklappen bzw. ausklappen; `←` auf einer Zeile ohne offene Gruppe springt zum Eltern-Repo bzw. Workspace-Kopf |
 | `←` `→`, `h` `l`, `1`–`5` | KI: Zeitraum wechseln (läuft am Ende um) |
 | `t` | KI: Telemetrie in Claude Code einschalten (mit Rückfrage) |
@@ -175,6 +176,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 - Zurückliegende Repos zeigen „N Commits zurück, Fast-Forward möglich“ (◆), bei Opt-out „zurück, automatischer Fast-Forward aus (f)“ (▲); ein erledigter Fast-Forward „Fast-Forward: N Commits“ (●, 30 s).
 - **Nur Abweichungen** (Standard): Aktuelle Repos stehen je Workspace in einer Zeile „○ N weitere aktuell“ in `soft` (ohne Abweichung „○ alle N Repos aktuell“). Ein aktuelles Repo bleibt sichtbar, wenn es ein abweichendes Unterrepo enthält, ein frischer Fast-Forward (●) für 30 s. `v` schaltet auf alle Repos um und zurück; die Fußzeile nennt die jeweils andere Ansicht.
 - **Einklappen**: Workspace-Köpfe und Repos mit Unterrepos tragen `▾` (offen) bzw. `▸` (eingeklappt); jeder Repo-Name hält dafür zwei Spalten frei. Ein eingeklapptes Repo zeigt statt der Unterrepos „N Unterrepos“ in `soft` und je abweichendem Status Symbol und Anzahl; den eigenen Zustand nur, wenn er abweicht, gekürzt, damit die Summe passt. In „nur Abweichungen“ starten Workspaces ohne Abweichung eingeklappt, in „alle“ ist alles offen; eigene Klapp-Entscheidungen gelten für die Sitzung.
+- **Sortierung**: nach Name (Standard) oder mit `s` nach Status: Fehler, divergiert, übersprungen, zurück, frischer Fast-Forward, aktuell; bei gleichem Rang nach Name. Sortiert wird unter Geschwistern, Unterrepos bleiben unter ihrem Repo. Die Wahl gilt für die Sitzung.
 - Die Auswahl hängt am Workspace-Kopf oder Repo, nicht an der Zeile: Verschwinden Zeilen darüber, bleibt sie stehen; ist das gewählte Repo ausgeblendet, gilt das erste sichtbare.
 - Die Liste scrollt so, dass die Auswahl sichtbar bleibt; leere Workspaces zeigen während eines Scans „Suche Repositories …“.
 
