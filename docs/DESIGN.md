@@ -164,7 +164,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 ```
 
 - Je Workspace ein Kopf mit dem Pfad in `ink`, fett; dahinter „✖ nicht verfügbar“ in `warning` oder „automatischer Fast-Forward aus“ in `soft`.
-- Je Repo: Auswahlmarker `▌` in `focus`, Statussymbol, Name relativ zum Workspace (ausgewählt in `focus`, fett), Branch (oder „(detached)“), `↑a ↓b` und Zustandstext in der Statusfarbe; aktuelle Repos mit Namen in `muted` und Details in `soft`.
+- Je Repo: Auswahlmarker `▌` in `focus`, Statussymbol, Name relativ zum Workspace (ausgewählt in `focus`, fett; ein in einem anderen Repo liegendes Repo steht direkt darunter, je Ebene um zwei Spalten eingerückt, mit dem Pfad ab dem äußeren Repo), Branch (oder „(detached)“), `↑a ↓b` und Zustandstext in der Statusfarbe; aktuelle Repos mit Namen in `muted` und Details in `soft`.
 - Zurückliegende Repos zeigen „N Commits zurück, Fast-Forward möglich“ (◆), bei Opt-out „zurück, automatischer Fast-Forward aus (f)“ (▲); ein erledigter Fast-Forward „Fast-Forward: N Commits“ (●, 30 s).
 - Die Liste scrollt so, dass die Auswahl sichtbar bleibt; leere Workspaces zeigen während eines Scans „Suche Repositories …“.
 
