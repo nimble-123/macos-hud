@@ -1,6 +1,6 @@
 ---
 source: crates/hud-tui/src/view/mod.rs
-expression: render_wide(&model).backend()
+expression: render_wide(&telemetry_dialog_open(language)).backend()
 ---
 "  Übersicht    Workspaces    Updates    KI    Protokoll    Einstellungen                                           "
 "  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
@@ -19,8 +19,8 @@ expression: render_wide(&model).backend()
 "    ████████│  Nur Metriken, keine Prompts oder Antworten. Andere Einträge bleiben unverändert.        │          │"
 "    ■ Opus 5│                                                                                          │          │"
 "            │  Enter eintragen   Esc abbrechen                                                         │          │"
-"    Modell  └──────────────────────────────────────────────────────────────────────────────────────────┘  Kosten  │"
-"    claude-opus-5-5                     1.537        3,1 k      212,4 k       12,4 M      180,2 M     ≈ 137,48 $  │"
+"    Modell  └──────────────────────────────────────────────────────────────────────────────────────────┘   Kosten │"
+"    claude-opus-5-5                      1.537        3,1 k      212,4 k       12,4 M      180,2 M     ≈ 137,48 $ │"
 "                                                                                                                   "
 "  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
 "  ←→ Zeitraum   t einschalten   r aktualisieren   tab wechseln   ? Hilfe   q beenden                               "

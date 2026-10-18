@@ -13,7 +13,9 @@ use crate::i18n::{t, t_args, t_count};
 use crate::icons::{Source, Status, source_glyph, status_glyph};
 use crate::settings::Language;
 
-const NAME_WIDTH: usize = 28;
+/// The repository name column grows with the window between these widths.
+const MIN_NAME_WIDTH: usize = 12;
+const MAX_NAME_WIDTH: usize = 44;
 const BRANCH_WIDTH: usize = 18;
 const COUNTS_WIDTH: usize = 9;
 
@@ -26,7 +28,7 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         return;
     }
 
-    let (lines, _, selected_line) = build(model);
+    let (lines, _, selected_line) = build(model, area.width);
     frame.render_widget(
         Paragraph::new(lines).scroll((super::follow(area, selected_line), 0)),
         area,
@@ -35,13 +37,24 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
 
 /// Repository row under line `y` of the tab's area, as the frame shows it.
 pub(super) fn row_at(model: &Model, area: Rect, y: u16) -> Option<usize> {
-    let (_, rows, selected_line) = build(model);
+    let (_, rows, selected_line) = build(model, area.width);
     let line = usize::from(y + super::follow(area, selected_line));
     rows.get(line).copied().flatten()
 }
 
 /// Lines, the repository row of each line, and the line of the selection.
-fn build(model: &Model) -> (Vec<Line<'_>>, Vec<Option<usize>>, usize) {
+/// Name column for an area `width` wide: what branch, counts and the
+/// longest state text leave.
+fn name_width(width: u16) -> usize {
+    usize::from(width)
+        .saturating_sub(6 + BRANCH_WIDTH + COUNTS_WIDTH + 40)
+        .clamp(MIN_NAME_WIDTH, MAX_NAME_WIDTH)
+}
+
+fn build(model: &Model, width: u16) -> (Vec<Line<'_>>, Vec<Option<usize>>, usize) {
+    let names = name_width(width);
+    // Marker, glyph and spaces take four columns before the name.
+    let rest = usize::from(width).saturating_sub(4 + names + BRANCH_WIDTH + COUNTS_WIDTH);
     let language = model.settings.language;
     let theme = &model.theme;
     let mut lines = Vec::new();
@@ -74,7 +87,14 @@ fn build(model: &Model) -> (Vec<Line<'_>>, Vec<Option<usize>>, usize) {
                     if row == model.selected {
                         selected_line = lines.len();
                     }
-                    lines.push(repo_line(model, workspace, report, row == model.selected));
+                    lines.push(repo_line(
+                        model,
+                        workspace,
+                        report,
+                        row == model.selected,
+                        names,
+                        rest,
+                    ));
                     rows.push(Some(row));
                     row += 1;
                 }
@@ -112,6 +132,8 @@ fn repo_line<'a>(
     workspace: &WorkspaceReport,
     report: &'a RepoReport,
     selected: bool,
+    names: usize,
+    rest: usize,
 ) -> Line<'a> {
     let language = model.settings.language;
     let theme = &model.theme;
@@ -164,11 +186,11 @@ fn repo_line<'a>(
             Style::new().fg(theme.status(status)),
         ),
         Span::raw(" "),
-        Span::styled(format!("{git_icon}{}", fit(&name, NAME_WIDTH)), name_style),
+        Span::styled(format!("{git_icon}{}", fit(&name, names)), name_style),
         Span::styled(fit(&branch, BRANCH_WIDTH), detail_style),
         Span::styled(fit(&counts, COUNTS_WIDTH), detail_style),
         Span::styled(
-            state_text(language, &report.state),
+            super::clip(&state_text(language, &report.state), rest),
             Style::new().fg(if quiet {
                 theme.soft
             } else {

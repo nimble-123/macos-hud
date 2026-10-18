@@ -43,6 +43,17 @@ pub(crate) fn areas(model: &Model, full: Rect) -> [Rect; 3] {
     [tabs, body.inner(Margin::new(0, 1)), footer]
 }
 
+/// `text` cut to `width` columns with `…`, so a narrow window shows that
+/// something is missing.
+fn clip(text: &str, width: usize) -> String {
+    if text.chars().count() <= width {
+        return text.to_owned();
+    }
+    let mut cut: String = text.chars().take(width.saturating_sub(1)).collect();
+    cut.push('…');
+    cut
+}
+
 /// Keeps the selection visible: scrolls so the selected line stays on screen.
 fn follow(area: Rect, selected_line: usize) -> u16 {
     let height = usize::from(area.height).max(1);
@@ -66,7 +77,7 @@ pub(crate) fn max_scroll(model: &Model) -> u16 {
         Tab::Overview => max_offset(overview::lines(model, body.width).len(), body.height),
         Tab::Ai => {
             let [_, rest] = ai::split(body);
-            max_offset(ai::lines(model).len(), rest.height)
+            max_offset(ai::lines(model, rest.width).len(), rest.height)
         }
         Tab::Workspaces | Tab::Updates | Tab::Log | Tab::Settings => 0,
     }
@@ -1439,6 +1450,48 @@ mod tests {
                 format!("install_dialog_major_{suffix}"),
                 render_big(&model).backend()
             );
+        }
+    }
+
+    fn render_at(model: &Model, width: u16, height: u16) -> Terminal<TestBackend> {
+        let mut terminal =
+            Terminal::new(TestBackend::new(width, height)).expect("BUG: test backend");
+        terminal
+            .draw(|frame| view(model, frame))
+            .expect("BUG: test draw");
+        terminal
+    }
+
+    /// Narrow and wide windows for every tab with tables or bars.
+    #[test]
+    fn tabs_adapt_to_narrow_and_wide_windows() {
+        use hud_application::usecases::workspaces::RepoState;
+        for (language, suffix) in LANGUAGES {
+            let overview = {
+                let mut model =
+                    loaded_overview(language, vec![repo("/ws/a", RepoState::Behind(1))]);
+                update(
+                    &mut model,
+                    Msg::App(hud_application::AppEvent::Usage(Box::new(sample_usage()))),
+                );
+                model
+            };
+            let views = [
+                ("overview", overview),
+                ("ai", ai_tab(language)),
+                ("updates", updates_tab(language)),
+                ("workspaces", workspaces_tab(language)),
+                ("log", log_tab(language)),
+                ("settings", settings_tab(language)),
+            ];
+            for (name, model) in &views {
+                for width in [80, 160] {
+                    insta::assert_snapshot!(
+                        format!("{name}_at_{width}_columns_{suffix}"),
+                        render_at(model, width, 30).backend()
+                    );
+                }
+            }
         }
     }
 

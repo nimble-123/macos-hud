@@ -125,6 +125,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 - **Rahmen** nur für Dialoge und die Hilfe, in `focus`; Bereiche haben keine Rahmen.
 - **Fußzeile** zeigt kontextabhängige Aktionen; jede Aktion hat ein Tastenkürzel und ist per Maus klickbar. Hinweise, die nur Tasten erklären (z. B. ↑↓), reagieren nicht auf Klicks.
 - **Maus**: Tab-Beschriftungen, Zeitraumauswahl und Listenzeilen sind klickbar; ein zweiter Klick auf die gewählte Zeile wirkt wie Enter (Workspaces: Fast-Forward, Updates: Bestätigungsdialog, Protokoll: Details vergrößern, Einstellungen: Wert ändern). Das Mausrad bewegt die Auswahl. Solange ein Dialog offen ist, werden Klicks ignoriert; ein Klick schließt die Hilfe.
+- **Fensterbreite**: Spalten mit Namen (Modelle, Pakete, Repositories) wachsen mit dem Fenster und werden in schmalen Fenstern gekürzt (`…`); Zahlenspalten bleiben fest. Wird es eng, entfallen nachrangige Spalten: in der Modelltabelle zuerst Cache schreiben bzw. Reasoning, dann Antworten, Input und Cache lesen (Output und Kosten bleiben); im Protokoll unter 95 Spalten der Auslöser, unter 78 die Aktion. Lange Zeilen wie die Token-Zeile brechen unter die Werte um; Zustands- und Job-Texte enden mit `…`, wenn sie nicht passen. Die Sparklines zeigen in schmalen Fenstern nur die jüngsten Messungen, die Einstellungen verkleinern die Label-Spalte, die Hilfe nimmt höchstens die Fensterbreite.
 - **Scrollen**: Workspaces, Updates, Protokoll und Einstellungen halten die Auswahl im sichtbaren Bereich. Übersicht und KI-Tab blättern frei mit `↑` `↓`, Bild↑/Bild↓, Pos1/Ende und dem Mausrad, nie über das Ende des Inhalts hinaus; im KI-Tab bleibt die Zeitraumleiste oben stehen. Passt der Inhalt nicht, zeigt ein Scrollbalken im rechten Rand (Spur `│` in `rule`, Griff `┃` in `muted`) die Position, und die Fußzeile nennt „↑↓ blättern“.
 - **Übersicht zeigt nur Abweichungen** (Dark Cockpit). Ist alles normal, steht dort ein einziger neutraler Satz, z. B. „Alles aktuell. Letzte Prüfung vor 4 min.“ Repos zählen als „zurück“ (auch bei Opt-out), „übersprungen“ (Regel blockiert), „divergiert“ oder „Fehler“; nicht verfügbare Workspaces erscheinen eigens. Updates zählen ohne gepinnte Pakete.
 - Die Sparklines sind rechtsbündig: der neueste Wert steht immer an derselben Stelle. CPU oder Speicher ab 90 % erscheinen in `caution`.
@@ -203,7 +204,7 @@ Verbrauch
   Cache-Hit           97 %
 
 Modelle
-  ████████████████████████████████████████████████████████████        Balken 60 Zellen, je Modell eine Farbe
+  ████████████████████████████████████████████████████████████        Balkenbreite folgt dem Fenster, je Modell eine Farbe
   ■ Opus 5.5 71 %      ■ Sonnet 5.5 28 %      ■ Haiku 4.5 <1 %
   Modell                          Antworten        Input       Output  Cache schr.  Cache lesen         Kosten
 
@@ -248,7 +249,7 @@ Kontext   aktuell
 - Codex: Statt „Cache schr.“ steht „Reasoning“ in Verbrauch und Modelltabelle; „Aufwand“ zeigt nur den Reasoning-Anteil. „Abo-Auslastung“ zeigt je Limit-Fenster einen Balken mit Prozent und lokalem Rücksetzzeitpunkt (mit Datum, wenn nicht heute), ab 90 % in `caution`. Ist ein Fenster schon zurückgesetzt, steht dort nur, seit wann, bis Codex den neuen Stand meldet.
 - Abschnitte haben eine fette Überschrift und eine Leerzeile davor. Token und Kosten stehen nur unter „Verbrauch“ und in der Modelltabelle, nie doppelt.
 - „Neue Token“ sind alle außer Cache-Lesen. Modell- und Projektanteile beziehen sich darauf, Thinking und Reasoning auf den gesamten Output, Cache-Hit auf alle Prompt-Token.
-- Alle Balken sind 60 Zellen breit und nutzen `█` und `░` (in `rule`); die drei größten Modelle bekommen `advisory`, `focus` und `caution`, der Rest `muted`. Die Legende zeigt höchstens 4 Modelle, „Projekte“ höchstens 5. Ab 80 % Kontext wird der Kontextbalken `caution`.
+- Alle Balken (Modelle, Kontext, Abo-Auslastung) und die Aktivitätskurve sind gleich breit: Fensterbreite minus 54 Spalten für Beschriftung und Text danach, mindestens 10, höchstens 80. Sie nutzen `█` und `░` (in `rule`); die drei größten Modelle bekommen `advisory`, `focus` und `caution`, der Rest `muted`. Die Legende zeigt höchstens 4 Modelle, „Projekte“ höchstens 5. Ab 80 % Kontext wird der Kontextbalken `caution`.
 - Die Aktivität zeigt bei „Heute“ die 24 Stunden („0 Uhr … 24 Uhr“), sonst die Tage des Zeitraums („vor N T … heute“, beim letzten Monat „Monatsanfang … Monatsende“).
 - Telemetrie-Zeile: „aus (Config)“, „✖ Port N nicht verfügbar: …“, „● empfängt auf 127.0.0.1:N, Claude Code sendet“, „◆ Claude Code sendet noch nicht“ mit Hinweis `t einschalten`, „▲ eigene OTel-Einstellungen in Claude Code (…), hud ändert nichts“ oder „✖ settings.json nicht lesbar: …“; nach dem Einschalten der Hinweis, laufende Claude-Code-Sitzungen neu zu starten.
 - Unlesbare Logzeilen erscheinen am Ende der Quelle als „~ unvollständig: N Zeilen nicht lesbar“ in `caution`.

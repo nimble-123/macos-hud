@@ -13,7 +13,9 @@ use crate::Model;
 use crate::i18n::{t, t_args, t_count};
 use crate::icons::{Source, Status, source_glyph, status_glyph};
 
-const NAME_WIDTH: usize = 34;
+/// The package name column grows with the window between these widths.
+const MIN_NAME_WIDTH: usize = 12;
+const MAX_NAME_WIDTH: usize = 44;
 const VERSION_WIDTH: usize = 26;
 
 pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
@@ -29,7 +31,7 @@ pub(super) fn render(model: &Model, frame: &mut Frame, area: Rect) {
         );
         return;
     }
-    let (lines, map) = build(model);
+    let (lines, map) = build(model, area.width);
     let offset = super::follow(area, selected_line(&map, model.update_selected));
     frame.render_widget(Paragraph::new(lines).scroll((offset, 0)), area);
     if let Some(target) = &model.confirm {
@@ -49,13 +51,24 @@ pub(super) fn row_at(model: &Model, area: Rect, y: u16) -> Option<usize> {
     if model.updates.is_empty() {
         return None;
     }
-    let map = build(model).1;
+    let map = build(model, area.width).1;
     let offset = super::follow(area, selected_line(&map, model.update_selected));
     map.get(usize::from(y + offset)).copied().flatten()
 }
 
 /// Lines and, per line, the index into [`Model::update_rows`] it shows.
-fn build(model: &Model) -> (Vec<Line<'_>>, Vec<Option<usize>>) {
+/// Name column for an area `width` wide: what marker, versions and the
+/// longest job note leave.
+fn name_width(width: u16) -> usize {
+    usize::from(width)
+        .saturating_sub(6 + VERSION_WIDTH + 30)
+        .clamp(MIN_NAME_WIDTH, MAX_NAME_WIDTH)
+}
+
+fn build(model: &Model, width: u16) -> (Vec<Line<'_>>, Vec<Option<usize>>) {
+    let names = name_width(width);
+    // Marker, glyph and spaces take four columns before the name.
+    let rest = usize::from(width).saturating_sub(4 + names + VERSION_WIDTH);
     let language = model.settings.language;
     let theme = &model.theme;
     let rows = model.update_rows();
@@ -91,7 +104,7 @@ fn build(model: &Model) -> (Vec<Line<'_>>, Vec<Option<usize>>) {
                     let index = index_of(&target);
                     let selected = index == Some(model.update_selected);
                     push(
-                        candidate_line(model, candidate, &target, selected),
+                        candidate_line(model, candidate, &target, selected, names, rest),
                         index,
                         &mut lines,
                     );
@@ -110,7 +123,11 @@ fn build(model: &Model) -> (Vec<Line<'_>>, Vec<Option<usize>>) {
                 let target = InstallTarget::AllSkills;
                 let index = index_of(&target);
                 let selected = index == Some(model.update_selected);
-                push(update_all_line(model, &target, selected), index, &mut lines);
+                push(
+                    update_all_line(model, &target, selected, names),
+                    index,
+                    &mut lines,
+                );
             }
         }
     }
@@ -202,6 +219,8 @@ fn candidate_line<'a>(
     candidate: &UpdateCandidate,
     target: &InstallTarget,
     selected: bool,
+    names: usize,
+    rest: usize,
 ) -> Line<'a> {
     let language = model.settings.language;
     let theme = &model.theme;
@@ -229,13 +248,21 @@ fn candidate_line<'a>(
         Span::raw(" "),
         Span::styled(glyph, Style::new().fg(theme.status(status))),
         Span::raw(" "),
-        Span::styled(fit(candidate.name.as_str(), NAME_WIDTH), name_style),
+        Span::styled(fit(candidate.name.as_str(), names), name_style),
         Span::styled(fit(&versions, VERSION_WIDTH), Style::new().fg(theme.muted)),
-        Span::styled(note, Style::new().fg(theme.status(status))),
+        Span::styled(
+            super::clip(&note, rest),
+            Style::new().fg(theme.status(status)),
+        ),
     ])
 }
 
-fn update_all_line<'a>(model: &Model, target: &InstallTarget, selected: bool) -> Line<'a> {
+fn update_all_line<'a>(
+    model: &Model,
+    target: &InstallTarget,
+    selected: bool,
+    names: usize,
+) -> Line<'a> {
     let theme = &model.theme;
     let (status, note) = job_status(model, target).unwrap_or((Status::Advisory, String::new()));
     let glyph = spinner_or_glyph(model, target, status);
@@ -255,7 +282,7 @@ fn update_all_line<'a>(model: &Model, target: &InstallTarget, selected: bool) ->
         Span::styled(
             fit(
                 &t(model.settings.language, "src-update-all"),
-                NAME_WIDTH + VERSION_WIDTH,
+                names + VERSION_WIDTH,
             ),
             style,
         ),

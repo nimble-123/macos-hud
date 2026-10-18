@@ -16,6 +16,9 @@ const TIME_WIDTH: usize = 18;
 const KIND_WIDTH: usize = 15;
 const TRIGGER_WIDTH: usize = 10;
 const RESULT_WIDTH: usize = 26;
+/// Below these widths the trigger, then the kind of action is left out.
+const TRIGGER_FROM: u16 = 95;
+const KIND_FROM: u16 = 78;
 /// Lines of the detail pane, including its top rule.
 const DETAIL_HEIGHT: u16 = 7;
 /// Lines the list keeps when the details are expanded: header and five rows.
@@ -115,12 +118,20 @@ fn render_list(model: &Model, records: &[&ActionRecord], frame: &mut Frame, area
         );
         return;
     }
+    let columns = Columns::for_width(area.width);
+    let optional = |shown: bool, key: &str, width: usize| {
+        if shown {
+            fit(&t(language, key), width)
+        } else {
+            String::new()
+        }
+    };
     let header = Line::styled(
         format!(
             "  {}{}{}{}{}",
             fit(&t(language, "log-col-time"), TIME_WIDTH),
-            fit(&t(language, "log-col-action"), KIND_WIDTH),
-            fit(&t(language, "log-col-trigger"), TRIGGER_WIDTH),
+            optional(columns.kind, "log-col-action", KIND_WIDTH),
+            optional(columns.trigger, "log-col-trigger", TRIGGER_WIDTH),
             fit(&t(language, "log-col-result"), RESULT_WIDTH),
             t(language, "log-col-target"),
         ),
@@ -140,12 +151,28 @@ fn render_list(model: &Model, records: &[&ActionRecord], frame: &mut Frame, area
             .enumerate()
             .skip(start)
             .take(rows)
-            .map(|(index, record)| row(model, record, index == model.log_tab.selected)),
+            .map(|(index, record)| row(model, record, index == model.log_tab.selected, columns)),
     );
     frame.render_widget(Paragraph::new(lines), area);
 }
 
-fn row<'a>(model: &Model, record: &ActionRecord, selected: bool) -> Line<'a> {
+/// Which optional columns fit.
+#[derive(Clone, Copy)]
+struct Columns {
+    kind: bool,
+    trigger: bool,
+}
+
+impl Columns {
+    fn for_width(width: u16) -> Self {
+        Self {
+            kind: width >= KIND_FROM,
+            trigger: width >= TRIGGER_FROM,
+        }
+    }
+}
+
+fn row<'a>(model: &Model, record: &ActionRecord, selected: bool, columns: Columns) -> Line<'a> {
     let theme = &model.theme;
     let (status, result) = result(model, record);
     let target_style = if selected {
@@ -153,7 +180,7 @@ fn row<'a>(model: &Model, record: &ActionRecord, selected: bool) -> Line<'a> {
     } else {
         Style::new().fg(theme.ink)
     };
-    Line::from(vec![
+    let mut spans = vec![
         Span::styled(
             if selected { "▌ " } else { "  " },
             Style::new().fg(theme.focus),
@@ -162,14 +189,20 @@ fn row<'a>(model: &Model, record: &ActionRecord, selected: bool) -> Line<'a> {
             fit(&time(model, record.started_at), TIME_WIDTH),
             Style::new().fg(theme.muted),
         ),
-        Span::styled(
+    ];
+    if columns.kind {
+        spans.push(Span::styled(
             fit(&kind(model, record.kind), KIND_WIDTH),
             Style::new().fg(theme.ink),
-        ),
-        Span::styled(
+        ));
+    }
+    if columns.trigger {
+        spans.push(Span::styled(
             fit(&trigger(model, record.trigger), TRIGGER_WIDTH),
             Style::new().fg(theme.muted),
-        ),
+        ));
+    }
+    spans.extend([
         Span::styled(
             fit(
                 &format!("{} {result}", status_glyph(model.settings.icons, status)),
@@ -178,7 +211,8 @@ fn row<'a>(model: &Model, record: &ActionRecord, selected: bool) -> Line<'a> {
             Style::new().fg(theme.status(status)),
         ),
         Span::styled(record.target.clone(), target_style),
-    ])
+    ]);
+    Line::from(spans)
 }
 
 /// Target, result, duration and the end of the output of the selected action.
