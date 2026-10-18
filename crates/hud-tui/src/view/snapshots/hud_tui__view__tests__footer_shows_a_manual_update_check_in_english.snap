@@ -13,4 +13,4 @@ expression: render(&model).backend()
 "                                                                                "
 "  ────────────────────────────────────────────────────────────────────────────  "
 "  Checking for updates…                                                         "
-"  ↑↓ select   u install   r check   tab switch   ? help   q quit                "
+"  ↑↓ select   u install   a all   r check   tab switch   ? help   q quit        "

@@ -351,7 +351,11 @@ fn footer_hints(model: &Model) -> Vec<(&'static str, &'static str)> {
     }
     let mut hints = Vec::with_capacity(7);
     match model.tab() {
-        Tab::Updates => hints.extend([("key-arrows", "hint-select"), ("key-u", "hint-install")]),
+        Tab::Updates => hints.extend([
+            ("key-arrows", "hint-select"),
+            ("key-u", "hint-install"),
+            ("key-a", "hint-install-all"),
+        ]),
         Tab::Workspaces => hints.extend([
             ("key-arrows", "hint-select"),
             ("key-f", "hint-fast-forward"),
@@ -1530,6 +1534,21 @@ mod tests {
             );
             insta::assert_snapshot!(
                 format!("install_dialog_major_{suffix}"),
+                render_big(&model).backend()
+            );
+        }
+    }
+
+    #[test]
+    fn install_all_dialog_counts_per_source_and_names_major_updates() {
+        for (language, suffix) in LANGUAGES {
+            let mut model = updates_tab(language);
+            update(
+                &mut model,
+                Msg::Key(KeyEvent::new(KeyCode::Char('a'), KeyModifiers::NONE)),
+            );
+            insta::assert_snapshot!(
+                format!("install_all_dialog_{suffix}"),
                 render_big(&model).backend()
             );
         }

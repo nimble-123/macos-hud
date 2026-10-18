@@ -13,4 +13,4 @@ expression: render(&model).backend()
 "                                                                                "
 "  ────────────────────────────────────────────────────────────────────────────  "
 "  Update-Prüfung läuft…                                                         "
-"  ↑↓ auswählen   u installieren   r prüfen   tab wechseln   ? Hilfe   q beende  "
+"  ↑↓ auswählen   u installieren   a alle   r prüfen   tab wechseln   ? Hilfe    "

@@ -146,7 +146,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 | `t` | KI: Telemetrie in Claude Code einschalten (mit Rückfrage) |
 | `/` / `Esc` | Protokoll: Suche öffnen / Suche verwerfen |
 | `Enter`, Leertaste, `←` `→` | Einstellungen: Wert ändern bzw. Schalter kippen |
-| `a` | Einstellungen: Workspace hinzufügen |
+| `a` | Updates: alle verfügbaren Updates installieren (mit Rückfrage); Einstellungen: Workspace hinzufügen |
 | `d`, `Entf` | Einstellungen: ausgewählten Workspace entfernen (mit Rückfrage) |
 | `r` | Übersicht, Workspaces, KI: Fetch und Sync starten; Updates: Quellen prüfen; Protokoll: neu laden; Einstellungen: Config neu laden |
 | `?` | Hilfe-Overlay mit den Tasten des aktuellen Tabs und den globalen Tasten; jede Taste schließt es |
@@ -187,6 +187,7 @@ Skills   1.7.2
 - Installationszustände: „wartet“, „läuft“, „installiert“ (●), „braucht ein Passwort, im Terminal ausführen“ (▲), „abgebrochen“ (▲), „nicht erlaubt“, „fehlgeschlagen: …“, „Zeitüberschreitung“ (✖). „installiert“ bleibt bis zur nächsten Prüfung stehen.
 - Skills meldet keine einzelnen Updates; der Tab zeigt die Zahl installierter Skills und eine Zeile „Alle Skills aktualisieren“.
 - `u` oder `Enter` öffnet einen zentrierten Bestätigungsdialog in `focus` mit dem genauen Befehl. Bei einem Major-Update warnt eine Zeile in `caution` (▲ Major-Update: kann inkompatible Änderungen enthalten.). `Enter` installiert, `Esc` oder `n` bricht ab; solange der Dialog offen ist, gehen alle Tasten an ihn.
+- `a` öffnet denselben Dialog für alle Zeilen, die sich jetzt installieren lassen (ohne gepinnte und bereits laufende): Titel „Alle Updates installieren?“, je Quelle Name und Anzahl („Homebrew 3 Pakete“, bei Skills „alle Skills“), darunter bei Major-Updates „▲ Major-Updates: <Namen>“ in `caution`. `Enter` startet für jedes Paket einen eigenen Job mit eigener Permit-Prüfung; gibt es nichts zu installieren, öffnet sich kein Dialog.
 - `r` prüft die Quellen sofort.
 - Laufende Installationen erscheinen auf allen Tabs in der Fortschrittszeile der Fußzeile, vor Scan und Sync.
 - Nach `f` (oder `Enter`) im Workspaces-Tab zeigt die Fortschrittszeile gleich nach den Installationen „Fast-Forward <Repo> …“ und nach dem Ergebnis 5 s lang eine Rückmeldung mit Statussymbol: „<Repo>: bereits aktuell, nichts zu tun“ (●), „<Repo>: Fast-Forward: N Commits“ (●), „<Repo>: nicht aktualisiert, <Grund>“ (▲) oder die Fehlermeldung (✖).

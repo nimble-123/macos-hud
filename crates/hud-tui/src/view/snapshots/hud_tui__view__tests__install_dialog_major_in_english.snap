@@ -31,4 +31,4 @@ expression: render_big(&model).backend()
 "                                                                                                                   "
 "  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────  "
 "  ⠋ 1 installation running   brew upgrade wget                                                                     "
-"  ↑↓ select   u install   r check   tab switch   ? help   q quit                                                   "
+"  ↑↓ select   u install   a all   r check   tab switch   ? help   q quit                                           "

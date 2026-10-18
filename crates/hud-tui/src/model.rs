@@ -83,6 +83,15 @@ pub(crate) struct FfNotice {
     pub(crate) at: Option<Instant>,
 }
 
+/// What the install dialog asks the user to confirm.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum Confirm {
+    /// The selected row, after `u` or `Enter`.
+    One(InstallTarget),
+    /// Every row that can be installed now, after `a`.
+    All(Vec<InstallTarget>),
+}
+
 /// Moves a list cursor one row up (`-1`) or down (`1`), wrapping around at
 /// both ends. An empty list keeps the cursor at 0.
 pub(crate) fn wrap_step(index: usize, delta: isize, count: usize) -> usize {
@@ -124,8 +133,8 @@ pub struct Model {
     pub(crate) finished_jobs: BTreeMap<JobId, JobUpdate>,
     /// Index into [`Model::update_rows`].
     pub(crate) update_selected: usize,
-    /// Installation waiting for confirmation in the dialog.
-    pub(crate) confirm: Option<InstallTarget>,
+    /// Installations waiting for confirmation in the dialog.
+    pub(crate) confirm: Option<Confirm>,
     /// What the system reported at start-up; used for `auto` preferences.
     pub(crate) system: System,
     /// Settings as last reported; `None` until the settings agent sent them.
@@ -281,6 +290,18 @@ impl Model {
             }
         }
         rows
+    }
+
+    /// Rows `a` installs: not pinned and not already queued or running.
+    pub(crate) fn installable_rows(&self) -> Vec<InstallTarget> {
+        self.update_rows()
+            .into_iter()
+            .filter(|target| match target {
+                InstallTarget::Package(candidate) => !candidate.pinned,
+                InstallTarget::AllSkills => true,
+            })
+            .filter(|target| !self.jobs.values().any(|job| job.target == *target))
+            .collect()
     }
 
     /// The job that last touched `target`: a running one first, else the latest finished one.
