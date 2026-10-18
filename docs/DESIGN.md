@@ -109,7 +109,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
   Speicher     67 %     ▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅…   10,7 GB / 16,0 GB
   Prozesse    512
 
-  ◆ 3 Repos zurück   ▲ 2 übersprungen   ✖ 1 divergiert                             nur Abweichungen
+  ◆ 3 Repos zurück   ▲ 1 ungepusht   ▲ 2 übersprungen   ✖ 1 divergiert            nur Abweichungen
   ◆ 11 Updates (Homebrew 1, npm (global) 10)
 
   KI heute    192,9 M Token   ≈ 137,67 $   API-Äquivalent
@@ -127,7 +127,7 @@ Zahlen in der TUI sind rechtsbündig mit fester Breite formatiert (entspricht `t
 - **Maus**: Tab-Beschriftungen, Zeitraumauswahl und Listenzeilen sind klickbar; ein zweiter Klick auf die gewählte Zeile wirkt wie Enter (Workspaces: Fast-Forward, Updates: Bestätigungsdialog, Protokoll: Details vergrößern, Einstellungen: Wert ändern). Das Mausrad bewegt die Auswahl. Solange ein Dialog offen ist, werden Klicks ignoriert; ein Klick schließt die Hilfe.
 - **Fensterbreite**: Spalten mit Namen (Modelle, Pakete, Repositories) wachsen mit dem Fenster und werden in schmalen Fenstern gekürzt (`…`); Zahlenspalten bleiben fest. Wird es eng, entfallen nachrangige Spalten: in der Modelltabelle zuerst Cache schreiben bzw. Reasoning, dann Antworten, Input und Cache lesen (Output und Kosten bleiben); im Protokoll unter 95 Spalten der Auslöser, unter 78 die Aktion. Lange Zeilen wie die Token-Zeile brechen unter die Werte um; Zustands- und Job-Texte enden mit `…`, wenn sie nicht passen. Die Sparklines zeigen in schmalen Fenstern nur die jüngsten Messungen, die Einstellungen verkleinern die Label-Spalte, die Hilfe nimmt höchstens die Fensterbreite.
 - **Scrollen**: Workspaces, Updates, Protokoll und Einstellungen halten die Auswahl im sichtbaren Bereich. Übersicht und KI-Tab blättern frei mit `↑` `↓`, Bild↑/Bild↓, Pos1/Ende und dem Mausrad, nie über das Ende des Inhalts hinaus; im KI-Tab bleibt die Zeitraumleiste oben stehen. Passt der Inhalt nicht, zeigt ein Scrollbalken im rechten Rand (Spur `│` in `rule`, Griff `┃` in `muted`) die Position, und die Fußzeile nennt „↑↓ blättern“.
-- **Übersicht zeigt nur Abweichungen** (Dark Cockpit). Ist alles normal, steht dort ein einziger neutraler Satz, z. B. „Alles aktuell. Letzte Prüfung vor 4 min.“ Repos zählen als „zurück“ (auch bei Opt-out), „übersprungen“ (Regel blockiert), „divergiert“ oder „Fehler“; nicht verfügbare Workspaces erscheinen eigens. Updates zählen ohne gepinnte Pakete.
+- **Übersicht zeigt nur Abweichungen** (Dark Cockpit). Ist alles normal, steht dort ein einziger neutraler Satz, z. B. „Alles aktuell. Letzte Prüfung vor 4 min.“ Repos zählen als „zurück“ (auch bei Opt-out), „ungepusht“ (nur eigene Commits, kein Upstream-Rückstand), „übersprungen“ (andere Regel blockiert), „divergiert“ oder „Fehler“; nicht verfügbare Workspaces erscheinen eigens. Updates zählen ohne gepinnte Pakete.
 - Die Sparklines sind rechtsbündig: der neueste Wert steht immer an derselben Stelle. CPU oder Speicher ab 90 % erscheinen in `caution`.
 - Darunter die **KI-Aktivität** im Stil des GitHub-Contribution-Graphs: Kopf „KI-Aktivität   letzte N Wochen“, eine Spalte je Woche (so viele, wie in die Breite passen, höchstens 53), sieben Zeilen Mo bis So, beschriftet Mo, Mi, Fr links und noch einmal rechts nach der letzten Woche (die rechte Beschriftung zählt bei der Breite mit); Monatskürzel über der Woche, in der ein Monat beginnt. Mit Farbe besteht eine Zelle aus `■` und Leerzeichen, fünf Stufen von `rule` bis `advisory` (0 und die Quartile der aktiven Tage); ohne Farben (`NO_COLOR`) zeigen `·░▒▓█` die Stufe. In der letzten Zeile Antworten, aktive Tage und längste Serie, rechts daneben die Legende „weniger ■■■■■ mehr“. Ohne jede Aktivität entfällt der Kalender.
 - Darunter im selben Aufbau die **Git-Aktivität**: eigene Commits über alle getrackten Repositories, Farbverlauf von `rule` zu `ok`, damit beide Kalender auf einen Blick unterscheidbar sind.
@@ -288,13 +288,15 @@ Automatische Installation
 KI-Quellen
   Claude Code                   ● an
   Codex                         ○ aus
+Übersicht
+  Ungepushte Commits            ● an
 ```
 
-- Vier Abschnitte, je ein fetter Kopf in `ink`; Werte in einer eigenen Spalte.
+- Fünf Abschnitte, je ein fetter Kopf in `ink`; Werte in einer eigenen Spalte.
 - `Enter`, Leertaste oder `→` ändern die Zeile: Auswahlen wechseln zum nächsten Wert, `←` zum vorherigen; Schalter kippen. Die Anzeige zeigt immer den gespeicherten Stand, nicht eine lokale Vorschau.
 - `a` oder `Enter` auf „Workspace hinzufügen“ öffnet eine Eingabezeile in `focus` mit Cursor `█`; Pfade beginnen mit `/` oder `~/`. Solange die Eingabe offen ist, gehen alle Tasten an sie.
 - `d` oder `Entf` öffnet einen zentrierten Dialog „Workspace entfernen?“ mit dem Hinweis, dass nur die Config geändert wird.
-- Sprache, Theme, Symbolsatz und KI-Quellen gelten sofort; eine abgeschaltete KI-Quelle verschwindet aus dem KI-Tab, ihre gespeicherten Daten bleiben. Ein abgelehnter Schreibversuch erscheint unter den Einstellungen in `warning`, ein ungültiger Pfad in `caution`.
+- Sprache, Theme, Symbolsatz, KI-Quellen und die Zusatzanzeigen der Übersicht gelten sofort; eine abgeschaltete Zusatzanzeige verschwindet aus der Übersicht; eine abgeschaltete KI-Quelle verschwindet aus dem KI-Tab, ihre gespeicherten Daten bleiben. Ein abgelehnter Schreibversuch erscheint unter den Einstellungen in `warning`, ein ungültiger Pfad in `caution`.
 
 ### 5.7 Hilfe und Dialoge
 

@@ -9,7 +9,7 @@ expression: render_wide(&model).backend()
 "  Speicher     67 %                       ▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅   10,7 GB / 16,0 GB             "
 "  Prozesse    512                                                                                                  "
 "                                                                                                                   "
-"  ◆ 1 Repo zurück   ▲ 1 übersprungen   ✖ 1 divergiert                                                              "
+"  ◆ 1 Repo zurück   ▲ 1 ungepusht   ▲ 1 übersprungen   ✖ 1 divergiert                                              "
 "                                                                                                                   "
 "                                                                                                                   "
 "                                                                                                                   "

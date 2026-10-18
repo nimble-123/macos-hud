@@ -145,6 +145,36 @@ impl Default for TelemetrySettings {
     }
 }
 
+/// Additions to the overview, each on by default.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OverviewSettings {
+    /// Repositories with commits their upstream lacks.
+    pub unpushed: bool,
+}
+
+impl OverviewSettings {
+    /// Whether the overview shows `insight`.
+    #[must_use]
+    pub fn shows(&self, insight: OverviewInsight) -> bool {
+        match insight {
+            OverviewInsight::Unpushed => self.unpushed,
+        }
+    }
+}
+
+impl Default for OverviewSettings {
+    fn default() -> Self {
+        Self { unpushed: true }
+    }
+}
+
+/// One switchable addition to the overview.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OverviewInsight {
+    /// Repositories with commits their upstream lacks.
+    Unpushed,
+}
+
 /// Explicit paths for external tools; `None` means look up in the login PATH.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ToolPaths {
@@ -183,6 +213,8 @@ pub struct Settings {
     pub codex: ProviderSettings,
     /// OTLP receiver.
     pub telemetry: TelemetrySettings,
+    /// Additions to the overview.
+    pub overview: OverviewSettings,
     /// Price overrides by model id, in micro-USD per million tokens (ADR 0009).
     pub prices: BTreeMap<String, hud_domain::usage::Price>,
     /// Explicit tool paths.
@@ -221,6 +253,7 @@ impl Default for Settings {
                 billing: Billing::Subscription,
             },
             telemetry: TelemetrySettings::default(),
+            overview: OverviewSettings::default(),
             prices: BTreeMap::new(),
             tools: ToolPaths::default(),
         }
@@ -304,6 +337,13 @@ pub enum SettingsChange {
         /// New value.
         enabled: bool,
     },
+    /// Turns one addition to the overview on or off.
+    OverviewInsight {
+        /// Which addition.
+        insight: OverviewInsight,
+        /// New value.
+        enabled: bool,
+    },
 }
 
 /// The automatic installation opt-ins, one per kind of package.
@@ -349,6 +389,7 @@ mod tests {
         assert_eq!(settings.auto_install, AutoInstallSettings::default());
         assert!(settings.claude.enabled);
         assert!(!settings.codex.enabled);
+        assert!(settings.overview.unpushed);
     }
 
     #[test]

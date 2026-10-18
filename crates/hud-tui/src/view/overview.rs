@@ -1,7 +1,7 @@
 //! Overview: machine load with sparklines, then only what deviates (Dark Cockpit).
 
 use hud_application::ports::system::SystemSample;
-use hud_application::settings::Billing;
+use hud_application::settings::{Billing, OverviewInsight};
 use hud_application::usecases::workspaces::RepoState;
 use hud_domain::git::SkipReason;
 use hud_domain::update::SourceId;
@@ -132,6 +132,7 @@ fn deviation_lines<'a>(model: &Model) -> Vec<Line<'a>> {
     let repos = repo_counts(model);
     let parts: Vec<(Status, String)> = [
         (Status::Advisory, "overview-repos-behind", repos.behind),
+        (Status::Caution, "overview-repos-unpushed", repos.unpushed),
         (Status::Caution, "overview-repos-skipped", repos.skipped),
         (Status::Warning, "overview-repos-diverged", repos.diverged),
         (Status::Warning, "overview-repos-errors", repos.errors),
@@ -162,6 +163,7 @@ fn deviation_lines<'a>(model: &Model) -> Vec<Line<'a>> {
 #[derive(Default)]
 struct RepoCounts {
     behind: u32,
+    unpushed: u32,
     skipped: u32,
     diverged: u32,
     errors: u32,
@@ -170,6 +172,7 @@ struct RepoCounts {
 
 fn repo_counts(model: &Model) -> RepoCounts {
     let mut counts = RepoCounts::default();
+    let unpushed = shows(model, OverviewInsight::Unpushed);
     for workspace in &model.workspaces {
         if workspace.repos.is_none() {
             counts.unavailable += 1;
@@ -181,6 +184,7 @@ fn repo_counts(model: &Model) -> RepoCounts {
             // Opted out means behind and waiting for a manual fast-forward.
             RepoState::Behind(_) | RepoState::Skipped(SkipReason::OptedOut) => counts.behind += 1,
             RepoState::Skipped(SkipReason::Diverged { .. }) => counts.diverged += 1,
+            RepoState::Skipped(SkipReason::Ahead(_)) if unpushed => counts.unpushed += 1,
             RepoState::Skipped(_) => counts.skipped += 1,
             RepoState::Error(_) => counts.errors += 1,
         }
@@ -224,6 +228,14 @@ fn updates_line<'a>(model: &Model) -> Option<Line<'a>> {
         t_count(language, "overview-updates", "count", total)
     );
     Some(status_line(model, vec![(Status::Advisory, text)]))
+}
+
+/// Before the settings are loaded every addition counts as switched on.
+fn shows(model: &Model, insight: OverviewInsight) -> bool {
+    model
+        .preferences
+        .as_ref()
+        .is_none_or(|preferences| preferences.overview.shows(insight))
 }
 
 fn status_line<'a>(model: &Model, parts: Vec<(Status, String)>) -> Line<'a> {
