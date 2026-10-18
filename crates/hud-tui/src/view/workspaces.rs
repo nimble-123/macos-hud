@@ -135,13 +135,57 @@ fn header<'a>(model: &Model, workspace: &'a WorkspaceReport) -> Line<'a> {
             format!("   {glyph} {}", t(language, "ws-unavailable")),
             Style::new().fg(theme.status(Status::Warning)),
         ));
-    } else if !workspace.auto_fast_forward {
+        return Line::from(spans);
+    }
+    if let Some(repos) = workspace.repos.as_ref().filter(|repos| !repos.is_empty()) {
+        spans.extend(counts(model, repos));
+    }
+    if !workspace.auto_fast_forward {
         spans.push(Span::styled(
             format!("   {}", t(language, "ws-auto-off")),
             Style::new().fg(theme.soft),
         ));
     }
     Line::from(spans)
+}
+
+/// `23 Repos   ◆ 2  ▲ 1  ✖ 1`, or `alles aktuell` when nothing deviates.
+fn counts<'a>(model: &Model, repos: &[RepoReport]) -> Vec<Span<'a>> {
+    let language = model.settings.language;
+    let theme = &model.theme;
+    let total = u32::try_from(repos.len()).unwrap_or(u32::MAX);
+    let mut spans = vec![Span::styled(
+        format!("   {}", t_count(language, "ws-repo-count", "count", total)),
+        Style::new().fg(theme.soft),
+    )];
+    let deviating: Vec<(Status, usize)> = [Status::Advisory, Status::Caution, Status::Warning]
+        .into_iter()
+        .map(|status| {
+            let count = repos
+                .iter()
+                .filter(|report| status_of(model, report) == status)
+                .count();
+            (status, count)
+        })
+        .filter(|(_, count)| *count > 0)
+        .collect();
+    if deviating.is_empty() {
+        spans.push(Span::styled(
+            format!("   {}", t(language, "ws-all-current")),
+            Style::new().fg(theme.soft),
+        ));
+    }
+    for (index, (status, count)) in deviating.into_iter().enumerate() {
+        let gap = if index == 0 { "   " } else { "  " };
+        spans.push(Span::styled(
+            format!(
+                "{gap}{} {count}",
+                status_glyph(model.settings.icons, status)
+            ),
+            Style::new().fg(theme.status(status)),
+        ));
+    }
+    spans
 }
 
 /// Where a repository row sits: below the workspace or nested in another repo.
